@@ -1,10 +1,182 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Yeh Mera India</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Yeh Mera India | Knowledge, Stories and Awareness</title>
+  <meta name="description" content="Yeh Mera India is a knowledge platform for Indian stories, government schemes, CSR impact, education, health and awareness." />
+
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Yeh Mera India</h1>
-  <p>Custom Node.js CMS is live.</p>
+
+<body class="bg-gray-50 text-gray-900">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-orange-600">Yeh Mera India</h1>
+        <p class="text-sm text-gray-500">Simple knowledge for a stronger India</p>
+      </div>
+
+      <nav class="hidden md:flex gap-6 text-sm font-medium">
+        <a href="#" class="hover:text-orange-600">Home</a>
+        <a href="#" class="hover:text-orange-600">Schemes</a>
+        <a href="#" class="hover:text-orange-600">CSR Stories</a>
+        <a href="#" class="hover:text-orange-600">Education</a>
+        <a href="#" class="hover:text-orange-600">Health</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="bg-gradient-to-r from-orange-50 via-white to-green-50">
+    <div class="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <span class="inline-block bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+          India’s Knowledge Platform
+        </span>
+
+        <h2 class="text-4xl md:text-5xl font-bold leading-tight">
+          Knowledge, stories and useful information for every Indian.
+        </h2>
+
+        <p class="mt-5 text-gray-600 text-lg">
+          Read simple articles on government schemes, CSR impact, education, health, finance and inspiring stories from India.
+        </p>
+
+        <div class="mt-8 flex gap-4">
+          <a href="#latest-posts" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700">
+            Read Articles
+          </a>
+          <a href="/admin" class="bg-white border px-6 py-3 rounded-lg font-semibold hover:bg-gray-100">
+            Admin Panel
+          </a>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow">
+        <h3 class="text-xl font-bold mb-4">Popular Topics</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="p-4 bg-orange-50 rounded-xl">Government Schemes</div>
+          <div class="p-4 bg-green-50 rounded-xl">CSR Impact</div>
+          <div class="p-4 bg-blue-50 rounded-xl">Education</div>
+          <div class="p-4 bg-purple-50 rounded-xl">Health Awareness</div>
+          <div class="p-4 bg-yellow-50 rounded-xl">Finance Literacy</div>
+          <div class="p-4 bg-red-50 rounded-xl">India Stories</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="max-w-7xl mx-auto px-4 py-12">
+    <h3 class="text-3xl font-bold mb-8">Explore Categories</h3>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <h4 class="text-xl font-bold mb-2">Government Schemes</h4>
+        <p class="text-gray-600">Simple guides for eligibility, documents and application process.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <h4 class="text-xl font-bold mb-2">CSR & Social Impact</h4>
+        <p class="text-gray-600">Stories of change, rural development, education and sustainability.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <h4 class="text-xl font-bold mb-2">Education & Career</h4>
+        <p class="text-gray-600">Career guidance, skills, exams, scholarships and youth opportunities.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Posts -->
+  <section id="latest-posts" class="max-w-7xl mx-auto px-4 py-12">
+    <div class="flex items-center justify-between mb-8">
+      <h3 class="text-3xl font-bold">Latest Articles</h3>
+    </div>
+
+    <div id="posts" class="grid md:grid-cols-3 gap-8"></div>
+
+    <div id="noPosts" class="hidden bg-white border rounded-2xl p-8 text-center">
+      <h4 class="text-xl font-bold">No articles published yet</h4>
+      <p class="text-gray-600 mt-2">Create your first post from the admin panel.</p>
+      <a href="/admin" class="inline-block mt-4 bg-orange-600 text-white px-5 py-3 rounded-lg">
+        Go to Admin
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white mt-12">
+    <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row justify-between gap-4">
+      <div>
+        <h4 class="text-xl font-bold">Yeh Mera India</h4>
+        <p class="text-gray-400 text-sm mt-1">Simple knowledge for a stronger India.</p>
+      </div>
+      <p class="text-gray-400 text-sm">© 2026 Yeh Mera India. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function shortText(text, limit = 140) {
+      if (!text) return '';
+      return text.length > limit ? text.substring(0, limit) + '...' : text;
+    }
+
+    fetch('/api/posts')
+      .then(res => res.json())
+      .then(posts => {
+        const container = document.getElementById('posts');
+        const noPosts = document.getElementById('noPosts');
+
+        if (!posts || posts.length === 0) {
+          noPosts.classList.remove('hidden');
+          return;
+        }
+
+        let html = '';
+
+        posts.forEach(post => {
+          const imageHtml = post.image
+            ? `<img src="/uploads/${post.image}" class="w-full h-48 object-cover rounded-xl mb-4" />`
+            : `<div class="w-full h-48 bg-orange-100 rounded-xl mb-4 flex items-center justify-center text-orange-700 font-bold">Yeh Mera India</div>`;
+
+          const shareUrl = encodeURIComponent(window.location.origin);
+          const shareText = encodeURIComponent(post.title);
+
+          html += `
+            <article class="bg-white border rounded-2xl shadow-sm overflow-hidden p-4 hover:shadow-md transition">
+              ${imageHtml}
+              <h4 class="text-xl font-bold mb-2">${post.title}</h4>
+              <p class="text-gray-600 mb-4">${shortText(post.content)}</p>
+
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-500">
+                  ${new Date(post.created_at).toLocaleDateString()}
+                </span>
+
+                <a 
+                  href="https://wa.me/?text=${shareText}%20${shareUrl}" 
+                  target="_blank"
+                  class="text-green-600 font-semibold text-sm"
+                >
+                  Share
+                </a>
+              </div>
+            </article>
+          `;
+        });
+
+        container.innerHTML = html;
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('noPosts').classList.remove('hidden');
+      });
+  </script>
+
 </body>
 </html>
