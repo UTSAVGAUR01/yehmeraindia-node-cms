@@ -1,30 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Yeh Mera India</title>
+  <title>Yeh Mera India</title>
 </head>
 <body>
-
-<h1>Yeh Mera India</h1>
-<div id="posts"></div>
-
-<script>
-fetch('/api/posts')
-.then(res => res.json())
-.then(data => {
-  let html = '';
-  data.forEach(p => {
-    html += `
-      <h2>${p.title}</h2>
-      <img src="/uploads/${p.image}" width="200"/>
-      <p>${p.content}</p>
-      <a href="https://wa.me/?text=${location.href}">Share</a>
-      <hr/>
-    `;
-  });
-  document.getElementById('posts').innerHTML = html;
-});
-</script>
-
+  <h1>Yeh Mera India</h1>
+  <p>Custom Node.js CMS is live.</p>
 </body>
 </html>
