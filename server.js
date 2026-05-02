@@ -7,15 +7,18 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+
+// Static folders
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// MySQL Connection
+// MySQL connection
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || '127.0.0.1',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME
@@ -29,7 +32,7 @@ db.connect((err) => {
   }
 });
 
-// Upload Configuration
+// Upload setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -42,17 +45,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Home Page
+// Pages
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Admin Dashboard Page
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin/dashboard.html'));
 });
 
-// Upload Image API
+// Upload image
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No image uploaded' });
@@ -64,16 +66,17 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   });
 });
 
-// Create Post API
+// Create post
 app.post('/api/admin/posts', (req, res) => {
-  const { title, slug, content, image } = req.body;
+  const { title, content, image } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ message: 'Title and content are required' });
   }
 
-  const finalSlug = slug || title
+  const slug = title
     .toLowerCase()
+    .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
@@ -82,7 +85,7 @@ app.post('/api/admin/posts', (req, res) => {
     VALUES (?, ?, ?, ?)
   `;
 
-  db.query(sql, [title, finalSlug, content, image || null], (err, result) => {
+  db.query(sql, [title, slug, content, image || null], (err, result) => {
     if (err) {
       console.error('POST SAVE ERROR:', err.message);
       return res.status(500).json({ message: 'Failed to save post' });
@@ -95,7 +98,7 @@ app.post('/api/admin/posts', (req, res) => {
   });
 });
 
-// Get All Posts API
+// Get all posts
 app.get('/api/posts', (req, res) => {
   const sql = `
     SELECT id, title, slug, content, image, created_at
@@ -113,10 +116,8 @@ app.get('/api/posts', (req, res) => {
   });
 });
 
-// Get Single Post API
+// Get single post
 app.get('/api/posts/:slug', (req, res) => {
-  const { slug } = req.params;
-
   const sql = `
     SELECT id, title, slug, content, image, created_at
     FROM posts
@@ -124,7 +125,7 @@ app.get('/api/posts/:slug', (req, res) => {
     LIMIT 1
   `;
 
-  db.query(sql, [slug], (err, results) => {
+  db.query(sql, [req.params.slug], (err, results) => {
     if (err) {
       console.error('FETCH POST ERROR:', err.message);
       return res.status(500).json({ message: 'Failed to fetch post' });
@@ -138,7 +139,16 @@ app.get('/api/posts/:slug', (req, res) => {
   });
 });
 
-// Start Server
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    app: 'Yeh Mera India',
+    db: 'connected'
+  });
+});
+
+// Start server
 app.listen(PORT, () => {
   console.log(`Yeh Mera India running on port ${PORT}`);
 });
