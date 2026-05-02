@@ -1,0 +1,35 @@
+<h2>Create Post</h2>
+
+<input id="title" placeholder="Title"/><br/><br/>
+<textarea id="content" placeholder="Content"></textarea><br/><br/>
+<input type="file" id="image"/><br/><br/>
+
+<button onclick="submitPost()">Publish</button>
+
+<script>
+async function submitPost() {
+  const fileInput = document.getElementById('image');
+
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]);
+
+  const upload = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData
+  });
+
+  const img = await upload.json();
+
+  await fetch('/api/admin/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: document.getElementById('title').value,
+      content: document.getElementById('content').value,
+      image: img.file
+    })
+  });
+
+  alert('Post Created');
+}
+</script>
