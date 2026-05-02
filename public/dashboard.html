@@ -2,288 +2,180 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard | Yeh Mera India</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | Yeh Mera India</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
-
-<body class="bg-slate-100 text-slate-900">
-
-  <div class="min-h-screen grid lg:grid-cols-[280px_1fr]">
-
-    <aside class="bg-slate-950 text-white p-6">
+<body class="bg-gray-100 text-gray-900">
+  <div class="min-h-screen grid lg:grid-cols-[260px_1fr]">
+    <!-- Sidebar -->
+    <aside class="bg-gray-900 text-white p-6 flex flex-col gap-6">
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center font-black">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center font-bold text-lg">
           Y
         </div>
         <div>
-          <h1 class="font-black text-xl">YMI Admin</h1>
-          <p class="text-xs text-slate-400">Content Control Center</p>
+          <h1 class="font-bold text-xl">YMI Admin</h1>
+          <p class="text-xs text-gray-400">Control Panel</p>
         </div>
       </div>
-
-      <nav class="mt-10 space-y-3">
-        <button onclick="showTab('posts')" class="w-full text-left px-4 py-3 rounded-2xl bg-white/10 font-bold">Posts</button>
-        <button onclick="showTab('create')" class="w-full text-left px-4 py-3 rounded-2xl hover:bg-white/10 font-bold">Create Post</button>
-        <button onclick="showTab('users')" class="w-full text-left px-4 py-3 rounded-2xl hover:bg-white/10 font-bold">Users</button>
-        <a href="/" class="block px-4 py-3 rounded-2xl hover:bg-white/10 font-bold">View Website</a>
-        <button onclick="logout()" class="w-full text-left px-4 py-3 rounded-2xl hover:bg-red-500/20 text-red-300 font-bold">Logout</button>
+      <nav class="flex-1 space-y-2">
+        <button onclick="showTab('overview')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">Overview</button>
+        <button onclick="showTab('posts')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">Posts</button>
+        <button onclick="showTab('create')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">Create Post</button>
+        <button onclick="showTab('trending')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">Trending Manager</button>
+        <button onclick="showTab('ai')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">AI Reporter</button>
+        <button onclick="showTab('users')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">Users</button>
+        <button onclick="showTab('categories')" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-800">Categories</button>
+        <a href="/" class="block py-2 px-3 rounded-lg hover:bg-gray-800">View Site</a>
+        <button onclick="logout()" class="w-full text-left py-2 px-3 rounded-lg hover:bg-red-600/30 text-red-300">Logout</button>
       </nav>
-    </aside>
-
-    <main class="p-5 md:p-8">
-      <div class="bg-white rounded-[2rem] border p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <p class="text-orange-600 font-bold">Dashboard</p>
-          <h2 class="text-3xl font-black">Welcome to Yeh Mera India CMS</h2>
-        </div>
-        <div id="userBox" class="text-sm font-bold text-slate-600"></div>
+      <div class="text-xs text-gray-400">
+        Logged in as <span id="currentUser"></span>
       </div>
-
-      <section id="tab-posts" class="tab">
-        <div class="bg-white border rounded-[2rem] p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-black">All Posts</h3>
-            <button onclick="showTab('create')" class="px-5 py-3 rounded-2xl bg-orange-600 text-white font-bold">New Post</button>
+    </aside>
+    <!-- Main Content -->
+    <main class="p-6">
+      <!-- Overview Tab -->
+      <section id="tab-overview" class="tab">
+        <h2 class="text-3xl font-bold mb-6">Dashboard Overview</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-xl border shadow flex flex-col gap-2">
+            <h3 class="text-lg font-bold">Total Posts</h3>
+            <p id="statsPosts" class="text-4xl font-extrabold">0</p>
           </div>
-          <div id="postsList" class="space-y-4"></div>
+          <div class="bg-white p-6 rounded-xl border shadow flex flex-col gap-2">
+            <h3 class="text-lg font-bold">Pending Users</h3>
+            <p id="statsPending" class="text-4xl font-extrabold">0</p>
+          </div>
+          <div class="bg-white p-6 rounded-xl border shadow flex flex-col gap-2">
+            <h3 class="text-lg font-bold">Trending Posts</h3>
+            <p id="statsTrending" class="text-4xl font-extrabold">0</p>
+          </div>
         </div>
       </section>
-
+      <!-- Posts List Tab -->
+      <section id="tab-posts" class="tab hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">All Posts</h2>
+          <button onclick="showTab('create')" class="px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold">New Post</button>
+        </div>
+        <div id="postsList" class="space-y-4"></div>
+      </section>
+      <!-- Create Post Tab -->
       <section id="tab-create" class="tab hidden">
-        <div class="bg-white border rounded-[2rem] p-6">
-          <h3 class="text-2xl font-black mb-6">Create New Article</h3>
-
-          <form id="postForm" class="space-y-5">
-            <div>
-              <label class="text-sm font-bold">Title</label>
-              <input id="title" required class="mt-2 w-full px-4 py-3 rounded-2xl border">
-            </div>
-
-            <div>
-              <label class="text-sm font-bold">Short Excerpt</label>
-              <textarea id="excerpt" rows="3" class="mt-2 w-full px-4 py-3 rounded-2xl border"></textarea>
-            </div>
-
-            <div>
-              <label class="text-sm font-bold">Content</label>
-              <textarea id="content" rows="10" required class="mt-2 w-full px-4 py-3 rounded-2xl border"></textarea>
-            </div>
-
-            <div>
-              <label class="text-sm font-bold">Featured Image</label>
-              <input id="image" type="file" accept="image/*" class="mt-2 w-full px-4 py-3 rounded-2xl border bg-white">
-            </div>
-
-            <div>
-              <label class="text-sm font-bold">Status</label>
-              <select id="status" class="mt-2 w-full px-4 py-3 rounded-2xl border">
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-              </select>
-            </div>
-
-            <button class="px-7 py-4 rounded-2xl bg-slate-900 text-white font-black">
-              Publish Article
-            </button>
-          </form>
-
-          <p id="postMsg" class="mt-5 text-sm font-bold"></p>
-        </div>
+        <h2 class="text-2xl font-bold mb-6">Create New Post</h2>
+        <form id="postForm" class="space-y-5">
+          <div>
+            <label class="font-bold">Title</label>
+            <input id="title" required class="mt-2 w-full px-4 py-3 rounded-lg border" />
+          </div>
+          <div>
+            <label class="font-bold">Category</label>
+            <select id="category" class="mt-2 w-full px-4 py-3 rounded-lg border"></select>
+          </div>
+          <div>
+            <label class="font-bold">Format</label>
+            <select id="format" class="mt-2 w-full px-4 py-3 rounded-lg border">
+              <option value="standard">Standard Article</option>
+              <option value="breaking">Breaking News</option>
+              <option value="listicle">Top 10 List</option>
+              <option value="photo_story">Photo Story</option>
+              <option value="opinion">Opinion</option>
+              <option value="ai_report">AI Report</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold">Status</label>
+            <select id="status" class="mt-2 w-full px-4 py-3 rounded-lg border">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold">Excerpt</label>
+            <textarea id="excerpt" rows="3" class="mt-2 w-full px-4 py-3 rounded-lg border"></textarea>
+          </div>
+          <div>
+            <label class="font-bold">Content</label>
+            <textarea id="content" rows="8" required class="mt-2 w-full px-4 py-3 rounded-lg border"></textarea>
+          </div>
+          <div>
+            <label class="font-bold">Tags (comma separated)</label>
+            <input id="tags" class="mt-2 w-full px-4 py-3 rounded-lg border" />
+          </div>
+          <div>
+            <label class="font-bold">Featured Image</label>
+            <input id="image" type="file" accept="image/*" class="mt-2 w-full px-4 py-3 rounded-lg border bg-white" />
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="inline-flex items-center gap-2">
+              <input id="is_trending" type="checkbox" class="h-4 w-4" /> Trending
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input id="is_featured" type="checkbox" class="h-4 w-4" /> Featured
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input id="ai_generated" type="checkbox" class="h-4 w-4" /> AI Generated
+            </label>
+          </div>
+          <button type="submit" class="px-6 py-3 bg-slate-900 text-white rounded-lg font-bold">Publish Post</button>
+          <p id="postMsg" class="text-sm font-semibold mt-4"></p>
+        </form>
       </section>
-
+      <!-- Trending Manager Tab -->
+      <section id="tab-trending" class="tab hidden">
+        <h2 class="text-2xl font-bold mb-6">Trending Manager</h2>
+        <p class="text-gray-600 mb-4">Toggle posts as trending to feature them on the homepage.</p>
+        <div id="trendingManagerList" class="space-y-4"></div>
+      </section>
+      <!-- AI Reporter Tab -->
+      <section id="tab-ai" class="tab hidden">
+        <h2 class="text-2xl font-bold mb-6">AI News Reporter</h2>
+        <p class="text-gray-600 mb-6">Generate article ideas, outlines and drafts using AI. Review before publishing.</p>
+        <form id="aiForm" class="space-y-5">
+          <div>
+            <label class="font-bold">Topic</label>
+            <input id="aiTopic" required class="mt-2 w-full px-4 py-3 rounded-lg border" />
+          </div>
+          <div>
+            <label class="font-bold">Tone</label>
+            <select id="aiTone" class="mt-2 w-full px-4 py-3 rounded-lg border">
+              <option value="simple">Simple</option>
+              <option value="detailed">Detailed</option>
+              <option value="insightful">Insightful</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold">Format</label>
+            <select id="aiFormat" class="mt-2 w-full px-4 py-3 rounded-lg border">
+              <option value="article">Article</option>
+              <option value="top10">Top 10</option>
+              <option value="explainer">Explainer</option>
+            </select>
+          </div>
+          <div class="flex gap-4">
+            <button type="button" id="generateIdea" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold">Generate Idea</button>
+            <button type="button" id="generateOutline" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-bold">Generate Outline</button>
+            <button type="button" id="generateDraft" class="px-6 py-3 bg-green-600 text-white rounded-lg font-bold">Generate Draft</button>
+          </div>
+        </form>
+        <div id="aiOutput" class="mt-6"></div>
+      </section>
+      <!-- Users Tab -->
       <section id="tab-users" class="tab hidden">
-        <div class="bg-white border rounded-[2rem] p-6">
-          <h3 class="text-2xl font-black mb-6">User Permissions</h3>
-          <p class="text-slate-500 mb-6">Only admin can approve users and assign roles.</p>
-          <div id="usersList" class="space-y-4"></div>
-        </div>
+        <h2 class="text-2xl font-bold mb-6">User Management</h2>
+        <div id="usersList" class="space-y-4"></div>
+      </section>
+      <!-- Categories Tab -->
+      <section id="tab-categories" class="tab hidden">
+        <h2 class="text-2xl font-bold mb-6">Categories</h2>
+        <p class="text-gray-600 mb-4">View and manage categories.</p>
+        <div id="categoriesAdminList" class="space-y-4"></div>
       </section>
     </main>
   </div>
-
-  <script>
-    let currentUser = null;
-
-    function showTab(tab) {
-      document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
-      document.getElementById('tab-' + tab).classList.remove('hidden');
-
-      if (tab === 'posts') loadPosts();
-      if (tab === 'users') loadUsers();
-    }
-
-    async function checkUser() {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-
-      if (!data.user) {
-        window.location.href = '/login.html';
-        return;
-      }
-
-      currentUser = data.user;
-      document.getElementById('userBox').textContent = `${data.user.name} | ${data.user.role}`;
-      loadPosts();
-    }
-
-    async function uploadImage() {
-      const file = document.getElementById('image').files[0];
-
-      if (!file) return null;
-
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Image upload failed');
-      }
-
-      return data.file;
-    }
-
-    document.getElementById('postForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const msg = document.getElementById('postMsg');
-
-      try {
-        const imageFile = await uploadImage();
-
-        const res = await fetch('/api/admin/posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: document.getElementById('title').value,
-            excerpt: document.getElementById('excerpt').value,
-            content: document.getElementById('content').value,
-            image: imageFile,
-            status: document.getElementById('status').value
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.message);
-
-        msg.textContent = data.message;
-        msg.className = 'mt-5 text-sm font-bold text-green-600';
-
-        document.getElementById('postForm').reset();
-        loadPosts();
-        showTab('posts');
-      } catch (error) {
-        msg.textContent = error.message;
-        msg.className = 'mt-5 text-sm font-bold text-red-600';
-      }
-    });
-
-    async function loadPosts() {
-      const res = await fetch('/api/admin/posts');
-      const posts = await res.json();
-
-      const box = document.getElementById('postsList');
-
-      if (!Array.isArray(posts) || posts.length === 0) {
-        box.innerHTML = '<p class="text-slate-500">No posts found.</p>';
-        return;
-      }
-
-      box.innerHTML = posts.map(post => `
-        <div class="border rounded-3xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h4 class="font-black text-lg">${post.title}</h4>
-            <p class="text-sm text-slate-500">${post.status} | ${new Date(post.created_at).toLocaleDateString()}</p>
-          </div>
-          <div class="flex gap-3">
-            <a href="/post/${post.slug}" target="_blank" class="px-4 py-2 rounded-xl border font-bold">View</a>
-            ${currentUser && currentUser.role === 'admin' ? `<button onclick="deletePost(${post.id})" class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold">Delete</button>` : ''}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function deletePost(id) {
-      if (!confirm('Delete this post?')) return;
-
-      const res = await fetch('/api/admin/posts/' + id, {
-        method: 'DELETE'
-      });
-
-      const data = await res.json();
-      alert(data.message);
-      loadPosts();
-    }
-
-    async function loadUsers() {
-      const res = await fetch('/api/admin/users');
-      const users = await res.json();
-
-      const box = document.getElementById('usersList');
-
-      if (!Array.isArray(users)) {
-        box.innerHTML = '<p class="text-red-600 font-bold">Only admin can view users.</p>';
-        return;
-      }
-
-      box.innerHTML = users.map(user => `
-        <div class="border rounded-3xl p-5 grid md:grid-cols-[1fr_auto_auto] gap-4 items-center">
-          <div>
-            <h4 class="font-black">${user.name}</h4>
-            <p class="text-sm text-slate-500">${user.email}</p>
-          </div>
-
-          <select onchange="updateRole(${user.id}, this.value)" class="px-4 py-2 rounded-xl border">
-            ${['pending','viewer','editor','admin'].map(role => `
-              <option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>
-            `).join('')}
-          </select>
-
-          <select onchange="updateStatus(${user.id}, this.value)" class="px-4 py-2 rounded-xl border">
-            ${['active','blocked'].map(status => `
-              <option value="${status}" ${user.status === status ? 'selected' : ''}>${status}</option>
-            `).join('')}
-          </select>
-        </div>
-      `).join('');
-    }
-
-    async function updateRole(id, role) {
-      const res = await fetch(`/api/admin/users/${id}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role })
-      });
-
-      const data = await res.json();
-      alert(data.message);
-    }
-
-    async function updateStatus(id, status) {
-      const res = await fetch(`/api/admin/users/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-
-      const data = await res.json();
-      alert(data.message);
-    }
-
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login.html';
-    }
-
-    checkUser();
-  </script>
-
+  <script src="/assets/js/dashboard.js"></script>
 </body>
 </html>

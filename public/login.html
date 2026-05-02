@@ -2,46 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Sign in | Yeh Mera India</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in | Yeh Mera India</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
-<body class="min-h-screen bg-gradient-to-br from-orange-100 via-white to-green-100 flex items-center justify-center px-5">
-
-  <div class="w-full max-w-md bg-white/90 backdrop-blur border rounded-[2rem] shadow-2xl p-8">
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-100 via-white to-green-100 py-10 px-4">
+  <div class="w-full max-w-md bg-white/90 backdrop-blur-xl border rounded-3xl shadow-2xl p-8">
     <a href="/" class="text-sm font-bold text-orange-600">← Back to home</a>
-
     <h1 class="text-4xl font-black mt-6">Welcome back</h1>
-    <p class="text-slate-500 mt-2">Sign in to access your dashboard.</p>
-
+    <p class="text-gray-500 mt-2">Sign in to access your dashboard.</p>
     <form id="loginForm" class="mt-8 space-y-5">
       <div>
         <label class="text-sm font-bold">Email</label>
         <input id="email" type="email" required class="mt-2 w-full px-4 py-3 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-orange-500">
       </div>
-
       <div>
         <label class="text-sm font-bold">Password</label>
         <input id="password" type="password" required class="mt-2 w-full px-4 py-3 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-orange-500">
       </div>
-
-      <button class="w-full py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800">
-        Sign in
-      </button>
+      <button type="submit" class="w-full py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800">Sign in</button>
     </form>
-
     <p id="message" class="mt-5 text-sm font-semibold"></p>
-
-    <p class="text-sm text-slate-500 mt-6">
-      New here?
-      <a href="/signup.html" class="font-bold text-orange-600">Create account</a>
-    </p>
+    <p class="text-sm text-gray-500 mt-6">New here? <a href="/signup.html" class="font-bold text-orange-600">Create account</a></p>
   </div>
-
   <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,24 +37,19 @@
           password: document.getElementById('password').value
         })
       });
-
       const data = await res.json();
       const msg = document.getElementById('message');
-
       if (!res.ok) {
         msg.textContent = data.message;
         msg.className = 'mt-5 text-sm font-semibold text-red-600';
         return;
       }
-
       msg.textContent = 'Login successful. Redirecting...';
       msg.className = 'mt-5 text-sm font-semibold text-green-600';
-
       setTimeout(() => {
         window.location.href = '/dashboard.html';
       }, 700);
     });
   </script>
-
 </body>
 </html>

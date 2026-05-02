@@ -1,0 +1,28 @@
+/*
+ * Custom styles for Yeh Mera India
+ *
+ * This stylesheet defines a small set of default rules and helper
+ * classes to complement the Tailwind CSS framework loaded via CDN.
+ * By separating these styles into a dedicated file we enable more
+ * centralized theming across the entire site.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+/* Use the Inter font family throughout the site for a modern look. */
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Semi-transparent card effect for glassy backgrounds. */
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Customize text selection highlight to match brand colors. */
+::selection {
+  background-color: rgba(247, 144, 9, 0.3);
+  color: inherit;
+}

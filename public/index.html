@@ -3,258 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>Yeh Mera India | Knowledge for a Stronger Bharat</title>
-  <meta name="description" content="Yeh Mera India is a modern knowledge platform for Indian stories, government schemes, CSR impact, education, health and digital awareness." />
-
+  <title>Yeh Mera India | Home</title>
+  <meta name="description" content="Yeh Mera India is a modern online magazine and knowledge platform for India. Read trending posts, explore categories and discover AI generated news." />
+  <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
-
-<body class="bg-[#f8fafc] text-slate-900">
-
-  <header class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b">
-    <div class="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
+<body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
+  <header class="bg-white shadow sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
       <a href="/" class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center text-white font-black">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center text-white font-bold text-xl">
           Y
         </div>
         <div>
-          <h1 class="text-xl font-black tracking-tight">Yeh Mera India</h1>
-          <p class="text-xs text-slate-500">Knowledge for a stronger Bharat</p>
+          <h1 class="text-2xl font-bold text-orange-600">Yeh Mera India</h1>
+          <p class="text-xs text-gray-500">Knowledge &amp; Stories of Bharat</p>
         </div>
       </a>
-
-      <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-slate-600">
-        <a href="#articles" class="hover:text-orange-600">Articles</a>
-        <a href="#topics" class="hover:text-orange-600">Topics</a>
-        <a href="#impact" class="hover:text-orange-600">Impact</a>
-        <a href="/dashboard.html" class="hover:text-orange-600">Dashboard</a>
+      <nav class="hidden md:flex gap-6 text-sm font-semibold text-gray-600">
+        <a href="#trending" class="hover:text-orange-600">Trending</a>
+        <a href="#categories" class="hover:text-orange-600">Categories</a>
+        <a href="#ai-reporter" class="hover:text-orange-600">AI Reporter</a>
+        <a href="#about" class="hover:text-orange-600">About</a>
       </nav>
-
       <div class="flex items-center gap-3">
-        <a href="/login.html" class="hidden sm:inline-flex px-4 py-2 rounded-xl border font-semibold hover:bg-slate-50">
-          Sign in
-        </a>
-        <a href="/signup.html" class="inline-flex px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800">
-          Sign up
-        </a>
+        <a href="/login.html" class="hidden sm:inline-flex px-4 py-2 rounded-xl border font-semibold hover:bg-gray-50">Sign in</a>
+        <a href="/signup.html" class="inline-flex px-4 py-2 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700">Sign up</a>
       </div>
     </div>
   </header>
 
-  <main class="pt-24">
-
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-br from-orange-100 via-white to-green-100"></div>
-      <div class="absolute -top-24 -right-24 w-96 h-96 bg-orange-300/30 rounded-full blur-3xl"></div>
-      <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-green-300/30 rounded-full blur-3xl"></div>
-
-      <div class="relative max-w-7xl mx-auto px-5 py-20 grid lg:grid-cols-2 gap-12 items-center">
-        <div>
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border shadow-sm mb-6">
-            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-            <span class="text-sm font-semibold">India’s modern knowledge platform</span>
-          </div>
-
-          <h2 class="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]">
-            Simple knowledge for a smarter India.
-          </h2>
-
-          <p class="mt-6 text-lg text-slate-600 leading-8 max-w-2xl">
-            Explore articles on government schemes, CSR impact, education, health, finance, digital safety and inspiring stories from Bharat.
-          </p>
-
-          <div class="mt-8 flex flex-col sm:flex-row gap-4">
-            <a href="#articles" class="px-7 py-4 rounded-2xl bg-orange-600 text-white font-bold hover:bg-orange-700 text-center">
-              Explore Articles
-            </a>
-            <a href="/signup.html" class="px-7 py-4 rounded-2xl bg-white border font-bold hover:bg-slate-50 text-center">
-              Join Community
-            </a>
-          </div>
-
-          <div class="mt-10 grid grid-cols-3 gap-4 max-w-xl">
-            <div class="bg-white/80 border rounded-2xl p-4">
-              <p class="text-2xl font-black">6+</p>
-              <p class="text-xs text-slate-500">Core topics</p>
-            </div>
-            <div class="bg-white/80 border rounded-2xl p-4">
-              <p class="text-2xl font-black">100%</p>
-              <p class="text-xs text-slate-500">India focused</p>
-            </div>
-            <div class="bg-white/80 border rounded-2xl p-4">
-              <p class="text-2xl font-black">AI+</p>
-              <p class="text-xs text-slate-500">Future ready</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white/80 backdrop-blur-xl border rounded-[2rem] shadow-2xl p-6">
-          <div class="rounded-[1.5rem] bg-slate-950 text-white p-6">
-            <p class="text-sm text-orange-300 font-semibold">Featured Knowledge</p>
-            <h3 class="text-3xl font-black mt-3">Government schemes explained in simple language</h3>
-            <p class="text-slate-300 mt-4 leading-7">
-              No complex words. No confusion. Clear eligibility, documents, process and benefits.
-            </p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4 mt-4">
-            <div class="p-5 rounded-3xl bg-orange-50 border">
-              <p class="text-2xl">🏛️</p>
-              <h4 class="font-bold mt-3">Schemes</h4>
-              <p class="text-sm text-slate-500 mt-1">Yojana guides</p>
-            </div>
-            <div class="p-5 rounded-3xl bg-green-50 border">
-              <p class="text-2xl">🌱</p>
-              <h4 class="font-bold mt-3">CSR Impact</h4>
-              <p class="text-sm text-slate-500 mt-1">Ground stories</p>
-            </div>
-            <div class="p-5 rounded-3xl bg-blue-50 border">
-              <p class="text-2xl">🎓</p>
-              <h4 class="font-bold mt-3">Education</h4>
-              <p class="text-sm text-slate-500 mt-1">Career growth</p>
-            </div>
-            <div class="p-5 rounded-3xl bg-purple-50 border">
-              <p class="text-2xl">🛡️</p>
-              <h4 class="font-bold mt-3">Awareness</h4>
-              <p class="text-sm text-slate-500 mt-1">Digital safety</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="topics" class="max-w-7xl mx-auto px-5 py-16">
-      <div class="flex items-end justify-between gap-6 mb-8">
-        <div>
-          <p class="text-orange-600 font-bold">Explore</p>
-          <h3 class="text-4xl font-black mt-2">Popular knowledge areas</h3>
-        </div>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="group bg-white border rounded-3xl p-7 hover:shadow-xl transition">
-          <div class="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center text-2xl">🏛️</div>
-          <h4 class="text-xl font-black mt-5">Government Schemes</h4>
-          <p class="text-slate-600 mt-3">Eligibility, documents, process and benefits explained simply.</p>
-        </div>
-
-        <div class="group bg-white border rounded-3xl p-7 hover:shadow-xl transition">
-          <div class="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center text-2xl">🌍</div>
-          <h4 class="text-xl font-black mt-5">CSR & Social Impact</h4>
-          <p class="text-slate-600 mt-3">Rural development, sustainability, education and community stories.</p>
-        </div>
-
-        <div class="group bg-white border rounded-3xl p-7 hover:shadow-xl transition">
-          <div class="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center text-2xl">📚</div>
-          <h4 class="text-xl font-black mt-5">Education & Career</h4>
-          <p class="text-slate-600 mt-3">Skills, exams, scholarships, resume and career preparation.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="articles" class="max-w-7xl mx-auto px-5 py-16">
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8">
-        <div>
-          <p class="text-orange-600 font-bold">Latest</p>
-          <h3 class="text-4xl font-black mt-2">Fresh articles</h3>
-        </div>
-
-        <a href="/dashboard.html" class="px-5 py-3 rounded-2xl bg-slate-900 text-white font-bold w-fit">
-          Create Post
-        </a>
-      </div>
-
-      <div id="posts" class="grid md:grid-cols-3 gap-7"></div>
-
-      <div id="noPosts" class="hidden bg-white border rounded-3xl p-10 text-center">
-        <h4 class="text-2xl font-black">No articles published yet</h4>
-        <p class="text-slate-500 mt-3">Admin or approved editor can create the first article.</p>
-        <a href="/dashboard.html" class="inline-block mt-6 px-6 py-3 rounded-2xl bg-orange-600 text-white font-bold">
-          Go to Dashboard
-        </a>
-      </div>
-    </section>
-
-    <section id="impact" class="max-w-7xl mx-auto px-5 py-16">
-      <div class="bg-slate-950 text-white rounded-[2rem] p-8 md:p-12 grid md:grid-cols-2 gap-8 items-center">
-        <div>
-          <p class="text-orange-300 font-bold">Vision</p>
-          <h3 class="text-4xl font-black mt-3">Build a trusted knowledge platform for Bharat.</h3>
-          <p class="text-slate-300 mt-5 leading-8">
-            Yeh Mera India can become a strong platform for awareness, public information and social impact stories.
-          </p>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div class="bg-white/10 rounded-3xl p-6">
-            <p class="text-3xl font-black">Trust</p>
-            <p class="text-slate-300 text-sm mt-2">Clear and simple content</p>
-          </div>
-          <div class="bg-white/10 rounded-3xl p-6">
-            <p class="text-3xl font-black">Impact</p>
-            <p class="text-slate-300 text-sm mt-2">Real India stories</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <footer class="border-t bg-white">
-    <div class="max-w-7xl mx-auto px-5 py-8 flex flex-col md:flex-row justify-between gap-4">
+  <!-- Hero Section -->
+  <section class="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-orange-50 via-white to-green-50">
+    <div class="max-w-7xl mx-auto px-4 grid md:grid-cols-2 gap-10 items-center">
       <div>
-        <h4 class="font-black text-xl">Yeh Mera India</h4>
-        <p class="text-slate-500 text-sm mt-1">Simple knowledge for a stronger Bharat.</p>
+        <h2 class="text-5xl font-extrabold leading-tight mb-4">
+          Discover, Learn and Inspire
+        </h2>
+        <p class="text-lg text-gray-600 mb-6">
+          Explore simple guides on government schemes, CSR impact, education, health and finance. Join our community and be part of the change.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="#trending" class="px-6 py-3 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 text-center">Read Trending</a>
+          <a href="/signup.html" class="px-6 py-3 bg-white border rounded-xl font-semibold hover:bg-gray-50 text-center">Join Community</a>
+        </div>
       </div>
-      <p class="text-slate-500 text-sm">© 2026 Yeh Mera India. All rights reserved.</p>
+      <div class="relative hidden md:block">
+        <!-- Decorative 3D style cards using CSS transforms -->
+        <div class="absolute top-0 right-0 w-40 h-40 bg-orange-200 rounded-3xl transform rotate-12 shadow-lg"></div>
+        <div class="absolute top-10 left-6 w-32 h-32 bg-green-200 rounded-3xl transform -rotate-6 shadow-lg"></div>
+        <div class="absolute bottom-0 right-6 w-48 h-48 bg-blue-200 rounded-3xl transform rotate-3 shadow-lg"></div>
+        <div class="absolute bottom-12 left-10 w-56 h-56 bg-purple-200 rounded-3xl transform -rotate-12 shadow-lg"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trending Section -->
+  <section id="trending" class="max-w-7xl mx-auto px-4 py-12">
+    <div class="flex items-end justify-between mb-6">
+      <h3 class="text-3xl font-extrabold">Trending Posts</h3>
+      <a href="/trending.html" class="text-sm font-semibold text-orange-600 hover:text-orange-700">See all</a>
+    </div>
+    <div id="trendingPosts" class="grid md:grid-cols-3 gap-6"></div>
+  </section>
+
+  <!-- Categories Section -->
+  <section id="categories" class="bg-gray-100 py-12">
+    <div class="max-w-7xl mx-auto px-4">
+      <h3 class="text-3xl font-extrabold mb-6">Browse by Category</h3>
+      <div id="categoriesList" class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    </div>
+  </section>
+
+  <!-- AI Reporter Section -->
+  <section id="ai-reporter" class="max-w-7xl mx-auto px-4 py-12">
+    <h3 class="text-3xl font-extrabold mb-6">AI News Reporter</h3>
+    <p class="text-gray-600 mb-8 max-w-3xl">
+      Our AI News Reporter generates insightful articles and explainers from trending news. Check out the latest AI-generated pieces below.
+    </p>
+    <div id="aiPosts" class="grid md:grid-cols-2 gap-6"></div>
+    <div class="mt-6">
+      <a href="/ai-reporter.html" class="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700">Explore AI Reporter</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-8">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between gap-6">
+      <div>
+        <h4 class="font-bold text-xl mb-2">Yeh Mera India</h4>
+        <p class="text-gray-400 text-sm max-w-sm">
+          Simple knowledge for a stronger Bharat. Bringing you the latest insights on schemes, CSR, education, health, finance and inspiring stories.
+        </p>
+      </div>
+      <div class="text-sm">
+        <h5 class="font-bold mb-2">Quick Links</h5>
+        <ul class="space-y-2">
+          <li><a href="#trending" class="hover:underline">Trending</a></li>
+          <li><a href="#categories" class="hover:underline">Categories</a></li>
+          <li><a href="#ai-reporter" class="hover:underline">AI Reporter</a></li>
+          <li><a href="/about.html" class="hover:underline">About</a></li>
+          <li><a href="/contact.html" class="hover:underline">Contact</a></li>
+          <li><a href="/privacy.html" class="hover:underline">Privacy</a></li>
+          <li><a href="/terms.html" class="hover:underline">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mt-6 text-center text-xs text-gray-500">
+      © 2026 Yeh Mera India. All rights reserved.
     </div>
   </footer>
 
-  <script>
-    function shortText(text, limit = 130) {
-      if (!text) return '';
-      return text.length > limit ? text.substring(0, limit) + '...' : text;
-    }
-
-    fetch('/api/posts')
-      .then(res => res.json())
-      .then(posts => {
-        const container = document.getElementById('posts');
-        const noPosts = document.getElementById('noPosts');
-
-        if (!posts || posts.length === 0) {
-          noPosts.classList.remove('hidden');
-          return;
-        }
-
-        container.innerHTML = posts.map(post => {
-          const image = post.image
-            ? `<img src="/uploads/${post.image}" class="w-full h-52 object-cover rounded-3xl mb-5" />`
-            : `<div class="w-full h-52 bg-gradient-to-br from-orange-100 to-green-100 rounded-3xl mb-5 flex items-center justify-center font-black text-slate-700">Yeh Mera India</div>`;
-
-          const articleUrl = `/post/${post.slug}`;
-          const shareUrl = encodeURIComponent(window.location.origin + articleUrl);
-          const shareText = encodeURIComponent(post.title);
-
-          return `
-            <article class="bg-white border rounded-[1.7rem] p-5 hover:shadow-xl transition">
-              ${image}
-              <p class="text-xs font-bold text-orange-600 mb-2">Knowledge Article</p>
-              <h4 class="text-xl font-black leading-snug">${post.title}</h4>
-              <p class="text-slate-600 mt-3">${shortText(post.excerpt || post.content)}</p>
-
-              <div class="flex items-center justify-between mt-6">
-                <a href="${articleUrl}" class="font-bold text-slate-900 hover:text-orange-600">Read more</a>
-                <a href="https://wa.me/?text=${shareText}%20${shareUrl}" target="_blank" class="text-green-600 font-bold">Share</a>
-              </div>
-            </article>
-          `;
-        }).join('');
-      })
-      .catch(() => {
-        document.getElementById('noPosts').classList.remove('hidden');
-      });
-  </script>
-
+  <script src="/assets/js/main.js"></script>
 </body>
 </html>
