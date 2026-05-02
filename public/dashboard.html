@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard | Yeh Mera India</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+
+  <div class="min-h-screen grid lg:grid-cols-[280px_1fr]">
+
+    <aside class="bg-slate-950 text-white p-6">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center font-black">
+          Y
+        </div>
+        <div>
+          <h1 class="font-black text-xl">YMI Admin</h1>
+          <p class="text-xs text-slate-400">Content Control Center</p>
+        </div>
+      </div>
+
+      <nav class="mt-10 space-y-3">
+        <button onclick="showTab('posts')" class="w-full text-left px-4 py-3 rounded-2xl bg-white/10 font-bold">Posts</button>
+        <button onclick="showTab('create')" class="w-full text-left px-4 py-3 rounded-2xl hover:bg-white/10 font-bold">Create Post</button>
+        <button onclick="showTab('users')" class="w-full text-left px-4 py-3 rounded-2xl hover:bg-white/10 font-bold">Users</button>
+        <a href="/" class="block px-4 py-3 rounded-2xl hover:bg-white/10 font-bold">View Website</a>
+        <button onclick="logout()" class="w-full text-left px-4 py-3 rounded-2xl hover:bg-red-500/20 text-red-300 font-bold">Logout</button>
+      </nav>
+    </aside>
+
+    <main class="p-5 md:p-8">
+      <div class="bg-white rounded-[2rem] border p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p class="text-orange-600 font-bold">Dashboard</p>
+          <h2 class="text-3xl font-black">Welcome to Yeh Mera India CMS</h2>
+        </div>
+        <div id="userBox" class="text-sm font-bold text-slate-600"></div>
+      </div>
+
+      <section id="tab-posts" class="tab">
+        <div class="bg-white border rounded-[2rem] p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black">All Posts</h3>
+            <button onclick="showTab('create')" class="px-5 py-3 rounded-2xl bg-orange-600 text-white font-bold">New Post</button>
+          </div>
+          <div id="postsList" class="space-y-4"></div>
+        </div>
+      </section>
+
+      <section id="tab-create" class="tab hidden">
+        <div class="bg-white border rounded-[2rem] p-6">
+          <h3 class="text-2xl font-black mb-6">Create New Article</h3>
+
+          <form id="postForm" class="space-y-5">
+            <div>
+              <label class="text-sm font-bold">Title</label>
+              <input id="title" required class="mt-2 w-full px-4 py-3 rounded-2xl border">
+            </div>
+
+            <div>
+              <label class="text-sm font-bold">Short Excerpt</label>
+              <textarea id="excerpt" rows="3" class="mt-2 w-full px-4 py-3 rounded-2xl border"></textarea>
+            </div>
+
+            <div>
+              <label class="text-sm font-bold">Content</label>
+              <textarea id="content" rows="10" required class="mt-2 w-full px-4 py-3 rounded-2xl border"></textarea>
+            </div>
+
+            <div>
+              <label class="text-sm font-bold">Featured Image</label>
+              <input id="image" type="file" accept="image/*" class="mt-2 w-full px-4 py-3 rounded-2xl border bg-white">
+            </div>
+
+            <div>
+              <label class="text-sm font-bold">Status</label>
+              <select id="status" class="mt-2 w-full px-4 py-3 rounded-2xl border">
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+
+            <button class="px-7 py-4 rounded-2xl bg-slate-900 text-white font-black">
+              Publish Article
+            </button>
+          </form>
+
+          <p id="postMsg" class="mt-5 text-sm font-bold"></p>
+        </div>
+      </section>
+
+      <section id="tab-users" class="tab hidden">
+        <div class="bg-white border rounded-[2rem] p-6">
+          <h3 class="text-2xl font-black mb-6">User Permissions</h3>
+          <p class="text-slate-500 mb-6">Only admin can approve users and assign roles.</p>
+          <div id="usersList" class="space-y-4"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
+      document.getElementById('tab-' + tab).classList.remove('hidden');
+
+      if (tab === 'posts') loadPosts();
+      if (tab === 'users') loadUsers();
+    }
+
+    async function checkUser() {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+
+      if (!data.user) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      currentUser = data.user;
+      document.getElementById('userBox').textContent = `${data.user.name} | ${data.user.role}`;
+      loadPosts();
+    }
+
+    async function uploadImage() {
+      const file = document.getElementById('image').files[0];
+
+      if (!file) return null;
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Image upload failed');
+      }
+
+      return data.file;
+    }
+
+    document.getElementById('postForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('postMsg');
+
+      try {
+        const imageFile = await uploadImage();
+
+        const res = await fetch('/api/admin/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: document.getElementById('title').value,
+            excerpt: document.getElementById('excerpt').value,
+            content: document.getElementById('content').value,
+            image: imageFile,
+            status: document.getElementById('status').value
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.message);
+
+        msg.textContent = data.message;
+        msg.className = 'mt-5 text-sm font-bold text-green-600';
+
+        document.getElementById('postForm').reset();
+        loadPosts();
+        showTab('posts');
+      } catch (error) {
+        msg.textContent = error.message;
+        msg.className = 'mt-5 text-sm font-bold text-red-600';
+      }
+    });
+
+    async function loadPosts() {
+      const res = await fetch('/api/admin/posts');
+      const posts = await res.json();
+
+      const box = document.getElementById('postsList');
+
+      if (!Array.isArray(posts) || posts.length === 0) {
+        box.innerHTML = '<p class="text-slate-500">No posts found.</p>';
+        return;
+      }
+
+      box.innerHTML = posts.map(post => `
+        <div class="border rounded-3xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h4 class="font-black text-lg">${post.title}</h4>
+            <p class="text-sm text-slate-500">${post.status} | ${new Date(post.created_at).toLocaleDateString()}</p>
+          </div>
+          <div class="flex gap-3">
+            <a href="/post/${post.slug}" target="_blank" class="px-4 py-2 rounded-xl border font-bold">View</a>
+            ${currentUser && currentUser.role === 'admin' ? `<button onclick="deletePost(${post.id})" class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold">Delete</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function deletePost(id) {
+      if (!confirm('Delete this post?')) return;
+
+      const res = await fetch('/api/admin/posts/' + id, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+      alert(data.message);
+      loadPosts();
+    }
+
+    async function loadUsers() {
+      const res = await fetch('/api/admin/users');
+      const users = await res.json();
+
+      const box = document.getElementById('usersList');
+
+      if (!Array.isArray(users)) {
+        box.innerHTML = '<p class="text-red-600 font-bold">Only admin can view users.</p>';
+        return;
+      }
+
+      box.innerHTML = users.map(user => `
+        <div class="border rounded-3xl p-5 grid md:grid-cols-[1fr_auto_auto] gap-4 items-center">
+          <div>
+            <h4 class="font-black">${user.name}</h4>
+            <p class="text-sm text-slate-500">${user.email}</p>
+          </div>
+
+          <select onchange="updateRole(${user.id}, this.value)" class="px-4 py-2 rounded-xl border">
+            ${['pending','viewer','editor','admin'].map(role => `
+              <option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>
+            `).join('')}
+          </select>
+
+          <select onchange="updateStatus(${user.id}, this.value)" class="px-4 py-2 rounded-xl border">
+            ${['active','blocked'].map(status => `
+              <option value="${status}" ${user.status === status ? 'selected' : ''}>${status}</option>
+            `).join('')}
+          </select>
+        </div>
+      `).join('');
+    }
+
+    async function updateRole(id, role) {
+      const res = await fetch(`/api/admin/users/${id}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    async function updateStatus(id, status) {
+      const res = await fetch(`/api/admin/users/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    checkUser();
+  </script>
+
+</body>
+</html>
