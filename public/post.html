@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Article | Yeh Mera India</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+  <header class="bg-white border-b">
+    <div class="max-w-4xl mx-auto px-5 py-5 flex items-center justify-between">
+      <a href="/" class="font-black text-xl">Yeh Mera India</a>
+      <a href="/" class="font-bold text-orange-600">Home</a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-5 py-10">
+    <article id="article" class="bg-white border rounded-[2rem] p-6 md:p-10 shadow-sm"></article>
+  </main>
+
+  <script>
+    const slug = window.location.pathname.split('/').pop();
+
+    fetch('/api/posts/' + slug)
+      .then(res => res.json())
+      .then(post => {
+        if (!post || post.message) {
+          document.getElementById('article').innerHTML = '<h1 class="text-3xl font-black">Article not found</h1>';
+          return;
+        }
+
+        document.title = post.title + ' | Yeh Mera India';
+
+        const image = post.image
+          ? `<img src="/uploads/${post.image}" class="w-full rounded-[2rem] mb-8" />`
+          : '';
+
+        const shareUrl = encodeURIComponent(window.location.href);
+        const shareText = encodeURIComponent(post.title);
+
+        document.getElementById('article').innerHTML = `
+          ${image}
+          <p class="text-sm font-bold text-orange-600">Yeh Mera India</p>
+          <h1 class="text-4xl md:text-5xl font-black mt-3 leading-tight">${post.title}</h1>
+          <p class="text-slate-500 mt-4">By ${post.author_name || 'Yeh Mera India'} • ${new Date(post.created_at).toLocaleDateString()}</p>
+
+          <div class="mt-8 prose max-w-none text-lg leading-8 whitespace-pre-line">
+            ${post.content}
+          </div>
+
+          <div class="mt-10 border-t pt-6 flex gap-4">
+            <a target="_blank" href="https://wa.me/?text=${shareText}%20${shareUrl}" class="px-5 py-3 rounded-2xl bg-green-600 text-white font-bold">Share WhatsApp</a>
+            <button onclick="navigator.clipboard.writeText(location.href); alert('Link copied')" class="px-5 py-3 rounded-2xl bg-slate-900 text-white font-bold">Copy Link</button>
+          </div>
+        `;
+      });
+  </script>
+
+</body>
+</html>
