@@ -250,9 +250,9 @@ function loadAIHomepage() {
   // Always show polished AI preview first. No failure text.
   container.innerHTML = aiPreviewBlock();
 
-  fetch('/api/posts')
+  fetch('/api/ai-feed')
     .then(res => {
-      if (!res.ok) throw new Error('Posts API unavailable');
+      if (!res.ok) throw new Error('AI Feed API unavailable');
       return res.json();
     })
     .then(posts => {
