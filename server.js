@@ -145,6 +145,37 @@ function getAllDefaultPosts() {
   return defaultAiFeed;
 }
 
+async function ensureAutoAiTrendingPost() {
+  const [recent] = await runQuery(
+    `SELECT id FROM posts
+     WHERE status = 'published'
+       AND (ai_generated = 1 OR format = 'ai_report')
+       AND created_at >= DATE_SUB(NOW(), INTERVAL 8 HOUR)
+     ORDER BY id DESC
+     LIMIT 1`
+  );
+  if (recent) return;
+
+  const defaults = getAllDefaultPosts();
+  const pick = defaults[Math.floor(Math.random() * defaults.length)];
+  const slug = `${pick.slug}-${Date.now()}`;
+  await runQuery(
+    `INSERT INTO posts (title, slug, excerpt, content, status, category, format, ai_generated, is_trending, is_featured, views, likes_count, comments_count, shares_count)
+     VALUES (?, ?, ?, ?, 'published', ?, 'ai_report', 1, 1, 1, ?, ?, ?, ?)`,
+    [
+      pick.title,
+      slug,
+      `${pick.excerpt} Focus: positive Indian culture and verified public-interest context.`,
+      `${pick.content}\n\nCulture note: This story highlights constructive progress connected to Indian culture and community values.`,
+      pick.category || 'india-stories',
+      Number(pick.views) || 120,
+      25,
+      8,
+      5
+    ]
+  );
+}
+
 async function ensureDatabaseSchema() {
   try {
     await runQuery(`
@@ -562,6 +593,7 @@ app.get('/api/ai-feed', (req, res) => {
 });
 
 app.get('/api/trending', (req, res) => {
+  ensureAutoAiTrendingPost().catch(() => {});
   db.query(
     `
     SELECT ${postColumns()}
