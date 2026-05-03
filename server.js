@@ -9,6 +9,10 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const aiRequestWindowMs = 15 * 60 * 1000;
+const aiRequestLimit = Number(process.env.AI_RATE_LIMIT || 10);
+const aiRateBucket = new Map();
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
@@ -43,6 +47,21 @@ function runQuery(sql, params = []) {
   });
 }
 
+function sanitizeText(input, maxLength = 5000) {
+  if (!input) return '';
+  return String(input).replace(/[<>]/g, '').trim().slice(0, maxLength);
+}
+
+function enforceRateLimit(key) {
+  const now = Date.now();
+  const bucket = aiRateBucket.get(key) || [];
+  const valid = bucket.filter((t) => now - t < aiRequestWindowMs);
+  if (valid.length >= aiRequestLimit) return false;
+  valid.push(now);
+  aiRateBucket.set(key, valid);
+  return true;
+}
+
 const defaultCategories = [
   { id: 1, name: 'Government Schemes', slug: 'government-schemes', description: 'Simple guides for Indian government schemes' },
   { id: 2, name: 'CSR Impact', slug: 'csr-impact', description: 'Ground stories and social impact reports' },
@@ -53,77 +72,45 @@ const defaultCategories = [
   { id: 7, name: 'AI Reporter', slug: 'ai-reporter', description: 'AI-assisted news and explainers' }
 ];
 
-function makeDefaultPost(title, category, badge, views) {
-  const slug = slugify(title, { lower: true, strict: true });
-
-  return {
-    id: `default-${slug}`,
-    title,
-    slug,
-    excerpt: `AI-generated starter article for ${badge}. Admin can verify facts, update details and publish final version.`,
-    content: `${title}
-
-This is an AI-assisted starter article for Yeh Mera India.
-
-Key points to develop:
-1. Explain the topic in simple language.
-2. Add current verified facts and dates.
-3. Explain why it matters for Indian readers.
-4. Include public impact, opportunities and cautions.
-5. Add official sources before publishing.
-
-Editorial note: This draft must be reviewed before publishing.`,
-    category,
-    format: 'ai_report',
-    ai_generated: 1,
-    views,
-    is_trending: views >= 100 ? 1 : 0,
-    is_featured: views >= 110 ? 1 : 0,
-    badge,
-    created_at: new Date(),
-    author_name: 'AI Reporter'
-  };
-}
-
-const aiCategoryPosts = {
-  'government-schemes': [
-    makeDefaultPost('Top 10 Government Schemes Indian Families Should Know', 'government-schemes', 'Scheme Guide', 120),
-    makeDefaultPost('How to Check Eligibility Before Applying for a Yojana', 'government-schemes', 'Eligibility', 95)
-  ],
-  'csr-impact': [
-    makeDefaultPost('How CSR Projects Are Changing Rural India', 'csr-impact', 'CSR Impact', 110),
-    makeDefaultPost('Top CSR Ideas for Education Health and Livelihood', 'csr-impact', 'Impact Ideas', 88)
-  ],
-  education: [
-    makeDefaultPost('Why Skill Education Matters for New India', 'education', 'Education', 105),
-    makeDefaultPost('Top 10 Career Skills Students Should Learn in 2026', 'education', 'Career', 92)
-  ],
-  'health-awareness': [
-    makeDefaultPost('Simple Health Habits That Can Help Every Family', 'health-awareness', 'Health', 100),
-    makeDefaultPost('Preventive Health Checkups Every Family Should Understand', 'health-awareness', 'Awareness', 84)
-  ],
-  'finance-literacy': [
-    makeDefaultPost('India Stock Market Snapshot for Common Readers', 'finance-literacy', 'Market Watch', 115),
-    makeDefaultPost('Digital Payment Safety How to Avoid UPI and OTP Fraud', 'finance-literacy', 'Digital Safety', 88)
-  ],
-  'india-stories': [
-    makeDefaultPost('Top 10 Positive India Updates to Watch', 'india-stories', 'Positive News', 130),
-    makeDefaultPost('Sports and Youth Achievement Roundup', 'india-stories', 'Youth & Sports', 90)
-  ],
-  'ai-reporter': [
-    makeDefaultPost('AI Reporter How Yeh Mera India Creates Article Drafts', 'ai-reporter', 'AI Reporter', 100),
-    makeDefaultPost('Election Result Explainer What Readers Should Check', 'ai-reporter', 'Election Update', 92)
-  ]
-};
-
-const defaultAiFeed = Object.values(aiCategoryPosts).flat();
+const aiCategoryPosts = {};
 
 function getDefaultPostsByCategory(slug) {
   return aiCategoryPosts[slug] || [];
 }
 
-function getAllDefaultPosts() {
-  return defaultAiFeed;
+
+async function ensureAutoAiTrendingPost() {
+  const [recent] = await runQuery(
+    `SELECT id FROM posts
+     WHERE status = 'published'
+       AND (ai_generated = 1 OR format = 'ai_report')
+       AND created_at >= DATE_SUB(NOW(), INTERVAL 8 HOUR)
+     ORDER BY id DESC
+     LIMIT 1`
+  );
+  if (recent) return;
+
+  const promptInput = { topic: 'latest positive developments in Indian culture and community progress', category: 'india-stories', location: 'India', language: 'English', tone: 'neutral' };
+  const systemPrompt = 'You are an Indian news AI agent. Generate JSON only with headline, caption, summary, article, hashtags, seoTitle, seoDescription, imagePrompt. Do not invent unverifiable facts; mention verification needed if uncertain.';
+  const aiOutput = await callOpenAI(systemPrompt, JSON.stringify(promptInput));
+  if (!aiOutput) return;
+  const parsed = JSON.parse(aiOutput);
+  const title = sanitizeText(parsed.headline || 'Positive India Update', 200);
+  const slug = `${slugify(title, { lower: true, strict: true })}-${Date.now()}`;
+  await runQuery(
+    `INSERT INTO posts (title, slug, excerpt, summary, content, status, category, format, ai_generated, is_trending, is_featured, views, likes_count, comments_count, shares_count, seo_title, seo_description, hashtags)
+     VALUES (?, ?, ?, ?, ?, 'pending', 'india-stories', 'ai_report', 1, 1, 1, 0, 0, 0, 0, ?, ?, ?)`,
+    [
+      title,
+      slug,
+      sanitizeText(parsed.caption || '', 500),
+      sanitizeText(parsed.summary || '', 1000),
+      `${sanitizeText(parsed.article || '', 12000)}\n\nThis article was generated with AI assistance and should be reviewed for factual accuracy.`,
+      sanitizeText(parsed.seoTitle || title, 255),
+      sanitizeText(parsed.seoDescription || parsed.summary || '', 500),
+      JSON.stringify(parsed.hashtags || [])
+    ]
+  );
 }
 
 async function ensureDatabaseSchema() {
@@ -164,6 +151,48 @@ async function ensureDatabaseSchema() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        user_id INT NOT NULL,
+        parent_id INT NULL,
+        comment TEXT NOT NULL,
+        status VARCHAR(30) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS likes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_like (post_id, user_id)
+      )
+    `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS bookmarks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_bookmark (post_id, user_id)
+      )
+    `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS ai_generation_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        topic VARCHAR(255) NOT NULL,
+        prompt LONGTEXT NOT NULL,
+        result LONGTEXT NOT NULL,
+        model VARCHAR(100) DEFAULT 'gpt-4o-mini',
+        tokens_used INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     for (const cat of defaultCategories) {
       await runQuery(
@@ -181,6 +210,20 @@ async function ensureDatabaseSchema() {
       ['is_featured', 'ALTER TABLE posts ADD COLUMN is_featured TINYINT DEFAULT 0'],
       ['ai_generated', 'ALTER TABLE posts ADD COLUMN ai_generated TINYINT DEFAULT 0'],
       ['reading_time', 'ALTER TABLE posts ADD COLUMN reading_time INT DEFAULT 3']
+      ,['caption', 'ALTER TABLE posts ADD COLUMN caption TEXT NULL']
+      ,['summary', 'ALTER TABLE posts ADD COLUMN summary TEXT NULL']
+      ,['language', "ALTER TABLE posts ADD COLUMN language VARCHAR(20) DEFAULT 'English'"]
+      ,['location', 'ALTER TABLE posts ADD COLUMN location VARCHAR(120) NULL']
+      ,['state', 'ALTER TABLE posts ADD COLUMN state VARCHAR(120) NULL']
+      ,['media_url', 'ALTER TABLE posts ADD COLUMN media_url VARCHAR(255) NULL']
+      ,['media_type', "ALTER TABLE posts ADD COLUMN media_type VARCHAR(30) DEFAULT 'image'"]
+      ,['seo_title', 'ALTER TABLE posts ADD COLUMN seo_title VARCHAR(255) NULL']
+      ,['seo_description', 'ALTER TABLE posts ADD COLUMN seo_description TEXT NULL']
+      ,['hashtags', 'ALTER TABLE posts ADD COLUMN hashtags TEXT NULL']
+      ,['published_at', 'ALTER TABLE posts ADD COLUMN published_at TIMESTAMP NULL']
+      ,['shares_count', 'ALTER TABLE posts ADD COLUMN shares_count INT DEFAULT 0']
+      ,['likes_count', 'ALTER TABLE posts ADD COLUMN likes_count INT DEFAULT 0']
+      ,['comments_count', 'ALTER TABLE posts ADD COLUMN comments_count INT DEFAULT 0']
     ];
 
     for (const [columnName, alterSql] of columns) {
@@ -286,6 +329,32 @@ async function callOpenAI(systemPrompt, userPrompt) {
     '';
 
   return outputText.trim() || null;
+}
+
+function safeParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = String(text || '').match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try { return JSON.parse(match[0]); } catch { return null; }
+  }
+}
+
+async function collectSourceNotes(sourceUrls = []) {
+  const cleanUrls = Array.isArray(sourceUrls) ? sourceUrls.slice(0, 3) : [];
+  const snippets = [];
+  for (const url of cleanUrls) {
+    try {
+      const res = await fetch(url, { method: 'GET' });
+      const html = await res.text();
+      const text = sanitizeText(html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' '), 3500);
+      snippets.push({ url, excerpt: text.slice(0, 1000) });
+    } catch {
+      snippets.push({ url, excerpt: 'Source fetch failed' });
+    }
+  }
+  return snippets;
 }
 
 async function buildAiResponse(type, body) {
@@ -481,12 +550,14 @@ app.get('/api/ai-feed', (req, res) => {
     LIMIT 10
     `,
     (err, results) => {
-      res.json(err || !results?.length ? getAllDefaultPosts().slice(0, 10) : results);
+      if (err) return res.status(500).json({ message: 'Failed to fetch AI feed' });
+      res.json(results || []);
     }
   );
 });
 
 app.get('/api/trending', (req, res) => {
+  ensureAutoAiTrendingPost().catch(() => {});
   db.query(
     `
     SELECT ${postColumns()}
@@ -497,7 +568,8 @@ app.get('/api/trending', (req, res) => {
     LIMIT 10
     `,
     (err, results) => {
-      res.json(err || !results?.length ? getAllDefaultPosts().slice(0, 10) : results);
+      if (err) return res.status(500).json({ message: 'Failed to fetch trending posts' });
+      res.json(results || []);
     }
   );
 });
@@ -531,15 +603,8 @@ app.get('/api/posts/:slug', (req, res) => {
     `,
     [slug],
     (err, results) => {
-      if (err) {
-        const fallback = getAllDefaultPosts().find((p) => p.slug === slug);
-        return fallback ? res.json(fallback) : res.status(500).json({ message: 'Failed to fetch post' });
-      }
-
-      if (!results.length) {
-        const fallback = getAllDefaultPosts().find((p) => p.slug === slug);
-        return fallback ? res.json(fallback) : res.status(404).json({ message: 'Post not found' });
-      }
+      if (err) return res.status(500).json({ message: 'Failed to fetch post' });
+      if (!results.length) return res.status(404).json({ message: 'Post not found' });
 
       const post = results[0];
       db.query('UPDATE posts SET views = COALESCE(views, 0) + 1 WHERE id = ?', [post.id], () => {});
@@ -783,6 +848,132 @@ app.put('/api/admin/users/:id/status', requireRole(['admin']), (req, res) => {
     }
   );
 });
+
+app.post('/api/ai/generate-news', requireRole(['admin', 'editor']), async (req, res) => {
+  const topic = sanitizeText(req.body.topic, 200);
+  if (!topic) return res.status(400).json({ message: 'Topic is required' });
+  const rateKey = `${req.session.user.id}:${req.ip}`;
+  if (!enforceRateLimit(rateKey)) return res.status(429).json({ message: 'Rate limit exceeded. Try later.' });
+
+  const payload = {
+    topic,
+    category: sanitizeText(req.body.category || 'india-stories', 100),
+    location: sanitizeText(req.body.location || '', 100),
+    language: sanitizeText(req.body.language || 'English', 30),
+    tone: sanitizeText(req.body.tone || 'neutral', 40),
+    notes: sanitizeText(req.body.notes || '', 1000)
+  };
+
+  const sourceNotes = await collectSourceNotes(req.body.sourceUrls || []);
+  const systemPrompt = `You are an Indian news AI agent.
+Generate responsible Indian-culture-positive news.
+Do not invent fake facts. If facts are missing, explicitly say verification is needed.
+Return JSON only with:
+{"headline":"","caption":"","summary":"","article":"","hashtags":[],"seoTitle":"","seoDescription":"","imagePrompt":""}`;
+  const userPrompt = JSON.stringify({ ...payload, sourceNotes });
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  let resultText = '';
+  try {
+    resultText = await callOpenAI(systemPrompt, userPrompt);
+  } catch (err) {
+    return res.status(500).json({ message: 'AI generation failed', error: err.message });
+  }
+  if (!resultText) return res.status(500).json({ message: 'No AI output generated' });
+  const parsed = safeParseJson(resultText);
+  if (!parsed) return res.status(500).json({ message: 'AI did not return valid JSON' });
+  const title = sanitizeText(parsed.headline || payload.topic, 200);
+  const slug = `${slugify(title, { lower: true, strict: true })}-${Date.now()}`;
+  await runQuery(
+    `INSERT INTO posts (title, slug, caption, excerpt, summary, content, language, category, location, state, status, format, ai_generated, seo_title, seo_description, hashtags, author_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'ai_report', 1, ?, ?, ?, ?)`,
+    [
+      title,
+      slug,
+      sanitizeText(parsed.caption || '', 400),
+      sanitizeText(parsed.caption || parsed.summary || '', 500),
+      sanitizeText(parsed.summary || '', 1000),
+      `${sanitizeText(parsed.article || '', 12000)}\n\nThis article was generated with AI assistance and should be reviewed for factual accuracy.`,
+      payload.language,
+      payload.category,
+      payload.location,
+      payload.location,
+      sanitizeText(parsed.seoTitle || title, 255),
+      sanitizeText(parsed.seoDescription || parsed.summary || '', 500),
+      JSON.stringify(parsed.hashtags || []),
+      req.session.user.id
+    ]
+  );
+  await runQuery(
+    'INSERT INTO ai_generation_logs (user_id, topic, prompt, result, model) VALUES (?, ?, ?, ?, ?)',
+    [req.session.user.id, topic, userPrompt, resultText, model]
+  );
+  res.json({ aiGenerated: true, status: 'pending', slug, disclaimer: 'This article was generated with AI assistance and should be reviewed for factual accuracy.', result: parsed });
+});
+
+app.get('/api/posts/:id/comments', async (req, res) => {
+  try {
+    const comments = await runQuery(
+      `SELECT c.id, c.post_id, c.user_id, c.parent_id, c.comment, c.status, c.created_at, u.name
+       FROM comments c JOIN users u ON u.id = c.user_id
+       WHERE c.post_id = ? AND c.status = 'active' ORDER BY c.created_at DESC`,
+      [req.params.id]
+    );
+    res.json(comments);
+  } catch {
+    res.status(500).json({ message: 'Failed to fetch comments' });
+  }
+});
+
+app.post('/api/posts/:id/comments', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  try {
+    const comment = sanitizeText(req.body.comment, 1000);
+    if (!comment) return res.status(400).json({ message: 'Comment is required' });
+    await runQuery('INSERT INTO comments (post_id, user_id, parent_id, comment) VALUES (?, ?, ?, ?)', [req.params.id, req.session.user.id, req.body.parent_id || null, comment]);
+    await runQuery('UPDATE posts SET comments_count = COALESCE(comments_count, 0) + 1 WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Comment added' });
+  } catch {
+    res.status(500).json({ message: 'Failed to add comment' });
+  }
+});
+
+app.post('/api/posts/:id/like', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  try {
+    await runQuery('INSERT IGNORE INTO likes (post_id, user_id) VALUES (?, ?)', [req.params.id, req.session.user.id]);
+    await runQuery('UPDATE posts SET likes_count = (SELECT COUNT(*) FROM likes WHERE post_id = ?) WHERE id = ?', [req.params.id, req.params.id]);
+    res.json({ message: 'Liked' });
+  } catch {
+    res.status(500).json({ message: 'Failed to like post' });
+  }
+});
+
+app.delete('/api/posts/:id/like', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  await runQuery('DELETE FROM likes WHERE post_id = ? AND user_id = ?', [req.params.id, req.session.user.id]);
+  await runQuery('UPDATE posts SET likes_count = (SELECT COUNT(*) FROM likes WHERE post_id = ?) WHERE id = ?', [req.params.id, req.params.id]);
+  res.json({ message: 'Unliked' });
+});
+
+app.post('/api/posts/:id/bookmark', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  await runQuery('INSERT IGNORE INTO bookmarks (post_id, user_id) VALUES (?, ?)', [req.params.id, req.session.user.id]);
+  res.json({ message: 'Bookmarked' });
+});
+
+app.delete('/api/posts/:id/bookmark', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  await runQuery('DELETE FROM bookmarks WHERE post_id = ? AND user_id = ?', [req.params.id, req.session.user.id]);
+  res.json({ message: 'Bookmark removed' });
+});
+
+app.get('/api/admin/dashboard', requireRole(['admin']), async (req, res) => {
+  const [users] = await runQuery('SELECT COUNT(*) AS total_users FROM users');
+  const [posts] = await runQuery('SELECT COUNT(*) AS total_posts, SUM(status = "pending") AS pending_posts, SUM(status = "published") AS published_posts FROM posts');
+  const [engagement] = await runQuery('SELECT COALESCE(SUM(likes_count),0) AS total_likes, COALESCE(SUM(comments_count),0) AS total_comments FROM posts');
+  const aiLogs = await runQuery('SELECT id, user_id, topic, model, created_at FROM ai_generation_logs ORDER BY id DESC LIMIT 10');
+  res.json({ users, posts, engagement, aiLogs });
+});
+
+app.get('/news/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/post.html')));
+app.get('/trending', (req, res) => res.sendFile(path.join(__dirname, 'public/trending.html')));
+app.get('/category/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/category.html')));
+app.get('/search', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
 app.get('/health', (req, res) => {
   res.json({
