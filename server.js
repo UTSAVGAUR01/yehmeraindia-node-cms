@@ -9,6 +9,10 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const aiRequestWindowMs = 15 * 60 * 1000;
+const aiRequestLimit = Number(process.env.AI_RATE_LIMIT || 10);
+const aiRateBucket = new Map();
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
@@ -41,6 +45,21 @@ function runQuery(sql, params = []) {
       resolve(result);
     });
   });
+}
+
+function sanitizeText(input, maxLength = 5000) {
+  if (!input) return '';
+  return String(input).replace(/[<>]/g, '').trim().slice(0, maxLength);
+}
+
+function enforceRateLimit(key) {
+  const now = Date.now();
+  const bucket = aiRateBucket.get(key) || [];
+  const valid = bucket.filter((t) => now - t < aiRequestWindowMs);
+  if (valid.length >= aiRequestLimit) return false;
+  valid.push(now);
+  aiRateBucket.set(key, valid);
+  return true;
 }
 
 const defaultCategories = [
@@ -164,6 +183,48 @@ async function ensureDatabaseSchema() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        user_id INT NOT NULL,
+        parent_id INT NULL,
+        comment TEXT NOT NULL,
+        status VARCHAR(30) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS likes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_like (post_id, user_id)
+      )
+    `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS bookmarks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_bookmark (post_id, user_id)
+      )
+    `);
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS ai_generation_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        topic VARCHAR(255) NOT NULL,
+        prompt LONGTEXT NOT NULL,
+        result LONGTEXT NOT NULL,
+        model VARCHAR(100) DEFAULT 'gpt-4o-mini',
+        tokens_used INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     for (const cat of defaultCategories) {
       await runQuery(
@@ -181,6 +242,20 @@ async function ensureDatabaseSchema() {
       ['is_featured', 'ALTER TABLE posts ADD COLUMN is_featured TINYINT DEFAULT 0'],
       ['ai_generated', 'ALTER TABLE posts ADD COLUMN ai_generated TINYINT DEFAULT 0'],
       ['reading_time', 'ALTER TABLE posts ADD COLUMN reading_time INT DEFAULT 3']
+      ,['caption', 'ALTER TABLE posts ADD COLUMN caption TEXT NULL']
+      ,['summary', 'ALTER TABLE posts ADD COLUMN summary TEXT NULL']
+      ,['language', "ALTER TABLE posts ADD COLUMN language VARCHAR(20) DEFAULT 'English'"]
+      ,['location', 'ALTER TABLE posts ADD COLUMN location VARCHAR(120) NULL']
+      ,['state', 'ALTER TABLE posts ADD COLUMN state VARCHAR(120) NULL']
+      ,['media_url', 'ALTER TABLE posts ADD COLUMN media_url VARCHAR(255) NULL']
+      ,['media_type', "ALTER TABLE posts ADD COLUMN media_type VARCHAR(30) DEFAULT 'image'"]
+      ,['seo_title', 'ALTER TABLE posts ADD COLUMN seo_title VARCHAR(255) NULL']
+      ,['seo_description', 'ALTER TABLE posts ADD COLUMN seo_description TEXT NULL']
+      ,['hashtags', 'ALTER TABLE posts ADD COLUMN hashtags TEXT NULL']
+      ,['published_at', 'ALTER TABLE posts ADD COLUMN published_at TIMESTAMP NULL']
+      ,['shares_count', 'ALTER TABLE posts ADD COLUMN shares_count INT DEFAULT 0']
+      ,['likes_count', 'ALTER TABLE posts ADD COLUMN likes_count INT DEFAULT 0']
+      ,['comments_count', 'ALTER TABLE posts ADD COLUMN comments_count INT DEFAULT 0']
     ];
 
     for (const [columnName, alterSql] of columns) {
@@ -783,6 +858,105 @@ app.put('/api/admin/users/:id/status', requireRole(['admin']), (req, res) => {
     }
   );
 });
+
+app.post('/api/ai/generate-news', requireRole(['admin', 'editor']), async (req, res) => {
+  const topic = sanitizeText(req.body.topic, 200);
+  if (!topic) return res.status(400).json({ message: 'Topic is required' });
+  const rateKey = `${req.session.user.id}:${req.ip}`;
+  if (!enforceRateLimit(rateKey)) return res.status(429).json({ message: 'Rate limit exceeded. Try later.' });
+
+  const payload = {
+    topic,
+    category: sanitizeText(req.body.category || 'india-stories', 100),
+    location: sanitizeText(req.body.location || '', 100),
+    language: sanitizeText(req.body.language || 'English', 30),
+    tone: sanitizeText(req.body.tone || 'neutral', 40),
+    notes: sanitizeText(req.body.notes || '', 1000)
+  };
+
+  const systemPrompt = `Generate a responsible Indian news article. Do not invent fake facts.
+If facts are not provided, write as general information and mention details need verification.
+Return JSON only with headline, caption, summary, article, hashtags, seoTitle, seoDescription, imagePrompt.`;
+  const userPrompt = JSON.stringify(payload);
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  let resultText = '';
+  try {
+    resultText = await callOpenAI(systemPrompt, userPrompt);
+  } catch (err) {
+    return res.status(500).json({ message: 'AI generation failed', error: err.message });
+  }
+  if (!resultText) return res.status(500).json({ message: 'No AI output generated' });
+  await runQuery(
+    'INSERT INTO ai_generation_logs (user_id, topic, prompt, result, model) VALUES (?, ?, ?, ?, ?)',
+    [req.session.user.id, topic, userPrompt, resultText, model]
+  );
+  res.json({ aiGenerated: true, disclaimer: 'This article was generated with AI assistance and should be reviewed for factual accuracy.', result: resultText });
+});
+
+app.get('/api/posts/:id/comments', async (req, res) => {
+  try {
+    const comments = await runQuery(
+      `SELECT c.id, c.post_id, c.user_id, c.parent_id, c.comment, c.status, c.created_at, u.name
+       FROM comments c JOIN users u ON u.id = c.user_id
+       WHERE c.post_id = ? AND c.status = 'active' ORDER BY c.created_at DESC`,
+      [req.params.id]
+    );
+    res.json(comments);
+  } catch {
+    res.status(500).json({ message: 'Failed to fetch comments' });
+  }
+});
+
+app.post('/api/posts/:id/comments', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  try {
+    const comment = sanitizeText(req.body.comment, 1000);
+    if (!comment) return res.status(400).json({ message: 'Comment is required' });
+    await runQuery('INSERT INTO comments (post_id, user_id, parent_id, comment) VALUES (?, ?, ?, ?)', [req.params.id, req.session.user.id, req.body.parent_id || null, comment]);
+    await runQuery('UPDATE posts SET comments_count = COALESCE(comments_count, 0) + 1 WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Comment added' });
+  } catch {
+    res.status(500).json({ message: 'Failed to add comment' });
+  }
+});
+
+app.post('/api/posts/:id/like', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  try {
+    await runQuery('INSERT IGNORE INTO likes (post_id, user_id) VALUES (?, ?)', [req.params.id, req.session.user.id]);
+    await runQuery('UPDATE posts SET likes_count = (SELECT COUNT(*) FROM likes WHERE post_id = ?) WHERE id = ?', [req.params.id, req.params.id]);
+    res.json({ message: 'Liked' });
+  } catch {
+    res.status(500).json({ message: 'Failed to like post' });
+  }
+});
+
+app.delete('/api/posts/:id/like', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  await runQuery('DELETE FROM likes WHERE post_id = ? AND user_id = ?', [req.params.id, req.session.user.id]);
+  await runQuery('UPDATE posts SET likes_count = (SELECT COUNT(*) FROM likes WHERE post_id = ?) WHERE id = ?', [req.params.id, req.params.id]);
+  res.json({ message: 'Unliked' });
+});
+
+app.post('/api/posts/:id/bookmark', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  await runQuery('INSERT IGNORE INTO bookmarks (post_id, user_id) VALUES (?, ?)', [req.params.id, req.session.user.id]);
+  res.json({ message: 'Bookmarked' });
+});
+
+app.delete('/api/posts/:id/bookmark', requireRole(['admin', 'editor', 'viewer']), async (req, res) => {
+  await runQuery('DELETE FROM bookmarks WHERE post_id = ? AND user_id = ?', [req.params.id, req.session.user.id]);
+  res.json({ message: 'Bookmark removed' });
+});
+
+app.get('/api/admin/dashboard', requireRole(['admin']), async (req, res) => {
+  const [users] = await runQuery('SELECT COUNT(*) AS total_users FROM users');
+  const [posts] = await runQuery('SELECT COUNT(*) AS total_posts, SUM(status = "pending") AS pending_posts, SUM(status = "published") AS published_posts FROM posts');
+  const [engagement] = await runQuery('SELECT COALESCE(SUM(likes_count),0) AS total_likes, COALESCE(SUM(comments_count),0) AS total_comments FROM posts');
+  const aiLogs = await runQuery('SELECT id, user_id, topic, model, created_at FROM ai_generation_logs ORDER BY id DESC LIMIT 10');
+  res.json({ users, posts, engagement, aiLogs });
+});
+
+app.get('/news/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/post.html')));
+app.get('/trending', (req, res) => res.sendFile(path.join(__dirname, 'public/trending.html')));
+app.get('/category/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/category.html')));
+app.get('/search', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
 app.get('/health', (req, res) => {
   res.json({
