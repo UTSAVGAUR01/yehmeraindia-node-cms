@@ -1,0 +1,3 @@
+:root{--saffron:#FF9933;--white:#fff;--green:#138808;--navy:#1A237E;--bg:#f4f6fb;--card:#fff;--muted:#6b7280;--radius:14px;--space:1rem;--max:1200px}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:#111827;line-height:1.6}a{text-decoration:none;color:inherit}
+.container{max-width:var(--max);margin:0 auto;padding:0 1rem}.grid{display:grid;gap:1rem}
