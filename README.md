@@ -87,3 +87,9 @@ Schema is auto-verified at startup in `ensureDatabaseSchema()`:
 ## AI newsroom workflow
 - Collector -> ThreatGuard -> Freshness -> Analysis -> Writer -> Visualizer -> Anchor -> Publisher.
 - Default publish behavior is `pending_review` unless `AI_AUTO_PUBLISH=true`.
+
+## Frontend
+
+- The UI now runs directly from `public/` served by Express (no separate `frontend/` app).
+- Start everything with `npm install && npm start`.
+- Main portal page: `/`
