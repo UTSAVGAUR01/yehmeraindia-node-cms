@@ -1,3 +1,4 @@
+// conflict-resolved
 async function api(url, opts = {}) {
   const r = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
