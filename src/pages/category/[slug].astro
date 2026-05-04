@@ -1,0 +1,5 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';import ArticleCard from '../../components/ArticleCard.astro';import {articles,categories} from '../../data/content';
+export function getStaticPaths(){return categories.map(c=>({params:{slug:c.toLowerCase()}}));}
+const cat=Astro.params.slug?.toLowerCase();const filtered=articles.filter(a=>a.category.toLowerCase()===cat);---
+<BaseLayout title='Category'><section class='container' style='display:grid;grid-template-columns:3fr 1fr;gap:1rem'><div><h1>{Astro.params.slug}</h1><div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(220px,1fr))'>{(filtered.length?filtered:articles).map(a=><ArticleCard article={a} />)}</div></div><aside><h3>Subcategories</h3>{categories.map(c=><p>{c}</p>)}</aside></section></BaseLayout>

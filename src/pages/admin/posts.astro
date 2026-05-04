@@ -1,0 +1,2 @@
+---import AdminLayout from '../../layouts/AdminLayout.astro';import {articles} from '../../data/content';---
+<AdminLayout title='Manage Posts'><h1>Posts</h1>{articles.map(a=><p>{a.title} <button>Edit</button> <button>Delete</button></p>)}</AdminLayout>
