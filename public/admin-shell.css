@@ -1,0 +1,7 @@
+:root{--saffron:#ff671f;--green:#138808;--navy:#06038d;--bg:#fff9f2}
+body{font-family:Arial,sans-serif;background:linear-gradient(135deg,var(--bg),#eef4ff);margin:0;color:#14213d}
+.top{background:var(--navy);color:#fff;padding:10px 16px;display:flex;gap:12px;flex-wrap:wrap}
+.top a{color:#fff;text-decoration:none;font-weight:700}.top a:hover{color:#ffd8b8}
+.wrap{max-width:1100px;margin:20px auto;padding:0 12px}.card{background:#fff;border:2px solid #ffd5b8;border-radius:12px;padding:14px;box-shadow:0 8px 16px #0001}
+button{background:var(--saffron);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+input,select,textarea{width:100%;margin:6px 0 10px;padding:8px;border:1px solid #ccc;border-radius:8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
