@@ -13,5 +13,14 @@
   "dependencies": {
     "express": "^4.21.2",
     "ejs": "^3.1.10"
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^4.16.18"
   }
 }
