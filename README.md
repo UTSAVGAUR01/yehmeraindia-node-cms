@@ -93,3 +93,15 @@ Schema is auto-verified at startup in `ensureDatabaseSchema()`:
 - The UI now runs directly from `public/` served by Express (no separate `frontend/` app).
 - Start everything with `npm install && npm start`.
 - Main portal page: `/`
+
+## Astro Structure (Root)
+
+- Astro app structure is now available directly in root `src/` with:
+  - `src/layouts`
+  - `src/components`
+  - `src/pages`
+  - `src/styles`
+- Images are in `public/images`.
+- Run Astro UI with:
+  - `npm install`
+  - `npm run astro:dev`

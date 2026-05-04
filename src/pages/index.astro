@@ -1,0 +1,13 @@
+---
+import MainLayout from '../layouts/MainLayout.astro'; import ArticleCard from '../components/ArticleCard.astro'; import CategoryPills from '../components/CategoryPills.astro'; import AIReporterCard from '../components/AIReporterCard.astro';
+const base=Astro.url.origin; const j=async(p,f)=>{try{const r=await fetch(base+p); return r.ok?await r.json():f;}catch{return f;}};
+const posts=await j('/api/trending',[]); const categories=await j('/api/categories',[]); const ai=await j('/api/feed/ai-reporter',[]);
+---
+<MainLayout title='Home'>
+<section style='padding:2rem;border-radius:20px;background:linear-gradient(110deg,rgba(255,153,51,.2),rgba(255,255,255,.8),rgba(19,136,8,.2));margin:1rem 0'>
+<h1>AI News from the Heart of Bharat</h1><p>Fresh. Positive. Made with Indian values.</p><img src='/images/hero-banner.svg' style='width:100%;border-radius:12px'/></section>
+<h2>Featured</h2>{posts[0] && <ArticleCard post={posts[0]} />}
+<h2>Categories</h2><CategoryPills categories={categories}/>
+<h2>Latest News</h2><div class='grid news-grid'>{posts.slice(1,7).map(p=><ArticleCard post={p}/>)}</div>
+<h2>AI Reporter</h2><div class='grid news-grid'>{ai.slice(0,3).map(item=><AIReporterCard item={item}/>)}</div>
+</MainLayout>
