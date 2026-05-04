@@ -88,10 +88,3 @@ Schema is auto-verified at startup in `ensureDatabaseSchema()`:
 - Collector -> ThreatGuard -> Freshness -> Analysis -> Writer -> Visualizer -> Anchor -> Publisher.
 - Default publish behavior is `pending_review` unless `AI_AUTO_PUBLISH=true`.
 
-## Astro Frontend
-
-A new Astro UI is available in `frontend/`.
-
-- Backend API: run from root with `npm start`
-- Frontend dev server: `cd frontend && npm install && npm run dev`
-- Frontend routes include home, AI Reporter, article detail, category pages, and admin dashboard screens.

@@ -1,0 +1,2 @@
+--- import MainLayout from '../layouts/MainLayout.astro'; import AIReporterCard from '../components/AIReporterCard.astro'; const base=Astro.url.origin; let feed=[]; try{feed=await (await fetch(base+'/api/feed/ai-reporter')).json()}catch{} ---
+<MainLayout title='AI Reporter'><h1>AI Reporter</h1><div class='grid news-grid'>{feed.map(f=><AIReporterCard item={f}/>)}</div></MainLayout>
