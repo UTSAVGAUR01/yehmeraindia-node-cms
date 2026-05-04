@@ -88,3 +88,4 @@ Schema is auto-verified at startup in `ensureDatabaseSchema()`:
 - Collector -> ThreatGuard -> Freshness -> Analysis -> Writer -> Visualizer -> Anchor -> Publisher.
 - Default publish behavior is `pending_review` unless `AI_AUTO_PUBLISH=true`.
 
+
