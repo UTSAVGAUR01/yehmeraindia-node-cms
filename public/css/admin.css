@@ -2,3 +2,5 @@ body{margin:0;font-family:Arial;background:#f2f5fa}.admin{display:grid;grid-temp
 
 .error-card{background:#fff4f4;color:#a11414;border:1px solid #ffd7d7;padding:10px 12px;border-radius:8px;font-weight:600}
 @media(max-width:900px){.admin{grid-template-columns:1fr}.side{display:flex;overflow:auto;gap:12px}.side a{white-space:nowrap}}
+
+.btn{background:#0b1f4d;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}.btn.alt{background:#ff8f00}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-grid textarea{grid-column:1/-1;min-height:110px}.form-grid input,.form-grid select,.form-grid textarea{width:100%;padding:10px;border:1px solid #d7deee;border-radius:8px}.actions{margin:10px 0}
