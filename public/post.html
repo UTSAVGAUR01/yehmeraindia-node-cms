@@ -1,31 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Post • Yeh Mera India</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50">
-  <div class="max-w-4xl mx-auto px-6 py-12">
-    <div id="post-content"></div>
-  </div>
-
-  <script>
-    async function loadPost() {
-      const slug = window.location.pathname.split('/').pop();
-      const res = await fetch(`/api/posts/${slug}`);
-      const post = await res.json();
-      document.getElementById('post-content').innerHTML = `
-        <h1 class="text-5xl font-bold">${post.title || post.headline}</h1>
-        <p class="text-[#FF671F] mt-6">${post.caption || ''}</p>
-        <div class="prose max-w-none mt-10 text-lg">${post.content || post.article}</div>
-        <div class="mt-12 bg-amber-50 border border-[#FF671F] rounded-3xl p-6 text-sm">
-          <strong>Disclaimer:</strong> ${post.disclaimer || 'This article was generated with AI assistance and has been reviewed by our editorial team.'}
-        </div>
-      `;
-    }
-    window.onload = loadPost;
-  </script>
-</body>
-</html>
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Story</title><link rel='stylesheet' href='/css/style.css'></head><body>
+<header class='topbar'><div class='container nav'><div class='logo'><span>Yeh Mera</span> <span>India</span></div><nav class='links'><a href='/'>Home</a><a href='/trending'>Trending</a><a href='/ai-reporter'>AI Reporter</a></nav></div></header>
+<main class='container layout-2' style='margin-top:20px'><article id='post' class='panel'></article><aside class='panel'><h3>More Like This</h3><div id='more'></div></aside></main>
+<script>const slug=location.pathname.split('/').pop();const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));(async()=>{const p=await fetch('/api/posts/'+slug).then(r=>r.json());document.getElementById('post').innerHTML=`<div class='pill active'>${esc(p.category||'India')}</div><h1>${esc(p.title)}</h1><p class='meta'>${new Date(p.created_at||Date.now()).toLocaleDateString()}</p><img style='width:100%;border-radius:12px' src='${esc(p.image||'/images/news-2.svg')}'><p>${esc(p.content||'')}</p><div class='panel' style='background:#fff7ed'>Disclaimer: ${esc(p.disclaimer||'AI-assisted content. Editor verification required.')}</div>`;const list=await fetch('/api/trending').then(r=>r.json()).catch(()=>[]);document.getElementById('more').innerHTML=list.slice(0,5).map(x=>`<p><a href='/news/${x.slug}'>${esc(x.title)}</a></p>`).join('');})();</script>
+</body></html>

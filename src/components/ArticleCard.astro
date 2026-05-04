@@ -1,0 +1,2 @@
+--- const {post}=Astro.props; ---
+<article class='card'><img src={post.image || '/images/news-1.svg'} alt={post.title} style='width:100%;height:170px;object-fit:cover;border-radius:16px 16px 0 0'/><div style='padding:1rem'><span class='btn' style='background:var(--saffron);color:#111'>{post.category || 'General'}</span><h3><a href={`/news/${post.slug}`}>{post.title}</a></h3><p>{post.excerpt || ''}</p></div></article>
