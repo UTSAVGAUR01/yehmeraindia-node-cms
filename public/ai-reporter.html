@@ -1,55 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Reporter Feed | Yeh Mera India</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/style.css" />
-</head>
-<body class="bg-slate-100 text-slate-900">
-  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/" class="text-orange-600 font-black text-2xl">Yeh Mera India</a>
-      <nav class="hidden md:flex gap-6 text-sm font-bold text-slate-600">
-        <a href="/" class="hover:text-orange-600">Home</a>
-        <a href="/trending" class="hover:text-orange-600">Trending</a>
-        <a href="/ai-reporter.html" class="text-orange-600">AI Reporter</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    <section class="mb-6">
-      <h1 class="text-4xl md:text-5xl font-black">AI Reporter Reels Feed</h1>
-      <p class="text-slate-600 mt-3 max-w-3xl">Instagram-style scroll feed for AI-generated positive India stories. Every story is marked AI-assisted and should be editor-verified.</p>
-    </section>
-
-    <section class="grid lg:grid-cols-[1.2fr_0.8fr] gap-8 items-start">
-      <div id="aiReelFeed" class="space-y-7"></div>
-      <aside class="hidden lg:block sticky top-24">
-        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-          <h2 class="font-black text-xl">Positive India Categories</h2>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span class="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Government Schemes</span>
-            <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Culture & Heritage</span>
-            <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">Education</span>
-            <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Community Impact</span>
-          </div>
-        </div>
-      </aside>
-    </section>
-
-    <p id="noAI" class="hidden text-center text-slate-600 mt-10">No AI-generated posts found yet.</p>
-  </main>
-
-  <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 grid grid-cols-4 text-center py-2 text-xs font-bold">
-    <a href="/" class="text-slate-600">Home</a>
-    <a href="/search" class="text-slate-600">Search</a>
-    <a href="/trending" class="text-slate-600">Trending</a>
-    <a href="/ai-reporter.html" class="text-orange-600">AI</a>
-  </nav>
-
-  <script src="/assets/js/ai-reporter.js"></script>
-</body>
-</html>
+<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='stylesheet' href='/css/style.css'><title>AI Reporter Reels Feed</title></head><body>
+<header class='top'><div class='brand'>🤖 AI Reporter Reels Feed</div><nav class='nav'><a href='/'>Home</a><a href='/dashboard.html'>Dashboard</a></nav></header>
+<div class='container reels-layout'><main id='reels' class='reels-feed'></main><aside class='filter card'><h3>Filters</h3><select id='category'><option value=''>All categories</option><option value='ai-reporter'>AI Reporter</option><option value='india-stories'>India Stories</option></select><label><input type='checkbox' id='breakingOnly'> Breaking only</label></aside></div>
+<script src='/js/api.js'></script><script>
+let data=[];
+function render(){const cat=category.value;const br=breakingOnly.checked;const list=data.filter(p=>(!cat||p.category===cat)&&(!br||p.is_breaking));reels.innerHTML=list.map(p=>`<article class='reel-card'><div class='reel-visual' style='background:${p.visual||'linear-gradient(160deg,#ff8f00,#0b1f4d)'}'><span class='badge'>AI Reporter</span>${p.is_breaking?'<span class="badge red">Breaking</span>':''}<h3>${p.title}</h3><p>${p.summary||p.excerpt||''}</p><small>${p.source_name||'Yeh Mera India'} • ${p.category||''}</small></div><div class='reel-actions'><button>Like</button><button>Comment</button><button>Share</button><button>Save</button><a class='btn' href='/news/${p.slug}'>Read Full</a></div></article>`).join('');}
+async function load(){data=await api('/api/feed/ai-reporter');render()}category.onchange=render;breakingOnly.onchange=render;load();
+</script></body></html>
