@@ -1,0 +1,2 @@
+---import BaseLayout from '../layouts/BaseLayout.astro';import AIReporterCard from '../components/AIReporterCard.astro';import {aiStories,categories} from '../data/content';---
+<BaseLayout title='AI Reporter'><section class='container'><h1>AI Reporter Feed</h1><p>Filters: {categories.join(' · ')}</p><div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(180px,1fr))'>{aiStories.map(s=><AIReporterCard story={s} />)}</div></section></BaseLayout>

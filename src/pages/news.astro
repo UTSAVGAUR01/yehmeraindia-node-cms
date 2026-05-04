@@ -1,0 +1,2 @@
+---import BaseLayout from '../layouts/BaseLayout.astro';import ArticleCard from '../components/ArticleCard.astro';import {articles} from '../data/content';---
+<BaseLayout title='News'><section class='container'><h1>All News</h1><input placeholder='Search news...' style='padding:.6rem;width:100%;max-width:420px'/><div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1rem'>{articles.map(a=><ArticleCard article={a} />)}</div></section></BaseLayout>
