@@ -1,0 +1,1 @@
+<!doctype html><html><head><title>AI Reporter</title><link rel='stylesheet' href='/css/global.css'></head><body><%- include('partials/header') %><div class='container'><h1>AI Reporter</h1><% aiStories.forEach(s=>{ %><div class='card'><h4><%= s.title %></h4><p><%= s.caption %></p></div><% }) %></div><%- include('partials/footer') %></body></html>

@@ -1,5 +1,18 @@
 {
   "name": "yehmeraindia-node-cms",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20 <23"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ejs": "^3.1.10"
   "type": "module",
   "version": "1.0.0",
   "scripts": {
