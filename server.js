@@ -118,12 +118,13 @@ const defaultCategories = [
 // Demo post generator
 function makeDefaultPost(title, category, badge, views) {
   const slug = slugify(title, { lower: true, strict: true });
+  const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
   return {
     id: `default-${slug}`,
     title,
     slug,
     excerpt: `AI-generated starter article for ${badge}. Admin can verify facts, update details and publish final version.`,
-    content: `${title}\nThis is an AI-assisted starter article for Yeh Mera India.\nKey points to develop:\n1. Explain the topic in simple language.\n2. Add current verified facts and dates.\n3. Explain why it matters for Indian readers.\n4. Include public impact, opportunities and cautions.\n5. Add official sources before publishing.\nEditorial note: This draft must be reviewed before publishing.`,
+    content: `${title}\nUpdated on: ${today}\n\nWhy this matters:\nThis topic directly affects Indian readers and should be explained in simple, practical language.\n\nWhat we know so far:\n- Initial verified updates are being tracked by the newsroom.\n- Editors should confirm official numbers, timelines and department statements.\n- Regional impact must be explained with real examples for families, students, workers and small businesses.\n\nCitizen impact:\n1. What changes now\n2. Who benefits most\n3. What documents or steps are needed\n4. What to avoid (fraud, misinformation, fake links)\n\nEditorial verification checklist:\n- Confirm with official sources\n- Add exact dates and figures\n- Include useful links and helpline details when available\n\nDisclaimer: This article was generated with AI assistance and must be reviewed by editors before final publication.`,
     category,
     format: 'ai_report',
     ai_generated: 1,
@@ -742,13 +743,7 @@ app.post('/api/ai/generate-news', requireRole(['admin', 'editor']), async (req, 
   const rateKey = `${req.session.user.id}:${req.ip}`;
   if (!enforceRateLimit(rateKey)) return res.status(429).json({ success: false, message: 'Rate limit exceeded. Try later.' });
 
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(503).json({ success: false, message: 'OpenAI API key is not configured on server.' });
-  }
-
-  const systemPrompt = `You are an Indian AI newsroom assistant for "Yeh Mera India". Return strict JSON with keys: headline, caption, summary, article, hashtags, seoTitle, seoDescription, anchorScript, visualPrompt, disclaimer. Never invent unverified facts. Content must be positive, factual, simple and India-focused.`;
-
-  const userPrompt = JSON.stringify({
+  const userPromptPayload = {
     topic,
     category: sanitizeText(req.body.category || 'india-stories', 100),
     location: sanitizeText(req.body.location || '', 100),
@@ -757,31 +752,70 @@ app.post('/api/ai/generate-news', requireRole(['admin', 'editor']), async (req, 
     notes: sanitizeText(req.body.notes || '', 1500),
     generateVisualPrompt: Boolean(req.body.generateVisualPrompt),
     generateAnchorScript: Boolean(req.body.generateAnchorScript)
-  });
+  };
+  const userPrompt = JSON.stringify(userPromptPayload);
 
   try {
-    const resultText = await callOpenAI(systemPrompt, userPrompt);
-    let parsed;
-    try { parsed = JSON.parse(resultText); } catch { parsed = null; }
+    let data;
+    let source = 'openai';
+    if (process.env.OPENAI_API_KEY) {
+      const systemPrompt = `You are an Indian AI newsroom assistant for "Yeh Mera India". Return strict JSON with keys: headline, caption, summary, article, hashtags, seoTitle, seoDescription, anchorScript, visualPrompt, disclaimer. Never invent unverified facts. Content must be positive, factual, simple and India-focused.`;
+      const resultText = await callOpenAI(systemPrompt, userPrompt);
+      let parsed;
+      try { parsed = JSON.parse(resultText); } catch { parsed = null; }
+      data = parsed || {
+        headline: topic,
+        caption: resultText.slice(0, 180),
+        summary: resultText.slice(0, 280),
+        article: resultText,
+        hashtags: ['#IndiaNews', '#AIReporter'],
+        seoTitle: topic,
+        seoDescription: resultText.slice(0, 160),
+        anchorScript: req.body.generateAnchorScript ? resultText.slice(0, 500) : '',
+        visualPrompt: req.body.generateVisualPrompt ? `Indian newsroom visual for ${topic}` : '',
+        disclaimer: 'This article was generated with AI assistance and should be reviewed for factual accuracy.'
+      };
+    } else {
+      source = 'fallback';
+      const draft = await buildAiResponse('draft', userPromptPayload);
+      data = {
+        headline: draft.title,
+        caption: draft.excerpt,
+        summary: draft.excerpt,
+        article: draft.content,
+        hashtags: ['#IndiaNews', '#AIReporter', '#VerifiedBeforePublish'],
+        seoTitle: draft.title,
+        seoDescription: draft.excerpt,
+        anchorScript: req.body.generateAnchorScript ? `${draft.title}. ${draft.excerpt}` : '',
+        visualPrompt: req.body.generateVisualPrompt ? `Professional Indian newsroom frame for: ${topic}` : '',
+        disclaimer: 'Fallback draft generated without OpenAI key. Editorial verification required before publish.'
+      };
+    }
 
-    const data = parsed || {
-      headline: topic,
-      caption: resultText.slice(0, 180),
-      summary: resultText.slice(0, 280),
-      article: resultText,
-      hashtags: ['#IndiaNews', '#AIReporter'],
-      seoTitle: topic,
-      seoDescription: resultText.slice(0, 160),
-      anchorScript: req.body.generateAnchorScript ? resultText.slice(0, 500) : '',
-      visualPrompt: req.body.generateVisualPrompt ? `Indian newsroom visual for ${topic}` : '',
-      disclaimer: 'This article was generated with AI assistance and should be reviewed for factual accuracy.'
-    };
+    const status = req.body.publishNow ? 'published' : 'pending';
+    const slug = slugify(`${data.headline || topic}-${Date.now()}`, { lower: true, strict: true });
+    const excerpt = sanitizeText(data.summary || data.caption || '', 500);
+    await runQuery(
+      `INSERT INTO posts (title, slug, excerpt, content, status, category, format, ai_generated, source_name, source_url, is_trending)
+       VALUES (?, ?, ?, ?, ?, ?, 'ai_report', 1, ?, ?, ?)`,
+      [
+        sanitizeText(data.headline || topic, 255),
+        slug,
+        excerpt,
+        sanitizeText(data.article || '', 50000),
+        status,
+        sanitizeText(req.body.category || 'ai-reporter', 100),
+        source,
+        source === 'openai' ? 'https://platform.openai.com/' : 'internal-fallback',
+        req.body.markTrending ? 1 : 0
+      ]
+    );
 
     await runQuery('INSERT INTO ai_generation_logs (user_id, topic, prompt, result, model) VALUES (?, ?, ?, ?, ?)', [
       req.session.user.id, topic, userPrompt, JSON.stringify(data), process.env.OPENAI_MODEL || 'gpt-4o-mini'
     ]);
 
-    res.json({ success: true, data });
+    res.json({ success: true, data, created: true, status, source });
   } catch (err) {
     res.status(500).json({ success: false, message: 'AI generation failed', error: err.message });
   }
