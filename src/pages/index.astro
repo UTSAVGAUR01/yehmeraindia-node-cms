@@ -1,8 +1,0 @@
----
-import BaseLayout from '../layouts/BaseLayout.astro';
-import ArticleCard from '../components/ArticleCard.astro';
-import CategoryPills from '../components/CategoryPills.astro';
-import AIReporterCard from '../components/AIReporterCard.astro';
-import {articles,categories,aiStories} from '../data/content';
----
-<BaseLayout title='YehMeraIndia - Home'><section class='container'><img src='/images/hero.svg' style='width:100%;border-radius:16px'/></section><section class='container'><h2>Trending</h2><CategoryPills categories={categories} active='Technology'/><div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1rem'>{articles.map(a=><ArticleCard article={a} />)}</div></section><section class='container'><h2>AI Reporter</h2><div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(180px,1fr))'>{aiStories.slice(0,3).map(s=><AIReporterCard story={s} />)}</div><a href='/ai-reporter'>View full feed →</a></section></BaseLayout>

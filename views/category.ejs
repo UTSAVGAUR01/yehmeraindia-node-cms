@@ -1,0 +1,1 @@
+<!doctype html><html><head><title>Category</title><link rel='stylesheet' href='/css/global.css'></head><body><%- include('partials/header') %><div class='container'><h1><%= slug %></h1><div class='grid'><% articles.forEach(a=>{ %><div class='card'><h4><%= a.title %></h4></div><% }) %></div></div><%- include('partials/footer') %></body></html>

@@ -1,6 +1,0 @@
----
-import BaseLayout from '../../layouts/BaseLayout.astro';import {articles} from '../../data/content';
-export function getStaticPaths(){return articles.map(a=>({params:{slug:a.slug}}));}
-const article=articles.find(a=>a.slug===Astro.params.slug) || articles[0];
----
-<BaseLayout title={article.title}><section class='container' style='display:grid;grid-template-columns:2fr 1fr;gap:1rem'><article><h1>{article.title}</h1><p><em>{article.category}</em></p><img src={article.image} style='width:100%;border-radius:14px'/><p>{article.content}</p><p style='background:#fff3cd;padding:.75rem;border-radius:10px'>AI Reporter Note: This story may include AI-assisted summarization.</p></article><aside><h3>More Like This</h3>{articles.filter(a=>a.slug!==article.slug).map(a=><p><a href={`/news/${a.slug}`}>{a.title}</a></p>)}</aside></section></BaseLayout>

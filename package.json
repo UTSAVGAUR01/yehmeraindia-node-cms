@@ -1,19 +1,17 @@
 {
   "name": "yehmeraindia-node-cms",
-  "type": "module",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "start": "astro dev --host 0.0.0.0 --port ${PORT:-4321}",
-    "check": "astro check"
+    "dev": "node --watch server.js",
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=20 <23"
   },
   "dependencies": {
-    "astro": "^4.16.18"
+    "express": "^4.21.2",
+    "ejs": "^3.1.10"
   }
 }

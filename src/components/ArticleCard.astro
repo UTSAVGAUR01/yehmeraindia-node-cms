@@ -1,4 +1,0 @@
----
-const {article}=Astro.props;
----
-<article style='background:var(--card);border-radius:var(--radius);overflow:hidden'><img src={article.image} alt='' style='width:100%;height:180px;object-fit:cover'/><div style='padding:1rem'><div>{article.breaking&&<span>🚨 Breaking</span>} {article.fresh&&<span>✨ Fresh</span>}</div><h3><a href={`/news/${article.slug}`}>{article.title}</a></h3><p>{article.summary}</p><small>{article.category} · {article.tags?.join(', ')}</small></div></article>

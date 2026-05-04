@@ -1,4 +1,0 @@
----
-const {categories,active}=Astro.props;
----
-<div style='display:flex;gap:.5rem;flex-wrap:wrap'>{categories.map((c)=><a href={`/category/${c.toLowerCase()}`} style={`padding:.4rem .8rem;border-radius:999px;background:${active===c?'var(--saffron)':'#e5e7eb'}`}>{c}</a>)}</div>

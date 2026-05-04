@@ -1,24 +1,25 @@
-# YehMeraIndia Astro News Portal
+# YehMeraIndia Node CMS (Express)
 
 ## Run locally
 - `npm install`
 - `npm run dev`
-- `npm run build`
-- `npm run preview`
+- `npm run start`
 
-## Hosting (Hostinger / Node 20)
-- Build command: `npm run build`
-- Start command: `npm run start`
-- Node version: `20.x` (supported by `engines` in `package.json`)
-- If your hosting panel auto-detects Express, keep root directory as `/` and set commands explicitly above.
+## Hostinger deployment settings
+- Framework preset: **Express**
+- Entry file: **server.js**
+- Node version: **20.x**
+- Root directory: `./`
 
-## Features
-- Astro-based Indian news portal with reusable components.
-- Category pages, news listing, article detail, AI Reporter feed.
-- Admin dashboard and admin utility pages.
+## Routes
+- `/` home page
+- `/news` news listing
+- `/news/:slug` article detail
+- `/category/:slug` category listing
+- `/ai-reporter` AI Reporter feed
+- `/admin/dashboard`, `/admin/posts`, `/admin/create-post`, `/admin/ai-generate`, `/admin/cleanup`
 
-## Images
-Images are under `public/images`. Replace SVG placeholders with generated assets as needed.
-
-## Admin
-Use `/admin/dashboard` and related admin routes to manage content workflows.
+## Assets
+- Styles: `public/css/global.css`
+- Images: `public/images/*`
+- Views: `views/*.ejs`
