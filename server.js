@@ -245,6 +245,18 @@ async function ensureDatabaseSchema() {
       )
     `);
     await runQuery(`
+      CREATE TABLE IF NOT EXISTS cleanup_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        deleted_posts INT DEFAULT 0,
+        deleted_files INT DEFAULT 0,
+        freed_space_estimate VARCHAR(50) DEFAULT '0 MB',
+        status VARCHAR(30) DEFAULT 'success',
+        error_message TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await runQuery(`
       CREATE TABLE IF NOT EXISTS ai_generation_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -287,6 +299,9 @@ async function ensureDatabaseSchema() {
       ,['shares_count', 'ALTER TABLE posts ADD COLUMN shares_count INT DEFAULT 0']
       ,['likes_count', 'ALTER TABLE posts ADD COLUMN likes_count INT DEFAULT 0']
       ,['comments_count', 'ALTER TABLE posts ADD COLUMN comments_count INT DEFAULT 0']
+      ,['post_type', "ALTER TABLE posts ADD COLUMN post_type VARCHAR(50) DEFAULT 'news'"]
+      ,['expires_at', 'ALTER TABLE posts ADD COLUMN expires_at TIMESTAMP NULL']
+      ,['is_protected', 'ALTER TABLE posts ADD COLUMN is_protected TINYINT DEFAULT 0']
     ];
 
     for (const [columnName, alterSql] of columns) {
@@ -989,6 +1004,79 @@ app.get('/news/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/p
 app.get('/trending', (req, res) => res.sendFile(path.join(__dirname, 'public/trending.html')));
 app.get('/category/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/category.html')));
 app.get('/search', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
+
+
+
+async function runCleanupJob(trigger = 'manual') {
+  const hours = Number(process.env.AUTO_DELETE_AFTER_HOURS || 24);
+  const stalePosts = await runQuery(
+    `SELECT id, image FROM posts
+     WHERE ai_generated = 1
+       AND status IN ('published', 'pending_review')
+       AND (is_protected IS NULL OR is_protected = 0)
+       AND ((post_type IN ('breaking','news') AND published_at < DATE_SUB(NOW(), INTERVAL ? HOUR)) OR expires_at < NOW() OR created_at < DATE_SUB(NOW(), INTERVAL ? HOUR))`,
+    [hours, hours]
+  );
+
+  if (!stalePosts.length) {
+    await runQuery('INSERT INTO cleanup_logs (deleted_posts, deleted_files, freed_space_estimate, status, error_message) VALUES (0, 0, ?, ?, ?)', ['0 MB', 'success', `No stale posts (${trigger})`]);
+    return { deletedPosts: 0, deletedFiles: 0, freedSpaceEstimate: '0 MB' };
+  }
+
+  const ids = stalePosts.map((p) => p.id);
+  const placeholders = ids.map(() => '?').join(',');
+  await runQuery(`DELETE FROM comments WHERE post_id IN (${placeholders})`, ids);
+  await runQuery(`DELETE FROM likes WHERE post_id IN (${placeholders})`, ids);
+  await runQuery(`DELETE FROM bookmarks WHERE post_id IN (${placeholders})`, ids);
+  await runQuery(`DELETE FROM posts WHERE id IN (${placeholders})`, ids);
+
+  await runQuery('INSERT INTO cleanup_logs (deleted_posts, deleted_files, freed_space_estimate, status, error_message) VALUES (?, ?, ?, ?, ?)', [ids.length, 0, `${ids.length * 0.5} MB`, 'success', `Cleanup ${trigger}`]);
+  return { deletedPosts: ids.length, deletedFiles: 0, freedSpaceEstimate: `${ids.length * 0.5} MB` };
+}
+
+app.get('/api/admin/cleanup/status', requireRole(['admin']), async (req, res) => {
+  const [lastCleanup] = await runQuery('SELECT * FROM cleanup_logs ORDER BY id DESC LIMIT 1');
+  res.json({ lastCleanup: lastCleanup || null, autoDeleteAfterHours: Number(process.env.AUTO_DELETE_AFTER_HOURS || 24) });
+});
+
+app.post('/api/admin/run-cleanup', requireRole(['admin']), async (req, res) => {
+  try {
+    const result = await runCleanupJob('manual-admin');
+    res.json({ message: 'Cleanup finished', result });
+  } catch (error) {
+    res.status(500).json({ message: 'Cleanup failed' });
+  }
+});
+
+app.post('/api/admin/bots/run-collector', requireRole(['admin', 'editor']), async (req, res) => {
+  res.json({ status: 'ok', bot: 'trendCollectorBot', collected: [], note: 'Use RSS/API integrations in production.' });
+});
+
+app.post('/api/admin/bots/run-threat-check', requireRole(['admin', 'editor']), async (req, res) => {
+  const text = sanitizeText(req.body.text || '', 4000).toLowerCase();
+  const flags = [];
+  if (text.includes('password') || text.includes('aadhaar') || text.includes('pan')) flags.push('possible_pii');
+  const status = flags.length ? 'review_required' : 'safe';
+  res.json({ status, flags, reason: flags.length ? 'Potential sensitive data detected' : 'No immediate threat signal', recommendedAction: flags.length ? 'Send for manual review' : 'Continue pipeline' });
+});
+
+app.post('/api/admin/bots/run-newsroom', requireRole(['admin', 'editor']), async (req, res) => {
+  const status = process.env.AI_AUTO_PUBLISH === 'true' ? 'published' : 'pending_review';
+  res.json({ status: 'ok', workflow: 'multi-bot', publishStatus: status, message: 'Pipeline trigger accepted' });
+});
+
+app.get('/api/admin/bots/status', requireRole(['admin']), async (req, res) => {
+  res.json({
+    aiAutoPublish: process.env.AI_AUTO_PUBLISH === 'true',
+    maxAiConcurrency: Number(process.env.MAX_AI_CONCURRENCY || 1),
+    autoDeleteAfterHours: Number(process.env.AUTO_DELETE_AFTER_HOURS || 24),
+    bots: ['trendCollectorBot', 'threatGuardBot', 'freshnessBot', 'newsAnalysisBot', 'newsWriterBot', 'visualizerBot', 'aiAnchorBot', 'publisherBot', 'cleanupBot']
+  });
+});
+
+setInterval(() => {
+  runCleanupJob('hourly-cron').catch(() => {});
+}, 60 * 60 * 1000);
 
 app.get('/health', (req, res) => {
   res.json({
