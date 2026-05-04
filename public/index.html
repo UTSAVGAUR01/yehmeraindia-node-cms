@@ -1,38 +1,6 @@
-<!doctype html>
-<html lang='en'>
-<head>
-  <meta charset='utf-8'>
-  <meta name='viewport' content='width=device-width,initial-scale=1'>
-  <title>Yeh Mera India</title>
-  <link rel='stylesheet' href='/css/style.css'>
-</head>
-<body>
-<header class='topbar'>
-  <div class='container nav'>
-    <div class='logo'><span>Yeh Mera</span> <span>India</span></div>
-    <nav class='links'>
-      <a href='/'>Home</a><a href='/trending'>Trending</a><a href='/category/india-stories'>India</a><a href='/category/technology'>Technology</a><a href='/ai-reporter'>AI Reporter</a><a href='/dashboard.html'>Admin</a>
-    </nav>
-  </div>
-</header>
-<main class='container'>
-  <section class='hero'>
-    <div class='hero-wrap'>
-      <div><h1>The Real Story. <span style='color:var(--saffron)'>The Indian Voice.</span></h1><p>AI-powered, people-first news that matters to Bharat.</p></div>
-      <img src='/images/hero-banner.svg' alt='Hero banner'>
-    </div>
-  </section>
-  <section><h3>Categories</h3><div id='cats' class='pills'></div></section>
-  <section><div class='section-head'><h2>Top Stories</h2><a href='/trending'>View All</a></div><div id='news' class='grid news-grid'></div></section>
-</main>
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Yeh Mera India</title><link rel='stylesheet' href='/css/style.css'></head><body>
+<header class='topbar'><div class='container nav'><div class='logo'><span>Yeh Mera</span> <span>India</span></div><nav class='links'><a href='/'>Home</a><a href='/trending'>Trending</a><a href='/category/india-stories'>India</a><a href='/category/technology'>Technology</a><a href='/ai-reporter'>AI Reporter</a><a href='/dashboard.html'>Admin</a></nav></div></header>
+<main class='container'><section class='hero'><div class='hero-wrap'><div><h1>The Real Story. <span style='color:var(--saffron)'>The Indian Voice.</span></h1><p>AI-powered, people-first news that matters to Bharat.</p></div><img src='/images/hero-banner.svg' alt='Hero banner'></div></section><section><h3>Categories</h3><div id='cats' class='pills'></div></section><section><div class='section-head'><h2>Top Stories</h2><a href='/trending'>View All</a></div><div id='news' class='grid news-grid'></div></section></main>
 <footer class='panel' style='margin:20px auto;max-width:1280px'><b>Yeh Mera India</b> • B12 newsroom integration</footer>
-<script>
-const api=p=>fetch(p).then(r=>r.json()).catch(()=>[]);
-const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-(async()=>{
-  const [posts,cats]=await Promise.all([api('/api/trending'),api('/api/categories')]);
-  document.getElementById('cats').innerHTML=(cats||[]).map((c,i)=>`<a class='pill ${i===0?'active':''}' href='/category/${c.slug}'>${esc(c.name)}</a>`).join('');
-  document.getElementById('news').innerHTML=(posts||[]).slice(0,8).map(p=>`<article class='card'><img src='${esc(p.image||'/images/news-1.svg')}' alt='news'><div class='card-body'><div class='meta'>${esc(p.category||'India')}</div><h3><a href='/news/${p.slug}'>${esc(p.title)}</a></h3><p>${esc(p.excerpt||'')}</p></div></article>`).join('');
-})();
-</script>
+<script src='/js/portal.js'></script><script>(async()=>{const [posts,cats]=await Promise.all([Portal.API.json('/api/trending',[]),Portal.API.json('/api/categories',[])]);document.getElementById('cats').innerHTML=(cats||[]).map((c,i)=>`<a class='pill ${i===0?'active':''}' href='/category/${c.slug}'>${Portal.API.esc(c.name)}</a>`).join('');document.getElementById('news').innerHTML=(posts||[]).slice(0,8).map(Portal.card).join('');})();</script>
 </body></html>

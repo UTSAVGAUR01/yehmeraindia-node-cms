@@ -4,10 +4,7 @@
   "description": "Custom Node.js CMS for Yeh Mera India",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "astro:dev": "astro dev",
-    "astro:build": "astro build",
-    "astro:preview": "astro preview"
+    "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,8 +20,5 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "devDependencies": {
-    "astro": "^5.8.0"
   }
 }

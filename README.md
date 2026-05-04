@@ -35,13 +35,3 @@ Configure `.env` based on `.env.example`:
   - `/ai-reporter`
   - `/dashboard.html`
 
-## Astro (optional structure)
-A root Astro structure exists for progressive migration:
-- `src/layouts`
-- `src/components`
-- `src/pages`
-- `src/styles`
-
-Run Astro preview/dev separately:
-- `npm run astro:dev`
-- `npm run astro:build`
