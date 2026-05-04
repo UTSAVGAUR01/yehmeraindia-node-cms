@@ -1,2 +1,0 @@
---- const {categories=[]}=Astro.props; ---
-<div style='display:flex;flex-wrap:wrap;gap:.5rem'>{categories.map(c=><a class='btn' style='background:#fff;color:var(--navy);border:1px solid var(--navy)' href={`/category/${c.slug}`}>{c.name}</a>)}</div>

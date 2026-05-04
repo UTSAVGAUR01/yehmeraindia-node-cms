@@ -1,2 +1,0 @@
---- import MainLayout from '../../layouts/MainLayout.astro'; import ArticleCard from '../../components/ArticleCard.astro'; const {slug}=Astro.params; const base=Astro.url.origin; let posts=[]; try{posts=await (await fetch(base+'/api/posts?category='+slug)).json()}catch{} ---
-<MainLayout title='Category'><h1>Category: {slug}</h1><div class='grid news-grid'>{posts.map(p=><ArticleCard post={p}/>)}</div></MainLayout>
