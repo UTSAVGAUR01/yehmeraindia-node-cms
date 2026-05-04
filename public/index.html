@@ -1,7 +1,70 @@
-<!doctype html><html><head><link rel='stylesheet' href='/css/style.css'><title>Yeh Mera India</title></head><body>
-<div class='top'><b>Yeh Mera India AI News</b><div class='nav'><a href='/'>Home</a><a href='/trending.html'>Trending</a><a href='/categories.html'>Categories</a><a href='/ai-reporter.html'>AI Reporter</a><a href='/login.html'>Sign in</a><a href='/register.html'>Sign up</a></div></div>
-<div class='ticker'>Breaking: Fresh India updates every hour</div><div class='hero container'><h1>Indian AI News Portal</h1><a class='btn alt' href='/trending.html'>Read Trending</a> <a class='btn' href='/register.html'>Join Community</a></div>
-<div class='container grid cards' id='feed'></div>
-<div class='footer'>© Yeh Mera India</div>
-<script src='/js/api.js'></script><script>async function load(){let posts=[];try{posts=await api('/api/posts')}catch{}const el=document.getElementById('feed');if(!posts.length){posts=[{title:'AI Reporter Special: Bharat Innovation Roundup',excerpt:'Top positive updates from Indian AI, startups, and public impact stories.',slug:'ai-reporter-bharat-innovation'},{title:'Today in India Stories',excerpt:'Fresh explainers on policy, education, finance literacy and health awareness.',slug:'today-india-stories'},{title:'Community Voices',excerpt:'Ground reports from districts and cities with practical insights.',slug:'community-voices'}];}el.innerHTML=posts.slice(0,9).map(p=>`<div class='card'><h3>${p.title}</h3><p>${p.excerpt||''}</p><a class='btn' href='/news/${p.slug}'>Read more</a></div>`).join('')}load();</script>
-</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yeh Mera India • Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+    :root { --saffron: #FF671F; --navy: #06038D; --green: #138808; }
+    body { font-family: 'Inter', sans-serif; }
+    .hero-bg { background: linear-gradient(135deg, #FF671F 0%, #06038D 50%, #138808 100%); }
+    .mandala { background-image: radial-gradient(circle at 30% 20%, rgba(255,103,31,0.2) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(19,136,8,0.2) 0%, transparent 50%); }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <!-- Navbar -->
+  <nav class="bg-white shadow sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-4xl">🇮🇳</div>
+        <h1 class="text-3xl font-bold tracking-tighter" style="font-family: 'Playfair Display', serif;">
+          <span class="text-[#FF671F]">Yeh</span><span class="text-[#06038D]"> Mera</span><span class="text-[#138808]"> India</span>
+        </h1>
+      </div>
+      <div class="flex gap-8 text-lg font-medium">
+        <a href="/" class="text-[#FF671F]">Home</a>
+        <a href="/news">News</a>
+        <a href="/ai-reporter">AI Reporter</a>
+        <a href="/trending">Trending</a>
+        <a href="/dashboard.html" class="bg-[#06038D] text-white px-6 py-2 rounded-3xl">Admin</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero-bg text-white py-24 mandala text-center">
+    <h1 class="text-6xl md:text-7xl font-bold mb-6">AI News from the Heart of Bharat</h1>
+    <p class="text-3xl max-w-2xl mx-auto">Fresh. Positive. Made with Indian values.</p>
+    <div class="mt-12 flex justify-center gap-6">
+      <a href="/ai-reporter" class="px-10 py-5 bg-white text-[#06038D] rounded-3xl text-2xl font-semibold flex items-center gap-3">Watch AI Reels <i class="fas fa-film"></i></a>
+      <a href="/news" class="px-10 py-5 border-4 border-white rounded-3xl text-2xl font-semibold">Read Latest News</a>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 py-12">
+    <h2 class="text-4xl font-bold mb-8 flex items-center gap-3"><i class="fas fa-fire text-[#FF671F]"></i> Trending AI Stories</h2>
+    <div id="trending" class="grid grid-cols-1 md:grid-cols-3 gap-8"></div>
+  </div>
+
+  <script>
+    async function loadTrending() {
+      const res = await fetch('/api/trending');
+      const posts = await res.json();
+      const container = document.getElementById('trending');
+      container.innerHTML = posts.slice(0,6).map(p => `
+        <div onclick="window.location.href='/news/${p.slug}'" class="bg-white rounded-3xl overflow-hidden shadow-xl cursor-pointer hover:scale-105 transition">
+          <div class="h-52 bg-gradient-to-br from-[#FF671F] to-[#138808] flex items-center justify-center text-white text-6xl">${p.is_trending ? '🔥' : '📰'}</div>
+          <div class="p-6">
+            <h3 class="font-semibold text-xl line-clamp-2">${p.title || p.headline}</h3>
+            <p class="text-sm text-gray-600 mt-2">${p.excerpt || p.caption}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+    window.onload = loadTrending;
+  </script>
+</body>
+</html>
