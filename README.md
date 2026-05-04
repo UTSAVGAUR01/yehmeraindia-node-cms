@@ -1,5 +1,7 @@
 # Yeh Mera India - AI News Reporter Platform
 
+> Security warning: Never commit `.env` or API keys.
+
 A Node.js + MySQL powered Indian news platform inspired by Instagram feed UX and short-news reading. It includes role-based CMS controls, AI-assisted newsroom workflows, and social engagement APIs.
 
 ## Features
@@ -75,3 +77,13 @@ Schema is auto-verified at startup in `ensureDatabaseSchema()`:
 - Infinite scroll and richer mobile navigation components
 - Cloudinary/S3 integrations
 - Automated tests and linting pipeline
+
+
+## Auto-delete cleanup
+- AI news cleanup runs hourly and can be triggered from `POST /api/admin/run-cleanup`.
+- Items older than `AUTO_DELETE_AFTER_HOURS` (default 24) are removed unless marked `is_protected = 1`.
+- Cleanup logs are stored in `cleanup_logs`.
+
+## AI newsroom workflow
+- Collector -> ThreatGuard -> Freshness -> Analysis -> Writer -> Visualizer -> Anchor -> Publisher.
+- Default publish behavior is `pending_review` unless `AI_AUTO_PUBLISH=true`.

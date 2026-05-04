@@ -1,0 +1,1 @@
+<!doctype html><html><body><h1>Cleanup</h1><button id='run'>Run cleanup now</button><pre id='o'></pre><script src='/js/api.js'></script><script>async function s(){o.textContent=JSON.stringify(await api('/api/admin/cleanup/status'),null,2)}run.onclick=async()=>{await api('/api/admin/run-cleanup',{method:'POST'});s()};s();</script></body></html>

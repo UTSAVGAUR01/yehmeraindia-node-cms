@@ -1,0 +1,1 @@
+<!doctype html><html><body><h1>Categories</h1><div id='c'></div><script src='/js/api.js'></script><script>api('/api/categories').then(d=>c.innerHTML=d.map(x=>`<a href='/category/${x.slug}'>${x.name}</a><br>`).join(''))</script></body></html>

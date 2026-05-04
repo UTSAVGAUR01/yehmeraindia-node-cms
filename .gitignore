@@ -1,4 +1,11 @@
+.env
+.env.*
+!.env.example
 node_modules/
+uploads/temp/
+uploads/generated/
+logs/
+*.log
 uploads/
 .DS_Store
 npm-debug.log*
