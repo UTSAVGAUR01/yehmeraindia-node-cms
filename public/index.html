@@ -1,14 +1,70 @@
-<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='stylesheet' href='/css/style.css'><title>Yeh Mera India</title></head><body>
-<header class='top'><div class='brand'>🇮🇳 Yeh Mera India AI News</div><nav class='nav'><a href='/'>Home</a><a href='/trending.html'>Trending</a><a href='/categories.html'>Categories</a><a href='/ai-reporter.html'>AI Reporter</a><a href='/login.html'>Sign in</a><a href='/register.html'>Sign up</a></nav></header>
-<div class='ticker'>Breaking • Fresh India updates • AI Reporter Studio</div>
-<section class='hero container'><h1>Indian AI News Reporter Platform</h1><p>Fast reels-style Indian news with responsible AI summaries.</p><a class='btn alt' href='/trending.html'>Read Trending</a> <a class='btn' href='/ai-reporter.html'>Open AI Reporter</a></section>
-<section class='container'><h2>Fresh AI News Reels</h2><div id='reels' class='grid cards'></div></section>
-<section class='container'><h2>Trending</h2><div id='trend' class='grid cards'></div></section>
-<footer class='footer'>Built for India • Saffron | White | Green</footer>
-<script src='/js/api.js'></script><script>
-function card(p){return `<article class='card news'><div class='chip'>${p.category||'india-stories'}</div><h3>${p.title}</h3><p>${p.summary||p.excerpt||''}</p><a class='btn' href='/news/${p.slug}'>Read Full</a></article>`}
-async function load(){let posts=[];try{posts=await api('/api/posts')}catch{} if(!posts.length){posts=await api('/api/ai-feed').catch(()=>[])}
-reels.innerHTML=posts.slice(0,4).map(card).join('');
-const tr=await api('/api/trending').catch(()=>posts);trend.innerHTML=tr.slice(0,4).map(card).join('');}
-load();
-</script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <link rel='stylesheet' href='/css/style.css'>
+  <title>Yeh Mera India</title>
+</head>
+<body>
+  <header class='top'>
+    <div class='brand'>🇮🇳 Yeh Mera India AI News</div>
+    <nav class='nav'>
+      <a href='/'>Home</a><a href='/trending.html'>Trending</a><a href='/categories.html'>Categories</a><a href='/ai-reporter.html'>AI Reporter</a><a href='/login.html'>Sign in</a><a href='/register.html'>Sign up</a>
+    </nav>
+  </header>
+
+  <section class='culture-banner'>
+    <h1>Bharat Newsroom • Indian Culture • Real-Time AI Headlines</h1>
+    <p>National, state, culture, innovation and citizen-service updates in one feed.</p>
+  </section>
+
+  <div class='ticker'>Breaking • Fresh India updates • AI Reporter Studio • Civic awareness • Culture & heritage</div>
+
+  <section class='hero container'>
+    <h2>Indian AI News Reporter Platform</h2>
+    <p>Fast reels-style Indian news with responsible AI summaries and human review.</p>
+    <a class='btn alt' href='/trending.html'>Read Trending</a>
+    <a class='btn' href='/ai-reporter.html'>Open AI Reporter</a>
+  </section>
+
+  <section class='container'>
+    <h2>Fresh AI News Reels</h2>
+    <div id='reels' class='grid cards'></div>
+  </section>
+
+  <section class='container'>
+    <h2>Trending Indian News</h2>
+    <div id='trend' class='grid cards'></div>
+  </section>
+
+  <section class='container'>
+    <h2>Indian News Categories</h2>
+    <div class='chips'>
+      <a href='/category/india-stories'>India Stories</a>
+      <a href='/category/government-schemes'>Govt Schemes</a>
+      <a href='/category/education'>Education</a>
+      <a href='/category/health-awareness'>Health</a>
+      <a href='/category/finance-literacy'>Finance</a>
+    </div>
+  </section>
+
+  <footer class='footer'>Built for India • Saffron | White | Green</footer>
+
+  <script src='/js/api.js'></script>
+  <script>
+    function card(p) {
+      return `<article class='card news'><div class='chip'>${p.category||'india-stories'}</div><h3>${p.title}</h3><p>${p.summary||p.excerpt||''}</p><a class='btn' href='/news/${p.slug}'>Read Full</a></article>`;
+    }
+    async function load() {
+      let posts = [];
+      try { posts = await api('/api/posts'); } catch {}
+      if (!posts.length) posts = await api('/api/ai-feed').catch(() => []);
+      reels.innerHTML = posts.slice(0, 4).map(card).join('');
+      const tr = await api('/api/trending').catch(() => posts);
+      trend.innerHTML = tr.slice(0, 4).map(card).join('');
+    }
+    load();
+  </script>
+</body>
+</html>
