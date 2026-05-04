@@ -4,6 +4,8 @@ const mysql = require('mysql2');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
+const cron = require('node-cron');
 const slugify = require('slugify');
 require('dotenv').config();
 
@@ -17,13 +19,31 @@ const aiRateBucket = new Map();
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
+const inProduction = process.env.NODE_ENV === 'production';
+if (inProduction && !process.env.SESSION_SECRET) {
+  console.error('SESSION_SECRET is required in production.');
+}
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  clearExpired: true,
+  checkExpirationInterval: 1000 * 60 * 15,
+  expiration: 1000 * 60 * 60 * 24
+});
+app.set('trust proxy', 1);
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'change-this-secret-key',
+  key: 'ymi.sid',
+  secret: process.env.SESSION_SECRET || (inProduction ? undefined : 'dev-only-change-me'),
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false,
+    secure: inProduction,
+    sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24
   }
 }));
@@ -518,6 +538,8 @@ app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'publi
 app.get('/categories.html', (req, res) => res.sendFile(path.join(__dirname, 'public/categories.html')));
 app.get('/dashboard.html', requireAdminPage, (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
 app.get('/post/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/post.html')));
+app.get('/news', (req, res) => res.sendFile(path.join(__dirname, 'public/news.html')));
+app.get('/news/', (req, res) => res.sendFile(path.join(__dirname, 'public/news.html')));
 
 app.post('/api/auth/signup', async (req, res) => {
   const { name, email, password } = req.body;
@@ -1149,6 +1171,8 @@ app.get('/health', (req, res) => {
     api: 'responses'
   });
 });
+
+cron.schedule('0 * * * *', () => { runCleanupJob('cron-hourly').catch(() => {}); });
 
 app.listen(PORT, () => {
   console.log(`Yeh Mera India running on port ${PORT}`);

@@ -1,1 +1,30 @@
-async function api(url, opts={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},credentials:'include',...opts});const d=await r.json().catch(()=>({}));if(!r.ok) throw new Error(d.message||'Request failed');return d}
+async function api(url, opts = {}) {
+  const headers = opts.body instanceof FormData
+    ? {}
+    : { 'Content-Type': 'application/json' };
+
+  const r = await fetch(url, {
+    credentials: 'include',
+    ...opts,
+    headers: {
+      ...headers,
+      ...(opts.headers || {})
+    }
+  });
+
+  const contentType = r.headers.get('content-type') || '';
+  const data = contentType.includes('application/json')
+    ? await r.json().catch(() => ({}))
+    : { message: await r.text().catch(() => '') };
+
+  if (!r.ok) {
+    const err = new Error(data.message || `Request failed with status ${r.status}`);
+    err.status = r.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
+
+window.api = api;

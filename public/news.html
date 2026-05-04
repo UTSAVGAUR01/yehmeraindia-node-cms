@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='stylesheet' href='/css/style.css'><title>News | Yeh Mera India</title></head><body>
+<div class='top'><b>Yeh Mera India</b><div class='nav'><a href='/'>Home</a><a href='/ai-reporter.html'>AI Reporter</a></div></div>
+<section class='container'><h1>Fresh Bharat News</h1><div id='list' class='grid cards'></div></section>
+<script src='/js/api.js'></script><script>const fallback=[{title:'AI Reporter Special: Bharat Innovation Roundup',slug:'ai-reporter-special-bharat-innovation-roundup',excerpt:'India innovation highlights.'}];async function load(){let posts=[];try{posts=await api('/api/posts')}catch{}if(!posts.length)posts=fallback;list.innerHTML=posts.map(p=>`<article class='card'><h3>${p.title}</h3><p>${p.summary||p.excerpt||''}</p><a class='btn' href='/news/${p.slug||p.title.toLowerCase().replace(/[^a-z0-9]+/g,'-')}'>Read more</a></article>`).join('')}load();</script>
+</body></html>
