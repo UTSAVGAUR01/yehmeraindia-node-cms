@@ -1,0 +1,2 @@
+--- import AdminLayout from '../../layouts/AdminLayout.astro'; const base=Astro.url.origin; let posts=[]; try{posts=await (await fetch(base+'/api/admin/posts')).json();}catch{} ---
+<AdminLayout title='Admin Posts'><h1>Posts</h1><table class='card' style='width:100%'><tr><th>Title</th><th>Status</th><th>Actions</th></tr>{posts.map(p=><tr><td>{p.title}</td><td>{p.status}</td><td><button>Edit</button><button>Publish</button><button>Delete</button></td></tr>)}</table></AdminLayout>

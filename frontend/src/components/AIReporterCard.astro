@@ -1,0 +1,2 @@
+--- const {item}=Astro.props; ---
+<article class='card' style='aspect-ratio:9/16;background:linear-gradient(180deg,#1A237E,#0D47A1);color:white;display:flex;flex-direction:column'><img src='/images/ai-avatar.svg' style='width:72px;height:72px;border-radius:50%'/><div><span class='badge'>{item.badge || 'Fresh'}</span><h3>{item.title}</h3><p>{item.excerpt}</p><small>Source: {item.source || 'AI Desk'}</small></div><div style='margin-top:auto;display:flex;gap:1rem'><span>❤️</span><span>💬</span><span>↗</span><span>🔖</span></div></article>

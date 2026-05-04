@@ -1,0 +1,7 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+const {slug}=Astro.params; const base=Astro.url.origin;
+let post=null,suggested=[]; try{ post=await (await fetch(base+`/api/posts/${slug}`)).json();}catch{}
+try{ suggested=await (await fetch(base+'/api/posts')).json();}catch{}
+---
+<MainLayout title={post?.title || 'News'}><article class='card'><h1>{post?.title || 'Article unavailable'}</h1><p>{post?.source ? `Source: ${post.source}`:''}</p>{post?.ai_generated===1 && <p class='badge'>AI-generated draft. Verify before sharing.</p>}<div>{post?.content || 'No content available.'}</div></article><aside class='card' style='position:sticky;top:1rem'><h3>Suggested</h3>{suggested.slice(0,5).map(s=><p><a href={`/news/${s.slug}`}>{s.title}</a></p>)}</aside></MainLayout>
