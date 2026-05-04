@@ -1,0 +1,15 @@
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { articles,categories,aiStories } from './data/content.js';
+const app=express();
+const __dirname=path.dirname(fileURLToPath(import.meta.url));
+app.set('view engine','ejs');app.set('views',path.join(__dirname,'views'));
+app.use(express.static(path.join(__dirname,'public')));
+app.get('/',(req,res)=>res.render('index',{articles,categories,aiStories,title:'Home'}));
+app.get('/news',(req,res)=>res.render('news',{articles,title:'News'}));
+app.get('/news/:slug',(req,res)=>{const article=articles.find(a=>a.slug===req.params.slug)||articles[0];res.render('article',{article,articles,title:article.title});});
+app.get('/category/:slug',(req,res)=>{const filtered=articles.filter(a=>a.category===req.params.slug);res.render('category',{articles:filtered.length?filtered:articles,categories,slug:req.params.slug,title:'Category'});});
+app.get('/ai-reporter',(req,res)=>res.render('ai',{aiStories,categories,title:'AI Reporter'}));
+app.get('/admin/:page?',(req,res)=>res.render('admin',{page:req.params.page||'dashboard',articles,title:'Admin'}));
+app.listen(process.env.PORT||3000,()=>console.log('server started'));
