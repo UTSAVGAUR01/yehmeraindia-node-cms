@@ -1,0 +1,5 @@
+---
+import MainLayout from '../layouts/MainLayout.astro'; import AIReporterCard from '../components/AIReporterCard.astro';
+const base = Astro.url.origin; let feed=[]; try{feed = await (await fetch(base+'/api/feed/ai-reporter')).json();}catch{}
+---
+<MainLayout title='AI Reporter'><div style='display:grid;grid-template-columns:250px 1fr;gap:1rem'><aside class='card'><h3>Filters</h3><label>Category</label><select><option>All</option></select><label>Date</label><input type='date'/></aside><section class='grid news-grid'>{feed.map(item=><AIReporterCard item={item}/>)}</section></div></MainLayout>

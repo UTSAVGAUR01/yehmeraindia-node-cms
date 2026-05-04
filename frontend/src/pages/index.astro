@@ -1,0 +1,19 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import CategoryPills from '../components/CategoryPills.astro';
+import AIReporterCard from '../components/AIReporterCard.astro';
+const base = Astro.url.origin;
+async function j(path, fallback){ try{ const r=await fetch(base+path); if(!r.ok) throw new Error(); return await r.json(); } catch { return fallback; } }
+const posts = await j('/api/trending', []);
+const categories = await j('/api/categories', []);
+const aiFeed = await j('/api/feed/ai-reporter', []);
+const featured = posts[0];
+---
+<MainLayout title='Yeh Mera India | Home'>
+<img src='/images/hero-banner.svg' alt='Hero' style='width:100%;border-radius:18px;max-height:360px;object-fit:cover'/>
+<h2>Featured Story</h2>{featured && <ArticleCard post={featured}/>}
+<h2>Categories</h2><CategoryPills categories={categories}/>
+<h2>Trending News</h2><section class='grid news-grid'>{posts.slice(0,6).map(p=><ArticleCard post={p}/>)}</section>
+<h2>AI Reporter Preview</h2><section class='grid news-grid'>{aiFeed.slice(0,3).map(item=><AIReporterCard item={item}/>)}</section><a class='btn' href='/ai-reporter'>View All</a>
+</MainLayout>
