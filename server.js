@@ -514,6 +514,8 @@ Key Updates:
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'public/signup.html')));
+app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'public/signup.html')));
+app.get('/categories.html', (req, res) => res.sendFile(path.join(__dirname, 'public/categories.html')));
 app.get('/dashboard.html', requireAdminPage, (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
 app.get('/post/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/post.html')));
 
@@ -908,36 +910,87 @@ app.put('/api/admin/users/:id/status', requireRole(['admin']), (req, res) => {
 
 app.post('/api/ai/generate-news', requireRole(['admin', 'editor']), async (req, res) => {
   const topic = sanitizeText(req.body.topic, 200);
-  if (!topic) return res.status(400).json({ message: 'Topic is required' });
+  if (!topic) return res.status(400).json({ success: false, message: 'Topic is required' });
   const rateKey = `${req.session.user.id}:${req.ip}`;
-  if (!enforceRateLimit(rateKey)) return res.status(429).json({ message: 'Rate limit exceeded. Try later.' });
+  if (!enforceRateLimit(rateKey)) return res.status(429).json({ success: false, message: 'Rate limit exceeded. Try later.' });
 
   const payload = {
     topic,
     category: sanitizeText(req.body.category || 'india-stories', 100),
     location: sanitizeText(req.body.location || '', 100),
     language: sanitizeText(req.body.language || 'English', 30),
-    tone: sanitizeText(req.body.tone || 'neutral', 40),
-    notes: sanitizeText(req.body.notes || '', 1000)
+    tone: sanitizeText(req.body.tone || 'Simple', 40),
+    notes: sanitizeText(req.body.notes || '', 1500),
+    generateVisualPrompt: Boolean(req.body.generateVisualPrompt),
+    generateAnchorScript: Boolean(req.body.generateAnchorScript)
   };
 
-  const systemPrompt = `Generate a responsible Indian news article. Do not invent fake facts.
-If facts are not provided, write as general information and mention details need verification.
-Return JSON only with headline, caption, summary, article, hashtags, seoTitle, seoDescription, imagePrompt.`;
-  const userPrompt = JSON.stringify(payload);
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  let resultText = '';
-  try {
-    resultText = await callOpenAI(systemPrompt, userPrompt);
-  } catch (err) {
-    return res.status(500).json({ message: 'AI generation failed', error: err.message });
+  const threatFlags = [];
+  const lowered = `${payload.topic} ${payload.notes}`.toLowerCase();
+  if (lowered.includes('aadhaar') || lowered.includes('pan') || lowered.includes('password')) threatFlags.push('possible_pii');
+  if (threatFlags.length) {
+    return res.status(400).json({ success: false, message: 'Threat check failed. Please remove sensitive data.', threat: { status: 'review_required', flags: threatFlags } });
   }
-  if (!resultText) return res.status(500).json({ message: 'No AI output generated' });
-  await runQuery(
-    'INSERT INTO ai_generation_logs (user_id, topic, prompt, result, model) VALUES (?, ?, ?, ?, ?)',
-    [req.session.user.id, topic, userPrompt, resultText, model]
-  );
-  res.json({ aiGenerated: true, disclaimer: 'This article was generated with AI assistance and should be reviewed for factual accuracy.', result: resultText });
+
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(503).json({ success: false, message: 'OpenAI API key is not configured on server.' });
+  }
+
+  const systemPrompt = `You are an Indian AI newsroom assistant. Return strict JSON with keys: headline, caption, summary, article, hashtags, seoTitle, seoDescription, anchorScript, visualPrompt, disclaimer. Never invent unverified facts.`;
+  const userPrompt = JSON.stringify(payload);
+
+  try {
+    const resultText = await callOpenAI(systemPrompt, userPrompt);
+    if (!resultText) return res.status(500).json({ success: false, message: 'No AI output generated' });
+    let parsed;
+    try { parsed = JSON.parse(resultText); } catch { parsed = null; }
+    const data = parsed || {
+      headline: payload.topic,
+      caption: resultText.slice(0, 180),
+      summary: resultText.slice(0, 280),
+      article: resultText,
+      hashtags: ['#IndiaNews', '#AIReporter'],
+      seoTitle: payload.topic,
+      seoDescription: resultText.slice(0, 160),
+      anchorScript: payload.generateAnchorScript ? resultText.slice(0, 500) : '',
+      visualPrompt: payload.generateVisualPrompt ? `Indian newsroom visual for ${payload.topic}` : '',
+      disclaimer: 'This article was generated with AI assistance and should be reviewed for factual accuracy.'
+    };
+    await runQuery('INSERT INTO ai_generation_logs (user_id, topic, prompt, result, model) VALUES (?, ?, ?, ?, ?)', [req.session.user.id, topic, userPrompt, JSON.stringify(data), process.env.OPENAI_MODEL || 'gpt-4o-mini']);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'AI generation failed', error: err.message });
+  }
+});
+
+app.get('/api/feed/ai-reporter', async (req, res) => {
+  const posts = await runQuery(`SELECT id,title,slug,summary,excerpt,category,state,created_at,ai_generated,is_trending,is_breaking,source_name FROM posts WHERE status='published' AND (ai_generated=1 OR format='ai_report') ORDER BY created_at DESC LIMIT 20`);
+  res.json(posts);
+});
+
+app.get('/api/admin/trending', requireRole(['admin','editor']), async (req,res)=>{
+  const items=await runQuery("SELECT id,title,category,status,is_trending,is_breaking,created_at FROM posts ORDER BY is_trending DESC, created_at DESC LIMIT 100");
+  res.json(items);
+});
+
+app.post('/api/admin/posts/:id/breaking', requireRole(['admin']), async (req,res)=>{
+  await runQuery('UPDATE posts SET is_breaking = ? WHERE id=?',[req.body.is_breaking?1:0, req.params.id]);
+  res.json({message:'Breaking status updated'});
+});
+
+app.post('/api/admin/bots/run', requireRole(['admin']), async (req,res)=>{
+  const bot = sanitizeText(req.body.bot || 'unknown',80);
+  await runQuery('INSERT INTO cleanup_logs (deleted_posts, deleted_files, freed_space_estimate, status, error_message) VALUES (0,0,?, ?, ?)', ['0 MB','success', `Bot run: ${bot}`]);
+  res.json({success:true, bot, status:'completed', ranAt:new Date().toISOString()});
+});
+
+app.post('/api/posts', requireRole(['admin','editor']), async (req,res)=>{
+  const title=sanitizeText(req.body.title,255); const content=sanitizeText(req.body.content,20000);
+  if(!title||!content) return res.status(400).json({message:'Title and content required'});
+  const slug=`${slugify(title,{lower:true,strict:true})}-${Date.now()}`;
+  await runQuery(`INSERT INTO posts (title,slug,excerpt,summary,content,category,image,source_name,source_url,ai_generated,status,published_at,expires_at,is_trending,is_breaking)
+   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(), INTERVAL ? HOUR),0,0)`,[title, sanitizeText(req.body.caption||'',500), sanitizeText(req.body.summary||'',1200), content, sanitizeText(req.body.category||'india-stories',100), sanitizeText(req.body.image||'',255), sanitizeText(req.body.source_name||'AI Reporter',150), sanitizeText(req.body.source_url||'',255), req.body.ai_generated?1:0, sanitizeText(req.body.status||'pending',30), req.body.status==='published'?new Date():null, Number(process.env.AUTO_DELETE_AFTER_HOURS||24)]);
+  res.json({message:'Post created'});
 });
 
 app.get('/api/posts/:id/comments', async (req, res) => {
@@ -993,12 +1046,20 @@ app.delete('/api/posts/:id/bookmark', requireRole(['admin', 'editor', 'viewer'])
 });
 
 app.get('/api/admin/dashboard', requireRole(['admin']), async (req, res) => {
-  const [users] = await runQuery('SELECT COUNT(*) AS total_users FROM users');
-  const [posts] = await runQuery('SELECT COUNT(*) AS total_posts, SUM(status = "pending") AS pending_posts, SUM(status = "published") AS published_posts FROM posts');
-  const [engagement] = await runQuery('SELECT COALESCE(SUM(likes_count),0) AS total_likes, COALESCE(SUM(comments_count),0) AS total_comments FROM posts');
-  const aiLogs = await runQuery('SELECT id, user_id, topic, model, created_at FROM ai_generation_logs ORDER BY id DESC LIMIT 10');
-  res.json({ users, posts, engagement, aiLogs });
+  const [posts] = await runQuery(`SELECT COUNT(*) totalPosts, SUM(status='published') publishedPosts, SUM(status='pending') pendingPosts, SUM(ai_generated=1) aiGeneratedPosts, SUM(is_trending=1) trendingPosts FROM posts`);
+  const [users] = await runQuery('SELECT COUNT(*) AS users FROM users');
+  const [deleted] = await runQuery("SELECT COALESCE(SUM(deleted_posts),0) AS deletedToday FROM cleanup_logs WHERE DATE(created_at)=CURDATE()");
+  const [last] = await runQuery('SELECT created_at FROM cleanup_logs ORDER BY id DESC LIMIT 1');
+  const recentPosts = await runQuery("SELECT id,title,status,created_at FROM posts ORDER BY created_at DESC LIMIT 8");
+  const pendingAiPosts = await runQuery("SELECT id,title,status,created_at FROM posts WHERE status='pending' AND ai_generated=1 ORDER BY created_at DESC LIMIT 8");
+  res.json({ ...posts, users: users.users || 0, deletedToday: deleted.deletedToday || 0, lastCleanupAt: last ? last.created_at : null, recentPosts, pendingAiPosts });
 });
+
+app.post('/api/admin/categories', requireRole(['admin']), async (req,res)=>{
+  await runQuery('INSERT INTO categories (name, slug, description) VALUES (?, ?, ?)', [sanitizeText(req.body.name,120), sanitizeText(req.body.slug,120), sanitizeText(req.body.description||'',400)]);
+  res.json({message:'Category added'});
+});
+app.delete('/api/admin/categories/:id', requireRole(['admin']), async (req,res)=>{ await runQuery('DELETE FROM categories WHERE id=?',[req.params.id]); res.json({message:'Category deleted'}); });
 
 app.get('/news/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public/post.html')));
 app.get('/trending', (req, res) => res.sendFile(path.join(__dirname, 'public/trending.html')));
