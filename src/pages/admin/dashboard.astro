@@ -1,0 +1,2 @@
+---import AdminLayout from '../../layouts/AdminLayout.astro';---
+<AdminLayout title='Admin Dashboard'><h1>Dashboard</h1><div style='display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:.75rem'>{['Total Posts: 128','Published: 96','AI Posts: 34','Trending: 12','Users: 18'].map(i=><div style='background:#f3f4f6;padding:1rem;border-radius:10px'>{i}</div>)}</div><h3>Recent Posts</h3><table><tr><th>Title</th><th>Status</th></tr><tr><td>ISRO Advances Reusable Launch Systems</td><td>Published</td></tr></table><button>Run Cleanup</button></AdminLayout>
