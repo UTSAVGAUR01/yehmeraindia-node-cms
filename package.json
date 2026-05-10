@@ -1,11 +1,17 @@
 {
-  "name": "my-app",
+  "name": "yehmeraindia-frontend",
+  "description": "Yeh Mera India - AI News Platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "author": "UTSAVGAUR01",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/UTSAVGAUR01/yehmeraindia-node-cms.git"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
