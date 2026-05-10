@@ -1,12 +1,14 @@
 import path from "path"
+import { fileURLToPath } from 'url'
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
-import { inspectAttr } from 'plugin-inspect-react-code'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [inspectAttr(), react()],
+  plugins: [react()],
   server: {
     port: 3000,
   },
