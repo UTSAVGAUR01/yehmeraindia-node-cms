@@ -1,0 +1,317 @@
+/* ═══════════════════════════════════════════
+   INDIAN TEXTILE PATTERN LIBRARY
+   Inspired by Lahariya, Bandhej, Warli & Ajrakh
+   ═══════════════════════════════════════════ */
+
+/* ── Lahariya Wave Divider ──
+   Wavy rainbow stripe divider inspired by Rajasthani Lahariya textile pattern */
+.lahariya-divider {
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    #E85D04 0px,
+    #E85D04 20px,
+    #F4A261 20px,
+    #F4A261 40px,
+    #2D6A4F 40px,
+    #2D6A4F 60px,
+    #457B9D 60px,
+    #457B9D 80px,
+    #BC4749 80px,
+    #BC4749 100px,
+    #D4A373 100px,
+    #D4A373 120px
+  );
+  background-size: 120px 100%;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+
+.lahariya-divider-thin {
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    #E85D04 0px,
+    #E85D04 15px,
+    #F4A261 15px,
+    #F4A261 30px,
+    #2D6A4F 30px,
+    #2D6A4F 45px,
+    #BC4749 45px,
+    #BC4749 60px
+  );
+  background-size: 60px 100%;
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+/* ── Bandhej Dot Texture ──
+   Subtle tie-dye dot pattern inspired by Rajasthani Bandhej/Bandhani */
+.bandhej-texture {
+  position: relative;
+}
+.bandhej-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(232, 93, 4, 0.08) 1px, transparent 1px);
+  background-size: 12px 12px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bandhej-texture-dense {
+  position: relative;
+}
+.bandhej-texture-dense::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(232, 93, 4, 0.06) 1px, transparent 1px);
+  background-size: 8px 8px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Warli Art Border ──
+   Tribal art border using geometric human/figurine patterns */
+.warli-border {
+  position: relative;
+  border: 2px solid transparent;
+  border-image: url('/pattern-warli.png') 30 round;
+}
+
+.warli-border-top {
+  position: relative;
+}
+.warli-border-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background-image: url('/pattern-warli.png');
+  background-size: 120px auto;
+  background-repeat: repeat-x;
+  background-position: top center;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.warli-divider {
+  height: 20px;
+  background-image: url('/pattern-warli.png');
+  background-size: 100px auto;
+  background-repeat: repeat-x;
+  background-position: center;
+  opacity: 0.2;
+  margin: 1rem 0;
+}
+
+/* ── Ajrakh Frame ──
+   Geometric frame pattern inspired by Ajrakh block printing */
+.ajrakh-frame {
+  position: relative;
+  padding: 8px;
+}
+.ajrakh-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/pattern-ajrakh.png');
+  background-size: 80px 80px;
+  background-repeat: repeat;
+  opacity: 0.12;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.ajrakh-border-top {
+  position: relative;
+}
+.ajrakh-border-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background-image: url('/pattern-ajrakh.png');
+  background-size: 80px auto;
+  background-repeat: repeat-x;
+  background-position: top center;
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+/* ── Saffron Gradient ──
+   Warm saffron-to-gold gradient for accents */
+.saffron-gradient {
+  background: linear-gradient(135deg, #E85D04 0%, #F4A261 50%, #D4A373 100%);
+}
+
+.saffron-gradient-soft {
+  background: linear-gradient(135deg, rgba(232, 93, 4, 0.9) 0%, rgba(244, 162, 97, 0.85) 100%);
+}
+
+.saffron-gradient-text {
+  background: linear-gradient(135deg, #E85D04 0%, #F4A261 50%, #D4A373 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Indigo Gradient ──
+   Deep indigo gradient for headers, nav, footer */
+.indigo-gradient {
+  background: linear-gradient(135deg, #1D3557 0%, #457B9D 100%);
+}
+
+.indigo-gradient-dark {
+  background: linear-gradient(180deg, #1D3557 0%, #162844 100%);
+}
+
+/* ── Terracotta Accent ──
+   Warm terracotta for CTAs and badges */
+.terracotta-gradient {
+  background: linear-gradient(135deg, #BC4749 0%, #D4A373 100%);
+}
+
+/* ── Cream Background with subtle warmth ── */
+.cream-warm-bg {
+  background-color: #FFF8F0;
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(232, 93, 4, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(29, 53, 87, 0.02) 0%, transparent 50%);
+}
+
+/* ── Decorative rangoli-inspired corner ornament ── */
+.rangoli-corner {
+  position: relative;
+}
+.rangoli-corner::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, #E85D04 2px, transparent 2px),
+              radial-gradient(circle, #F4A261 2px, transparent 2px),
+              radial-gradient(circle, #D4A373 2px, transparent 2px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px, 5px 5px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ── Indian Tricolor subtle stripe ── */
+.tricolor-stripe-warm {
+  height: 3px;
+  background: linear-gradient(90deg, #E85D04 0%, #E85D04 33%, #F5EDE0 33%, #F5EDE0 66%, #2D6A4F 66%, #2D6A4F 100%);
+  border-radius: 2px;
+}
+
+/* ── Card hover lift with warm shadow ── */
+.card-warm {
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-warm:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* ── Section divider with Indian motif ── */
+.section-divider-indian {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.section-divider-indian::before,
+.section-divider-indian::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #D4A373, transparent);
+}
+.section-divider-indian .diamond {
+  width: 8px;
+  height: 8px;
+  background: #E85D04;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+/* ── Playfair editorial accent ── */
+.editorial-quote {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  color: #1D3557;
+}
+
+/* ── Pattern overlay for hero sections ── */
+.pattern-overlay-lahariya {
+  position: relative;
+}
+.pattern-overlay-lahariya::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/pattern-lahariya.png');
+  background-size: 400px auto;
+  background-repeat: repeat;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Warm tag/badge pill ── */
+.tag-pill-saffron {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(232, 93, 4, 0.12);
+  color: #E85D04;
+}
+
+.tag-pill-indigo {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(29, 53, 87, 0.1);
+  color: #1D3557;
+}
+
+.tag-pill-green {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(45, 106, 79, 0.12);
+  color: #2D6A4F;
+}
+
+.tag-pill-terracotta {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(188, 71, 73, 0.12);
+  color: #BC4749;
+}
