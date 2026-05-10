@@ -250,7 +250,7 @@ function ExpressionIndicator({ expression }: { expression: Expression }) {
 
   return (
     <motion.div
-      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/70 backdrop-blur-sm"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0F1923]/70 backdrop-blur-sm"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       key={expression}
@@ -350,8 +350,8 @@ function LiveClock() {
   }, []);
   return (
     <div className="flex items-center gap-2">
-      <Clock size={14} className="text-steel" />
-      <span className="font-mono text-sm text-frost tabular-nums">{time} IST</span>
+      <Clock size={14} className="text-[#475569]" />
+      <span className="font-mono text-sm text-[#F8FAFC] tabular-nums">{time} IST</span>
     </div>
   );
 }
@@ -362,13 +362,13 @@ function LiveClock() {
 function NewsTicker({ items }: { items: NewsItem[] }) {
   const tickerText = items.map((n) => `${n.title}`).join(' \u25C6 ');
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-9 bg-midnight/85 overflow-hidden flex items-center mask-gradient-x z-20">
+    <div className="absolute bottom-0 left-0 right-0 h-9 bg-[#1A2A3A]/85 overflow-hidden flex items-center mask-gradient-x z-20">
       <motion.div
         className="flex items-center gap-8 whitespace-nowrap"
         animate={{ x: ['0%', '-50%'] }}
         transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
       >
-        <span className="font-mono text-ticker text-frost/80">
+        <span className="font-mono text-ticker text-[#F8FAFC]/80">
           {tickerText} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {tickerText}
         </span>
       </motion.div>
@@ -464,7 +464,7 @@ function StudioHero({
 
       {/* Mobile panel toggle */}
       <button
-        className="lg:hidden absolute top-4 right-4 z-40 w-10 h-10 rounded-lg bg-midnight/80 border border-slate flex items-center justify-center text-frost"
+        className="lg:hidden absolute top-4 right-4 z-40 w-10 h-10 rounded-lg bg-[#1A2A3A]/80 border border-gray-700 flex items-center justify-center text-[#F8FAFC]"
         onClick={() => setPanelOpen(!panelOpen)}
         aria-label="Toggle panel"
       >
@@ -480,10 +480,10 @@ function StudioHero({
       >
         <div className="flex-1 flex items-center justify-center p-4 lg:p-8">
           <div
-            className={`relative w-full lg:w-[60%] aspect-video rounded-2xl border-2 overflow-hidden bg-midnight/60 ${
-              isPlaying ? 'shadow-[0_0_30px_rgba(255,153,51,0.15)]' : ''
+            className={`relative w-full lg:w-[60%] aspect-video rounded-2xl border-2 overflow-hidden bg-[#1A2A3A] ${
+              isPlaying ? 'shadow-[0_0_30px_rgba(232,93,4,0.15)]' : ''
             }`}
-            style={{ borderColor: isPlaying ? `${SAFFRON}80` : `${SAFFRON}33` }}
+            style={{ borderColor: isPlaying ? `${SAFFRON}80` : '#374151' }}
           >
             {/* Video-based anchor */}
             <VideoAnchor expression={expression} speaking={speaking} rate={rate} />
@@ -500,7 +500,7 @@ function StudioHero({
             </div>
 
             {/* Time display */}
-            <div className="absolute top-4 right-4 bg-void/60 backdrop-blur-sm px-3 py-1.5 rounded-lg z-20">
+            <div className="absolute top-4 right-4 bg-[#0F1923]/60 backdrop-blur-sm px-3 py-1.5 rounded-lg z-20">
               <LiveClock />
             </div>
 
@@ -535,7 +535,7 @@ function StudioHero({
 
         {/* -- Bottom Control Bar -- */}
         <motion.div
-          className="relative z-20 h-14 bg-void border-t border-slate flex items-center px-4 lg:px-8 gap-4"
+          className="relative z-20 h-14 bg-[#1A2A3A] border-t border-gray-700 flex items-center px-4 lg:px-8 gap-4"
           initial={{ y: 56 }}
           animate={{ y: 0 }}
           transition={{ duration: 0.4, delay: 0.5, ease: easeSmooth }}
@@ -544,7 +544,7 @@ function StudioHero({
           <div className="flex items-center gap-2">
             <button
               onClick={onSkipBack}
-              className="w-10 h-10 rounded-lg bg-midnight flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-lg bg-[#0F1923] flex items-center justify-center transition-colors"
               style={{ color: SAFFRON }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#FFB366')}
               onMouseLeave={(e) => (e.currentTarget.style.color = SAFFRON)}
@@ -554,7 +554,7 @@ function StudioHero({
             </button>
             <button
               onClick={onTogglePlay}
-              className="w-10 h-10 rounded-lg bg-midnight flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-lg bg-[#0F1923] flex items-center justify-center transition-colors"
               style={{ color: SAFFRON }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#FFB366')}
               onMouseLeave={(e) => (e.currentTarget.style.color = SAFFRON)}
@@ -564,7 +564,7 @@ function StudioHero({
             </button>
             <button
               onClick={onSkipForward}
-              className="w-10 h-10 rounded-lg bg-midnight flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-lg bg-[#0F1923] flex items-center justify-center transition-colors"
               style={{ color: SAFFRON }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#FFB366')}
               onMouseLeave={(e) => (e.currentTarget.style.color = SAFFRON)}
@@ -574,7 +574,7 @@ function StudioHero({
             </button>
             <button
               onClick={onStop}
-              className="w-8 h-8 rounded-md bg-midnight/60 flex items-center justify-center text-steel hover:text-frost transition-colors text-xs"
+              className="w-8 h-8 rounded-md bg-[#0F1923]/60 flex items-center justify-center text-[#475569] hover:text-[#F8FAFC] transition-colors text-xs"
               aria-label="Stop"
             >
               <X size={14} />
@@ -583,10 +583,10 @@ function StudioHero({
 
           {/* Progress bar */}
           <div className="flex-1 flex items-center gap-3 min-w-0">
-            <span className="font-mono text-xs text-steel hidden sm:inline tabular-nums">
+            <span className="font-mono text-xs text-[#475569] hidden sm:inline tabular-nums">
               {Math.floor(progress * 100)}%
             </span>
-            <div className="flex-1 h-1 bg-slate rounded-full overflow-hidden">
+            <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ width: `${progress * 100}%`, backgroundColor: SAFFRON }}
@@ -599,7 +599,7 @@ function StudioHero({
           <div className="flex items-center gap-3">
             <button
               onClick={() => onVolumeChange(volume > 0 ? 0 : 1)}
-              className="text-steel hover:text-frost transition-colors"
+              className="text-[#475569] hover:text-[#F8FAFC] transition-colors"
               aria-label="Toggle volume"
             >
               {volume > 0 ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -615,7 +615,7 @@ function StudioHero({
               style={{ accentColor: SAFFRON }}
               aria-label="Volume"
             />
-            <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded bg-midnight">
+            <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0F1923]">
               <Gauge size={12} style={{ color: SAFFRON }} />
               <span className="font-mono text-[10px] tabular-nums" style={{ color: SAFFRON }}>
                 {rate.toFixed(1)}x
@@ -629,7 +629,7 @@ function StudioHero({
       <AnimatePresence>
         {panelOpen && (
           <motion.div
-            className="fixed inset-y-0 right-0 z-50 w-[340px] max-w-[85vw] bg-midnight/95 backdrop-blur-xl border-l border-slate flex flex-col lg:absolute lg:inset-y-0 lg:right-0 lg:left-auto"
+            className="fixed inset-y-0 right-0 z-50 w-[340px] max-w-[85vw] bg-[#1A2A3A]/95 backdrop-blur-xl border-l border-gray-700 flex flex-col lg:absolute lg:inset-y-0 lg:right-0 lg:left-auto"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -637,7 +637,7 @@ function StudioHero({
           >
             {/* Close on mobile */}
             <button
-              className="lg:hidden absolute top-4 right-4 text-frost"
+              className="lg:hidden absolute top-4 right-4 text-[#F8FAFC]"
               onClick={() => setPanelOpen(false)}
               aria-label="Close panel"
             >
@@ -645,21 +645,19 @@ function StudioHero({
             </button>
 
             {/* Tabs */}
-            <div className="flex items-center border-b border-slate">
+            <div className="flex items-center border-b border-gray-700">
               {(['playlist', 'settings', 'sources'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setPanelTab(tab)}
                   className={`flex-1 py-3 text-sm font-medium font-body capitalize transition-colors relative ${
-                    panelTab === tab ? '' : 'text-steel hover:text-frost'
+                    panelTab === tab ? 'text-saffron' : 'text-[#475569] hover:text-[#F8FAFC]'
                   }`}
-                  style={{ color: panelTab === tab ? SAFFRON : undefined }}
                 >
                   {tab}
                   {panelTab === tab && (
                     <motion.div
-                      className="absolute bottom-0 left-4 right-4 h-0.5"
-                      style={{ backgroundColor: SAFFRON }}
+                      className="absolute bottom-0 left-4 right-4 h-0.5 bg-saffron"
                       layoutId="panel-tab"
                       transition={{ duration: 0.25, ease: easeSmooth }}
                     />
@@ -677,16 +675,16 @@ function StudioHero({
                     <button
                       key={story.id}
                       onClick={() => { onSelectStory(i); if (window.innerWidth < 1024) setPanelOpen(false); }}
-                      className={`w-full text-left px-4 py-3 border-b border-slate flex items-start gap-3 transition-colors ${
+                      className={`w-full text-left px-4 py-3 border-b border-gray-700 flex items-start gap-3 transition-colors ${
                         i === currentIndex
                           ? 'border-l-[3px]'
-                          : 'hover:bg-midnight'
+                          : 'hover:bg-[#0F1923]'
                       }`}
                       style={i === currentIndex ? { backgroundColor: `${SAFFRON}1A`, borderLeftColor: SAFFRON } : {}}
                     >
-                      <GripVertical size={16} className="text-steel mt-0.5 shrink-0" />
+                      <GripVertical size={16} className="text-[#475569] mt-0.5 shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm text-frost truncate font-medium">{story.title}</p>
+                        <p className="text-sm text-[#F8FAFC] truncate font-medium text-left">{story.title}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span
                             className="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -697,7 +695,7 @@ function StudioHero({
                           >
                             {story.category}
                           </span>
-                          <span className="font-mono text-xs text-steel">{story.duration}</span>
+                          <span className="font-mono text-xs text-[#475569]">{story.duration}</span>
                         </div>
                       </div>
                     </button>
@@ -710,14 +708,14 @@ function StudioHero({
                 <div className="p-4 space-y-6">
                   {/* Voice selector */}
                   <div>
-                    <label className="block text-sm text-frost mb-2 font-body">Voice</label>
+                    <label className="block text-sm text-[#F8FAFC] mb-2 font-body text-left">Voice</label>
                     <select
                       value={selectedVoice?.name || ''}
                       onChange={(e) => {
                         const v = availableVoices.find((vo) => vo.name === e.target.value);
                         if (v) onVoiceChange(v);
                       }}
-                      className="w-full bg-void border border-slate rounded-lg px-3 py-2 text-sm text-frost focus:outline-none"
+                      className="w-full bg-[#0F1923] border border-gray-700 rounded-lg px-3 py-2 text-sm text-[#F8FAFC] focus:outline-none"
                       style={{ accentColor: SAFFRON }}
                     >
                       {displayVoices.map((v) => (
@@ -730,8 +728,8 @@ function StudioHero({
 
                   {/* Speed control */}
                   <div>
-                    <label className="block text-sm text-frost mb-2 font-body">
-                      Speed: <span className="font-mono" style={{ color: SAFFRON }}>{rate.toFixed(1)}x</span>
+                    <label className="block text-sm text-[#F8FAFC] mb-2 font-body text-left">
+                      Speed: <span className="font-mono text-saffron">{rate.toFixed(1)}x</span>
                     </label>
                     <input
                       type="range"
@@ -744,7 +742,7 @@ function StudioHero({
                       style={{ accentColor: SAFFRON }}
                       aria-label="Speech speed"
                     />
-                    <div className="flex justify-between text-xs text-steel mt-1">
+                    <div className="flex justify-between text-xs text-[#475569] mt-1">
                       <span>0.5x</span>
                       <span>1.0x</span>
                       <span>2.0x</span>
@@ -753,8 +751,8 @@ function StudioHero({
 
                   {/* Volume control */}
                   <div>
-                    <label className="block text-sm text-frost mb-2 font-body">
-                      Volume: <span className="font-mono" style={{ color: SAFFRON }}>{Math.round(volume * 100)}%</span>
+                    <label className="block text-sm text-[#F8FAFC] mb-2 font-body text-left">
+                      Volume: <span className="font-mono text-saffron">{Math.round(volume * 100)}%</span>
                     </label>
                     <input
                       type="range"
@@ -767,7 +765,7 @@ function StudioHero({
                       style={{ accentColor: SAFFRON }}
                       aria-label="Volume"
                     />
-                    <div className="flex justify-between text-xs text-steel mt-1">
+                    <div className="flex justify-between text-xs text-[#475569] mt-1">
                       <span>0%</span>
                       <span>50%</span>
                       <span>100%</span>
@@ -775,23 +773,22 @@ function StudioHero({
                   </div>
 
                   {/* Expression info */}
-                  <div className="p-3 rounded-lg border border-slate bg-void">
-                    <p className="text-xs text-steel mb-2">Current Expression</p>
+                  <div className="p-3 rounded-lg border border-gray-700 bg-[#0F1923]">
+                    <p className="text-xs text-[#475569] mb-2 text-left">Current Expression</p>
                     <div className="flex items-center justify-between">
                       <ExpressionIndicator expression={expression} />
-                      <span className="text-xs text-steel capitalize">{sentiment} sentiment</span>
+                      <span className="text-xs text-[#475569] capitalize">{sentiment} sentiment</span>
                     </div>
                   </div>
 
                   {/* Auto-play toggle */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-frost font-body">Auto-play</span>
+                    <span className="text-sm text-[#F8FAFC] font-body">Auto-play</span>
                     <button
                       onClick={onAutoPlayChange}
                       className={`relative w-11 h-6 rounded-full transition-colors ${
-                        autoPlay ? '' : 'bg-slate'
+                        autoPlay ? 'bg-saffron' : 'bg-gray-700'
                       }`}
-                      style={{ backgroundColor: autoPlay ? SAFFRON : undefined }}
                       aria-label="Toggle auto-play"
                     >
                       <motion.div
@@ -807,18 +804,17 @@ function StudioHero({
               {/* Sources Tab */}
               {panelTab === 'sources' && (
                 <div className="p-4 space-y-3">
-                  <p className="text-sm text-steel mb-4">
+                  <p className="text-sm text-[#475569] mb-4 text-left font-body">
                     Select topic categories to include in your broadcast:
                   </p>
                   {categories.map((cat) => (
                     <div key={cat} className="flex items-center justify-between">
-                      <span className="text-sm text-frost font-body">{cat}</span>
+                      <span className="text-sm text-[#F8FAFC] font-body">{cat}</span>
                       <button
                         onClick={() => onToggleTopic(cat)}
                         className={`relative w-10 h-5 rounded-full transition-colors ${
-                          activeTopics[cat] ? '' : 'bg-slate'
+                          activeTopics[cat] ? 'bg-saffron' : 'bg-gray-700'
                         }`}
-                        style={{ backgroundColor: activeTopics[cat] ? SAFFRON : undefined }}
                         aria-label={`Toggle ${cat}`}
                       >
                         <motion.div
@@ -844,8 +840,8 @@ function StudioHero({
 /* ================================================================== */
 function NowPlayingSection({ story, expression }: { story: NewsItem; expression: Expression }) {
   return (
-    <section className="py-16 bg-void">
-      <div className="max-w-container mx-auto px-6 lg:px-12">
+    <section className="py-16 bg-[#0F1923]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-[60%_40%] gap-12">
           {/* Left column */}
           <motion.div
@@ -857,10 +853,10 @@ function NowPlayingSection({ story, expression }: { story: NewsItem; expression:
             {/* Eyebrow */}
             <div className="flex items-center gap-2 mb-4">
               <span className="relative flex h-2 w-2">
-                <span className="animate-pulse-dot absolute inline-flex h-full w-full rounded-full bg-signal" />
-                <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: SIGNAL_RED }} />
+                <span className="animate-pulse-dot absolute inline-flex h-full w-full rounded-full bg-saffron" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-terracotta" />
               </span>
-              <span className="font-mono text-xs font-medium tracking-wider uppercase" style={{ color: SIGNAL_RED }}>
+              <span className="font-mono text-xs font-medium tracking-wider uppercase text-terracotta">
                 NOW PLAYING
               </span>
             </div>
@@ -869,7 +865,7 @@ function NowPlayingSection({ story, expression }: { story: NewsItem; expression:
             <AnimatePresence mode="wait">
               <motion.h2
                 key={story.id}
-                className="font-heading font-bold text-h1 text-frost mb-4"
+                className="font-display font-bold heading-lg text-[#F8FAFC] mb-4 text-left"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -890,18 +886,18 @@ function NowPlayingSection({ story, expression }: { story: NewsItem; expression:
               >
                 {story.category}
               </span>
-              <span className="text-steel text-sm">{story.source}</span>
-              <span className="text-steel text-sm">&middot;</span>
-              <span className="text-steel text-sm">{story.timestamp}</span>
-              <span className="text-steel text-sm">&middot;</span>
-              <span className="text-steel text-sm">{story.readTime}</span>
+              <span className="text-[#475569] text-sm">{story.source}</span>
+              <span className="text-[#475569] text-sm">&middot;</span>
+              <span className="text-[#475569] text-sm">{story.timestamp}</span>
+              <span className="text-[#475569] text-sm">&middot;</span>
+              <span className="text-[#475569] text-sm">{story.readTime}</span>
             </div>
 
             {/* Excerpt */}
             <AnimatePresence mode="wait">
               <motion.p
                 key={`${story.id}-excerpt`}
-                className="text-steel leading-[1.75] text-body"
+                className="text-[#475569] leading-relaxed text-base text-left font-body"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -940,8 +936,8 @@ function NowPlayingSection({ story, expression }: { story: NewsItem; expression:
             <div className="absolute top-3 right-3 z-10">
               <ExpressionIndicator expression={expression} />
             </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-void/70 px-4 py-3">
-              <p className="text-xs text-steel">
+            <div className="absolute bottom-0 left-0 right-0 bg-[#0F1923]/70 px-4 py-3">
+              <p className="text-xs text-[#475569]">
                 {story.source} &middot; {story.timestamp}
               </p>
             </div>
@@ -967,12 +963,12 @@ function StoryQueue({
   const upcoming = stories.slice(currentIndex + 1, currentIndex + 6);
 
   return (
-    <section className="py-16 bg-midnight">
+    <section className="py-16 bg-[#1A2A3A]">
       <div className="max-w-container mx-auto px-6 lg:px-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <motion.h2
-            className="font-heading font-bold text-h2 text-frost"
+            className="font-heading font-bold text-h2 text-[#F8FAFC]"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -981,7 +977,7 @@ function StoryQueue({
             Coming Up Next
           </motion.h2>
           <motion.button
-            className="border border-slate text-frost text-sm font-medium rounded-full px-5 py-2 transition-colors hover:border-[#FF9933]"
+            className="border border-gray-700 text-[#F8FAFC] text-sm font-medium rounded-full px-5 py-2 transition-colors hover:border-[#FF9933]"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -994,7 +990,7 @@ function StoryQueue({
         {/* Horizontal scroll cards */}
         <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide">
           {upcoming.length === 0 && (
-            <p className="text-steel text-sm py-8">End of playlist. Skip back to see earlier stories.</p>
+            <p className="text-[#475569] text-sm py-8">End of playlist. Skip back to see earlier stories.</p>
           )}
           {upcoming.map((story, i) => {
             const globalIndex = currentIndex + 1 + i;
@@ -1020,7 +1016,7 @@ function StoryQueue({
                     }}
                   />
                   {/* Play button overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-void/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#0F1923]/40 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: SAFFRON }}>
                       <Play size={18} className="text-white ml-0.5" />
                     </div>
@@ -1028,7 +1024,7 @@ function StoryQueue({
                 </div>
 
                 {/* Content */}
-                <div className="p-4 bg-void rounded-b-xl border border-t-0 border-slate">
+                <div className="p-4 bg-[#0F1923] rounded-b-xl border border-t-0 border-gray-700">
                   <span
                     className="text-xs font-medium px-2 py-0.5 rounded-full"
                     style={{
@@ -1038,13 +1034,13 @@ function StoryQueue({
                   >
                     {story.category}
                   </span>
-                  <h3 className="font-heading font-semibold text-sm text-frost mt-2 line-clamp-2">
+                  <h3 className="font-display font-semibold text-sm text-[#F8FAFC] mt-2 line-clamp-2 text-left">
                     {story.title}
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="font-mono text-xs text-steel">{story.duration}</span>
-                    <span className="text-steel">&middot;</span>
-                    <span className="font-mono text-xs text-steel">
+                    <span className="font-mono text-xs text-[#475569]">{story.duration}</span>
+                    <span className="text-[#475569]">&middot;</span>
+                    <span className="font-mono text-xs text-[#475569]">
                       Up next
                     </span>
                   </div>
@@ -1098,13 +1094,12 @@ function CustomizationSection({
   ];
 
   return (
-    <section className="py-24 bg-void">
-      <div className="max-w-container mx-auto px-6 lg:px-12">
+    <section className="py-24 bg-[#0F1923]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-left mb-16">
           <motion.span
-            className="font-mono text-xs tracking-[0.15em] uppercase"
-            style={{ color: SAFFRON }}
+            className="font-mono text-xs tracking-[0.15em] uppercase text-saffron"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -1112,7 +1107,7 @@ function CustomizationSection({
             PERSONALIZE
           </motion.span>
           <motion.h2
-            className="font-heading font-bold text-h1 text-frost mt-3"
+            className="font-display font-bold heading-lg text-[#F8FAFC] mt-3 text-left"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1121,7 +1116,7 @@ function CustomizationSection({
             Your Anchor, Your Way
           </motion.h2>
           <motion.p
-            className="text-steel mt-3 max-w-lg mx-auto"
+            className="text-[#475569] mt-3 max-w-lg font-body leading-relaxed text-left"
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1136,7 +1131,7 @@ function CustomizationSection({
           {cards.map((card, cardIdx) => (
             <motion.div
               key={card.id}
-              className="bg-midnight rounded-2xl border border-slate p-8 transition-colors hover:border-[#FF9933]/50"
+              className="bg-[#1A2A3A] rounded-2xl border border-gray-700 p-8 transition-colors hover:border-saffron/50"
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1144,8 +1139,8 @@ function CustomizationSection({
             >
               {/* Icon */}
               <div className="mb-4">{card.icon}</div>
-              <h3 className="font-heading font-semibold text-frost text-lg mb-2">{card.title}</h3>
-              <p className="text-steel text-sm mb-6">{card.description}</p>
+              <h3 className="font-display font-semibold text-[#F8FAFC] text-lg mb-2 text-left">{card.title}</h3>
+              <p className="text-[#475569] text-sm mb-6 text-left font-body leading-relaxed">{card.description}</p>
 
               {/* Card-specific controls */}
               {card.id === 'voice' && (
@@ -1157,7 +1152,7 @@ function CustomizationSection({
                       className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
                         selectedVoicePreset === v.name
                           ? 'border-[#FF9933] bg-[#FF9933]/10'
-                          : 'border-slate hover:border-[#FF9933]/40'
+                          : 'border-gray-700 hover:border-[#FF9933]/40'
                       }`}
                     >
                       <div
@@ -1167,8 +1162,8 @@ function CustomizationSection({
                         {v.name[0]}
                       </div>
                       <div className="text-left">
-                        <p className="text-sm text-frost font-medium">{v.name}</p>
-                        <p className="text-xs text-steel">{v.label}</p>
+                        <p className="text-sm text-[#F8FAFC] font-medium">{v.name}</p>
+                        <p className="text-xs text-[#475569]">{v.label}</p>
                       </div>
                     </button>
                   ))}
@@ -1193,7 +1188,7 @@ function CustomizationSection({
                       {rate.toFixed(1)}x
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs text-steel">
+                  <div className="flex justify-between text-xs text-[#475569]">
                     <span>Relaxed</span>
                     <span>Normal</span>
                     <span>Fast</span>
@@ -1205,11 +1200,11 @@ function CustomizationSection({
                 <div className="grid grid-cols-2 gap-3">
                   {categories.map((cat) => (
                     <div key={cat} className="flex items-center justify-between">
-                      <span className="text-sm text-frost">{cat}</span>
+                      <span className="text-sm text-[#F8FAFC]">{cat}</span>
                       <button
                         onClick={() => onToggleTopic(cat)}
                         className={`relative w-9 h-5 rounded-full transition-colors ${
-                          activeTopics[cat] ? '' : 'bg-slate'
+                          activeTopics[cat] ? '' : 'bg-gray-700'
                         }`}
                         style={{ backgroundColor: activeTopics[cat] ? SAFFRON : undefined }}
                         aria-label={`Toggle ${cat}`}
@@ -1238,13 +1233,13 @@ function CustomizationSection({
 function CTASection() {
   return (
     <section
-      className="py-24 bg-void relative overflow-hidden"
+      className="py-24 bg-[#0F1923] relative overflow-hidden"
       style={{
         backgroundImage:
-          'radial-gradient(ellipse at 30% 50%, rgba(255,153,51,0.06) 0%, rgba(11,15,26,0.95) 60%)',
+          'radial-gradient(ellipse at 30% 50%, rgba(232,93,4,0.08) 0%, rgba(15,25,35,0.95) 60%)',
       }}
     >
-      <div className="max-w-container mx-auto px-6 lg:px-12 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Pulsing anchor avatar */}
         <motion.div
           className="mb-8 inline-block"
@@ -1265,7 +1260,7 @@ function CTASection() {
         </motion.div>
 
         <motion.h2
-          className="font-heading font-bold text-h1 text-frost mb-4"
+          className="font-display font-bold heading-lg text-[#F8FAFC] mb-4 text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -1274,7 +1269,7 @@ function CTASection() {
           Experience AI-Powered News Today
         </motion.h2>
         <motion.p
-          className="text-steel max-w-lg mx-auto mb-8"
+          className="text-[#475569] max-w-lg mx-auto mb-8 font-body leading-relaxed text-center"
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -1291,14 +1286,13 @@ function CTASection() {
         >
           <a
             href="#"
-            className="inline-flex items-center font-body font-semibold rounded-full px-8 py-3 transition-all duration-250 hover:scale-[1.03] hover:shadow-lg"
-            style={{ backgroundColor: SAFFRON, color: '#0B0F1A' }}
+            className="inline-flex items-center font-body font-semibold rounded-full px-8 py-3 transition-all duration-250 hover:scale-[1.03] hover:shadow-lg bg-saffron text-[#0F1923]"
           >
             Start Listening
           </a>
           <a
             href="/about"
-            className="inline-flex items-center border border-slate text-frost font-body font-medium rounded-full px-8 py-3 hover:border-[#FF9933] transition-colors"
+            className="inline-flex items-center border border-gray-700 text-[#F8FAFC] font-body font-medium rounded-full px-8 py-3 hover:border-saffron transition-colors"
           >
             Learn More
           </a>
@@ -1430,7 +1424,7 @@ export default function Anchor() {
   );
 
   return (
-    <div className="bg-void">
+    <div className="bg-[#0F1923]">
       {/* Section 1: Studio Hero */}
       <StudioHero
         isPlaying={tts.speaking}

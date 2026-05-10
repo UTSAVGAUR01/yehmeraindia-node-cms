@@ -1,369 +1,212 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
-import {
-  UserPlus,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  User,
-  ArrowRight,
-  CheckCircle2,
-  XCircle,
-  ShieldCheck,
-} from 'lucide-react'
-import { useAuth, type UserRole } from '@/context/AuthContext'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react'
+import { useLanguage } from '@/context/LanguageContext'
+
+const easeSmooth = [0.4, 0, 0.2, 1] as [number, number, number, number]
 
 export default function Register() {
-  const navigate = useNavigate()
-  const { register } = useAuth()
-
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<UserRole>('user')
+  const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
-  const [agreeTerms, setAgreeTerms] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    role: 'reader',
+  })
 
-  // Password strength
-  const passwordStrength = (): { score: number; label: string; color: string } => {
-    if (!password) return { score: 0, label: '', color: '' }
-    let score = 0
-    if (password.length >= 8) score++
-    if (/[A-Z]/.test(password)) score++
-    if (/[0-9]/.test(password)) score++
-    if (/[^A-Za-z0-9]/.test(password)) score++
-
-    const labels = ['Weak', 'Fair', 'Good', 'Strong']
-    const colors = ['#BC4749', '#E85D04', '#2D6A4F', '#2D6A4F']
-    return { score, label: labels[score - 1] || 'Weak', color: colors[score - 1] || '#BC4749' }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const strength = passwordStrength()
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-
-    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setError('Please fill in all fields')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
-
-    if (!agreeTerms) {
-      setError('Please agree to the terms and conditions')
-      return
-    }
-
-    setIsLoading(true)
-    const success = await register(name, email, password, role)
-    setIsLoading(false)
-
-    if (success) {
-      toast.success('Account created!', {
-        description: role === 'author'
-          ? 'Your author application is pending approval.'
-          : 'Welcome to Yeh Mera India!',
-        icon: <CheckCircle2 className="size-4 text-[#2D6A4F]" />,
-      })
-      navigate('/')
-    } else {
-      setError('An account with this email already exists')
-      toast.error('Registration failed', {
-        description: 'Email already in use.',
-      })
-    }
   }
+
+  const benefits = [
+    { textEn: 'Personalized news feed', textHi: 'व्यक्तिगत समाचार फ़ीड' },
+    { textEn: 'AI Anchor access', textHi: 'AI एंकर एक्सेस' },
+    { textEn: 'Save favorite stories', textHi: 'पसंदीदा कहानियाँ सेव करें' },
+    { textEn: 'Contribute as author', textHi: 'लेखक के रूप में योगदान दें' },
+  ]
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center relative overflow-hidden py-8"
-      style={{ backgroundColor: '#FFF8F0' }}>
-
-      {/* Bandhej pattern overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.05]"
-        style={{
-          backgroundImage: 'url(/pattern-bandhej.png)',
-          backgroundSize: '250px',
-          backgroundRepeat: 'repeat',
-        }}
-      />
-
-      {/* Decorative floating orbs */}
-      <div
-        className="absolute top-16 right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none"
-        style={{ backgroundColor: 'rgba(188,71,73,0.06)' }}
-      />
-      <div
-        className="absolute bottom-16 left-16 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-        style={{ backgroundColor: 'rgba(45,106,79,0.06)' }}
-      />
-
+    <div className="min-h-[calc(100dvh-64px)] flex items-center justify-center bg-gradient-to-br from-cream via-[#F0F5FF] to-[#EDE8F0] px-4 py-12">
       <motion.div
+        className="w-full max-w-[440px]"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="relative z-10 w-full max-w-md px-4"
+        transition={{ duration: 0.6, ease: easeSmooth }}
       >
-        {/* Ajrakh decorative border top */}
-        <div
-          className="h-2 w-full rounded-t-xl"
-          style={{
-            backgroundImage: 'url(/pattern-ajrakh.png)',
-            backgroundSize: '120px',
-            backgroundRepeat: 'repeat-x',
-          }}
-        />
-
-        <div
-          className="bg-white rounded-b-xl shadow-lg px-8 pt-8 pb-8 border border-t-0"
-          style={{ borderColor: '#E5E7EB' }}
-        >
+        {/* Card */}
+        <div className="bg-white shadow-xl rounded-2xl p-8 sm:p-10">
           {/* Header */}
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
-              style={{ backgroundColor: 'rgba(232,93,4,0.1)' }}
-            >
-              <UserPlus size={24} style={{ color: '#E85D04' }} />
-            </motion.div>
-            <h1
-              className="text-2xl font-bold tracking-tight"
-              style={{ color: '#2B2D42' }}
-            >
-              Create Account
+          <div className="text-left mb-8">
+            <span className="font-mono text-xs text-saffron tracking-[0.15em] uppercase">
+              {t('Get Started', 'शुरू करें')}
+            </span>
+            <h1 className="font-display font-bold heading-lg text-indigo mt-2 text-left">
+              {t('Create Account', 'खाता बनाएं')}
             </h1>
-            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
-              Join Yeh Mera India
+            <p className="text-charcoal-light text-sm mt-2 font-body leading-relaxed text-left">
+              {t(
+                'Join the community spreading positive stories across India.',
+                'भारत में सकारात्मक कहानियाँ फैलाने वाले समुदाय में शामिल हों।'
+              )}
             </p>
           </div>
 
-          {/* Error */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mb-4 p-3 rounded-lg text-sm flex items-center gap-2"
-              style={{ backgroundColor: '#FEF2F2', color: '#BC4749', border: '1px solid #FECACA' }}
+          {/* Benefits */}
+          <div className="grid grid-cols-2 gap-2 mb-6">
+            {benefits.map((b) => (
+              <div
+                key={b.textEn}
+                className="flex items-center gap-2 bg-cream rounded-lg px-3 py-2"
+              >
+                <CheckCircle size={14} className="text-green shrink-0" />
+                <span className="text-xs text-charcoal font-body text-left">
+                  {t(b.textEn, b.textHi)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Social login */}
+          <div className="space-y-3 mb-6">
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-charcoal font-body transition-all duration-200 hover:border-saffron/40 hover:shadow-warm"
             >
-              <XCircle size={16} />
-              {error}
-            </motion.div>
-          )}
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              {t('Continue with Google', 'Google से जारी रखें')}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="font-mono text-xs text-charcoal-light uppercase">
+              {t('or', 'या')}
+            </span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2B2D42' }}>
-                Full Name
+              <label className="block font-body font-medium text-sm text-charcoal mb-1.5 text-left">
+                {t('Full Name', 'पूरा नाम')}
               </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" size={18} style={{ color: '#9CA3AF' }} />
-                <Input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your full name"
-                  className="pl-10 h-11"
-                  style={{ borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', color: '#2B2D42' }}
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder={t('Your name', 'आपका नाम')}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-charcoal placeholder:text-charcoal-light outline-none transition-all duration-200 focus:border-saffron"
+                required
+              />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2B2D42' }}>
-                Email Address
+              <label className="block font-body font-medium text-sm text-charcoal mb-1.5 text-left">
+                {t('Email', 'ईमेल')}
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" size={18} style={{ color: '#9CA3AF' }} />
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="pl-10 h-11"
-                  style={{ borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', color: '#2B2D42' }}
-                  required
-                />
-              </div>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder={t('your@email.com', 'your@email.com')}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-charcoal placeholder:text-charcoal-light outline-none transition-all duration-200 focus:border-saffron"
+                required
+              />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2B2D42' }}>
-                Password
+              <label className="block font-body font-medium text-sm text-charcoal mb-1.5 text-left">
+                {t('Password', 'पासवर्ड')}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" size={18} style={{ color: '#9CA3AF' }} />
-                <Input
+                <input
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="pl-10 pr-10 h-11"
-                  style={{ borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', color: '#2B2D42' }}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder={t('Create a password', 'पासवर्ड बनाएं')}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-charcoal placeholder:text-charcoal-light outline-none transition-all duration-200 focus:border-saffron"
                   required
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-light hover:text-charcoal transition-colors"
+                >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-
-              {/* Password strength indicator */}
-              {password && (
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(strength.score / 4) * 100}%` }}
-                      transition={{ duration: 0.3 }}
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: strength.color }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium" style={{ color: strength.color }}>
-                    {strength.label}
-                  </span>
-                </div>
-              )}
             </div>
 
-            {/* Confirm Password */}
+            {/* Role */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2B2D42' }}>
-                Confirm Password
+              <label className="block font-body font-medium text-sm text-charcoal mb-1.5 text-left">
+                {t('I am a', 'मैं हूँ')}
               </label>
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repeat your password"
-                className="h-11"
-                style={{ borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', color: '#2B2D42' }}
-                required
-              />
-              {confirmPassword && password !== confirmPassword && (
-                <p className="text-xs mt-1" style={{ color: '#BC4749' }}>Passwords do not match</p>
-              )}
-              {confirmPassword && password === confirmPassword && (
-                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#2D6A4F' }}>
-                  <CheckCircle2 size={12} /> Passwords match
-                </p>
-              )}
-            </div>
-
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#2B2D42' }}>
-                Account Type
-              </label>
-              <div className="flex gap-3">
-                {([['user', 'Reader'], ['author', 'Author']] as const).map(([r, label]) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r as UserRole)}
-                    className="flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all duration-200"
-                    style={{
-                      borderColor: role === r ? '#E85D04' : '#E5E7EB',
-                      backgroundColor: role === r ? 'rgba(232,93,4,0.05)' : '#F9FAFB',
-                      color: role === r ? '#E85D04' : '#6B7280',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {role === 'author' && (
-                <p className="text-xs mt-1.5 flex items-start gap-1" style={{ color: '#E85D04' }}>
-                  <ShieldCheck size={12} className="mt-0.5 shrink-0" />
-                  Author accounts require admin approval before publishing.
-                </p>
-              )}
-            </div>
-
-            {/* Terms */}
-            <div className="flex items-start gap-2">
-              <Checkbox
-                id="terms"
-                checked={agreeTerms}
-                onCheckedChange={(checked) => setAgreeTerms(checked === true)}
-              />
-              <label htmlFor="terms" className="text-xs leading-relaxed" style={{ color: '#4B5563' }}>
-                I agree to the{' '}
-                <button type="button" onClick={() => toast.info('Coming soon!')} className="font-medium hover:underline" style={{ color: '#E85D04' }}>
-                  Terms of Service
-                </button>
-                {' '}and{' '}
-                <button type="button" onClick={() => toast.info('Coming soon!')} className="font-medium hover:underline" style={{ color: '#E85D04' }}>
-                  Privacy Policy
-                </button>
-              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-charcoal outline-none transition-all duration-200 focus:border-saffron"
+              >
+                <option value="reader">{t('Reader', 'पाठक')}</option>
+                <option value="social-worker">{t('Social Worker', 'सामाजिक कार्यकर्ता')}</option>
+                <option value="youth-leader">{t('Youth Leader', 'युवा नेता')}</option>
+                <option value="govt-official">{t('Govt Official', 'सरकारी अधिकारी')}</option>
+                <option value="journalist">{t('Journalist', 'पत्रकार')}</option>
+              </select>
             </div>
 
             {/* Submit */}
-            <Button
+            <button
               type="submit"
-              disabled={isLoading}
-              className="w-full h-11 font-semibold text-white rounded-lg transition-all duration-250 hover:opacity-90 hover:scale-[1.01]"
-              style={{ backgroundColor: '#E85D04' }}
+              className="w-full flex items-center justify-center gap-2 bg-saffron text-white font-body font-semibold rounded-xl px-6 py-3.5 transition-all duration-250 hover:bg-saffron-light hover:scale-[1.02] shadow-warm"
             >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <UserPlus size={18} />
-                  Create Account
-                </span>
-              )}
-            </Button>
+              {t('Create Account', 'खाता बनाएं')}
+              <ArrowRight size={16} />
+            </button>
           </form>
 
-          {/* Login link */}
-          <div className="mt-6 text-center text-sm" style={{ color: '#6B7280' }}>
-            Already have an account?{' '}
+          {/* Sign in link */}
+          <p className="text-center text-sm text-charcoal-light mt-6 font-body">
+            {t('Already have an account?', 'पहले से खाता है?')}{' '}
             <Link
               to="/login"
-              className="font-semibold inline-flex items-center gap-1 hover:underline"
-              style={{ color: '#E85D04' }}
+              className="text-saffron hover:text-saffron-light transition-colors font-medium"
             >
-              Sign in <ArrowRight size={14} />
+              {t('Sign In', 'साइन इन')}
             </Link>
-          </div>
-        </div>
-
-        {/* Footer decorative element */}
-        <div className="flex justify-center mt-6 gap-1">
-          <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#FF9933' }} />
-          <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#FFFFFF' }} />
-          <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#138808' }} />
+          </p>
         </div>
       </motion.div>
     </div>

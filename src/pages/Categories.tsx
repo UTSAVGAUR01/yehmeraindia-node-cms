@@ -124,8 +124,6 @@ const scaleIn = {
   }),
 }
 
-const SAFFRON = '#FF9933'
-
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -171,26 +169,23 @@ export default function Categories() {
   }, [searchQuery])
 
   return (
-    <div className="min-h-[100dvh] bg-void">
+    <div className="min-h-[100dvh] bg-cream">
       {/* ============================================================ */}
       {/* SECTION 1 — Page Hero                                         */}
       {/* ============================================================ */}
       <section
         ref={heroRef}
-        className="relative flex flex-col items-center justify-center text-center bg-studio-backdrop"
-        style={{ minHeight: '320px' }}
+        className="relative flex flex-col items-center justify-center text-center bg-gradient-to-b from-indigo to-[#162844]"
+        style={{ minHeight: '360px' }}
       >
-        {/* Mobile height override */}
-        <style>{`@media(max-width:639px){.hero-section{min-height:240px!important}}`}</style>
-        <div className="hero-section w-full flex flex-col items-center justify-center px-6 pt-24 pb-10">
+        <div className="w-full flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-24 pb-10">
           {/* Eyebrow */}
           <motion.span
             initial="hidden"
             animate="visible"
             variants={fadeUp}
             custom={0}
-            className="font-mono text-xs tracking-[0.15em] uppercase"
-            style={{ color: SAFFRON }}
+            className="font-mono text-xs tracking-[0.15em] uppercase text-saffron"
           >
             {t('EXPLORE', 'EXPLORE')}
           </motion.span>
@@ -201,7 +196,7 @@ export default function Categories() {
             animate="visible"
             variants={fadeUp}
             custom={0.15}
-            className="font-heading font-extrabold text-hero text-frost mt-3"
+            className="font-display font-bold heading-xl text-white mt-3"
           >
             {t('News Categories', 'समाचार श्रेणियाँ')}
           </motion.h1>
@@ -212,7 +207,7 @@ export default function Categories() {
             animate="visible"
             variants={fadeUp}
             custom={0.3}
-            className="text-h3 text-steel mt-4 max-w-[520px] mx-auto"
+            className="text-base text-cream/70 mt-4 max-w-[520px] mx-auto font-body leading-relaxed"
           >
             {t(
               'Browse stories across 50+ topics, from Indian politics to agriculture.',
@@ -236,15 +231,14 @@ export default function Categories() {
             className="mt-8 w-full flex justify-center"
           >
             <div className="relative" style={{ width: 'max(320px, 40%)', maxWidth: '100%' }}>
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-steel pointer-events-none" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal-light pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('Search categories...', 'श्रेणियाँ खोजें...')}
-                className="w-full bg-midnight border border-slate rounded-full pl-11 pr-5 py-3 text-sm text-frost placeholder:text-steel outline-none transition-all duration-250 focus:border-[#FF9933]"
-                style={{ '--tw-shadow': '0 0 0 3px rgba(255,153,51,0.15)' } as React.CSSProperties}
+                className="w-full bg-white border border-gray-200 rounded-full pl-11 pr-5 py-3 text-sm text-charcoal placeholder:text-charcoal-light outline-none transition-all duration-250 focus:border-saffron shadow-warm"
               />
             </div>
           </motion.div>
@@ -254,8 +248,8 @@ export default function Categories() {
       {/* ============================================================ */}
       {/* SECTION 2 — Featured Categories Grid                          */}
       {/* ============================================================ */}
-      <section className="py-16 px-6 lg:px-12">
-        <div ref={gridRef} className="max-w-container mx-auto">
+      <section className="section-padding px-4 sm:px-6 lg:px-8">
+        <div ref={gridRef} className="max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             {filteredCategories.length > 0 ? (
               <motion.div
@@ -276,7 +270,7 @@ export default function Categories() {
                       onClick={() => handleCategoryClick(cat.nameEn, cat.nameHi)}
                       whileHover={{ y: -6, transition: { duration: 0.3, ease: easeSmooth } }}
                     >
-                      <div className="relative overflow-hidden rounded-2xl border border-slate bg-midnight transition-all duration-300 hover:border-[#FF9933] hover:shadow-[0_12px_40px_rgba(255,153,51,0.12)]">
+                      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-warm transition-all duration-300 hover:border-saffron hover:shadow-warm-lg">
                         {/* Image */}
                         <div className="relative aspect-video overflow-hidden">
                           <img
@@ -285,21 +279,21 @@ export default function Categories() {
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-midnight/60" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40" />
                         </div>
 
                         {/* Content */}
-                        <div className="p-5">
+                        <div className="p-5 text-left">
                           <div className="flex items-center gap-2.5 mb-2">
-                            <Icon className="w-5 h-5 transition-transform duration-250 group-hover:scale-110" style={{ color: SAFFRON }} />
-                            <h3 className="font-heading font-semibold text-frost text-base">
+                            <Icon className="w-5 h-5 transition-transform duration-250 group-hover:scale-110 text-saffron" />
+                            <h3 className="font-display font-semibold text-indigo text-base text-left">
                               {t(cat.nameEn, cat.nameHi)}
                             </h3>
                           </div>
-                          <p className="text-sm text-steel mb-1">
+                          <p className="text-sm text-charcoal-light mb-1 text-left">
                             {cat.articles} {t('articles', 'लेख')}
                           </p>
-                          <p className="text-xs text-steel">
+                          <p className="text-xs text-charcoal-light text-left">
                             {t('Latest update', 'नवीनतम अपडेट')} {cat.lastUpdated}
                           </p>
                         </div>
@@ -316,13 +310,12 @@ export default function Categories() {
                 exit={{ opacity: 0 }}
                 className="text-center py-20"
               >
-                <p className="text-steel text-lg">
-                  {t('No categories found for', 'कोई श्रेणी नहीं मिली')}&ldquo;{searchQuery}&rdquo;
+                <p className="text-charcoal-light text-lg">
+                  {t('No categories found for', 'कोई श्रेणी नहीं मिली')} &ldquo;{searchQuery}&rdquo;
                 </p>
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="mt-4 text-sm transition-colors hover:opacity-80"
-                  style={{ color: SAFFRON }}
+                  className="mt-4 text-sm text-saffron hover:text-saffron-light transition-colors"
                 >
                   {t('Clear search', 'खोज साफ़ करें')}
                 </button>
@@ -335,8 +328,8 @@ export default function Categories() {
       {/* ============================================================ */}
       {/* SECTION 3 — Category Spotlight                                */}
       {/* ============================================================ */}
-      <section ref={spotlightRef} className="py-24 bg-midnight">
-        <div className="max-w-container mx-auto px-6 lg:px-12">
+      <section ref={spotlightRef} className="section-padding bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-[40%_60%] gap-12 lg:gap-16">
             {/* Left — Category Info */}
             <motion.div
@@ -346,29 +339,28 @@ export default function Categories() {
               variants={slideFromLeft}
               className="flex flex-col justify-center"
             >
-              <span className="font-mono text-xs tracking-[0.1em] uppercase" style={{ color: '#FF9933' }}>
+              <span className="font-mono text-xs tracking-[0.1em] uppercase text-saffron text-left">
                 {t('CATEGORY SPOTLIGHT', 'CATEGORY SPOTLIGHT')}
               </span>
-              <h2 className="font-heading font-bold text-h1 text-frost mt-3">
+              <h2 className="font-display font-bold heading-lg text-indigo mt-3 text-left">
                 {t('Trending in Technology', 'तकनीक में ट्रेंडिंग')}
               </h2>
-              <p className="text-body text-steel mt-4">
+              <p className="text-base text-charcoal-light mt-4 text-left font-body leading-relaxed">
                 {t(
                   "From Indian startups to ISRO's space missions, stay ahead with the latest in tech.",
                   'भारतीय स्टार्टअप्स से लेकर ISRO की अंतरिक्ष यात्रा तक, तकनीक जगत की हर खबर सबसे पहले।'
                 )}
               </p>
-              <div className="flex items-center gap-3 mt-6 font-mono text-sm text-steel">
+              <div className="flex items-center gap-3 mt-6 font-mono text-sm text-charcoal-light">
                 <span>
-                  <span style={{ color: SAFFRON }}>6,852</span> {t('articles', 'लेख')}
+                  <span className="text-saffron font-semibold">6,852</span> {t('articles', 'लेख')}
                 </span>
-                <span className="text-slate">&middot;</span>
+                <span className="text-gray-300">&middot;</span>
                 <span>{t('Updated every 2 minutes', 'हर 2 मिनट में अपडेट')}</span>
               </div>
               <button
                 onClick={() => handleCategoryClick('Technology', 'तकनीक')}
-                className="mt-6 inline-flex items-center gap-2 font-body font-medium text-sm transition-colors group w-fit hover:opacity-80"
-                style={{ color: SAFFRON }}
+                className="mt-6 inline-flex items-center gap-2 font-body font-medium text-sm text-saffron hover:text-saffron-light transition-colors group w-fit"
               >
                 {t('Browse Tech News', 'तकनीक की खबरें ब्राउज़ करें')}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -395,7 +387,7 @@ export default function Categories() {
                     })
                   }
                 >
-                  <div className="flex gap-4 bg-void border border-slate rounded-xl p-5 transition-all duration-300 group-hover:border-[#FF9933] group-hover:translate-x-1">
+                  <div className="flex gap-4 bg-white border border-gray-200 rounded-xl p-5 transition-all duration-300 group-hover:border-saffron group-hover:shadow-warm group-hover:translate-x-1">
                     {/* Thumbnail */}
                     <div className="shrink-0">
                       <img
@@ -408,16 +400,13 @@ export default function Categories() {
 
                     {/* Content */}
                     <div className="flex flex-col justify-center min-w-0">
-                      <span
-                        className="inline-flex self-start items-center px-2.5 py-0.5 rounded-full border text-xs font-medium mb-2"
-                        style={{ color: SAFFRON, borderColor: SAFFRON }}
-                      >
+                      <span className="inline-flex self-start items-center px-2.5 py-0.5 rounded-full border border-saffron/30 text-xs font-medium text-saffron mb-2">
                         {t('Technology', 'तकनीक')}
                       </span>
-                      <h4 className="font-heading font-semibold text-frost text-sm leading-snug truncate">
+                      <h4 className="font-display font-semibold text-indigo text-sm leading-snug text-left">
                         {article.title}
                       </h4>
-                      <p className="text-xs text-steel mt-1">
+                      <p className="text-xs text-charcoal-light mt-1 text-left">
                         {article.source} &middot; {article.time}
                       </p>
                     </div>
@@ -432,15 +421,15 @@ export default function Categories() {
       {/* ============================================================ */}
       {/* SECTION 4 — All Topics Quick List                             */}
       {/* ============================================================ */}
-      <section className="py-16 px-6 lg:px-12">
-        <div ref={topicsRef} className="max-w-container mx-auto">
+      <section className="section-padding px-4 sm:px-6 lg:px-8">
+        <div ref={topicsRef} className="max-w-7xl mx-auto">
           <motion.h2
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             variants={fadeUp}
             custom={0}
-            className="font-heading font-bold text-h2 text-frost text-center mb-10"
+            className="font-display font-bold heading-md text-indigo text-left mb-10"
           >
             {t('All Topics', 'सभी विषय')}
           </motion.h2>
@@ -449,7 +438,7 @@ export default function Categories() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.1 }}
-            className="flex flex-wrap justify-center gap-3"
+            className="flex flex-wrap gap-3"
           >
             <AnimatePresence mode="wait">
               {filteredTopics.map((topic, i) => (
@@ -465,18 +454,7 @@ export default function Categories() {
                       description: t('Topic-based news feeds coming soon!', 'Topic-based news feeds coming soon!'),
                     })
                   }}
-                  className="px-4 py-2 rounded-full border border-slate bg-midnight text-sm text-frost font-body transition-all duration-200 hover:scale-105 cursor-pointer"
-                  style={{ '--tw-hover-bg-opacity': 1, '--tw-hover-text-opacity': 1 } as React.CSSProperties}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = SAFFRON
-                    e.currentTarget.style.color = '#0B0F1A'
-                    e.currentTarget.style.borderColor = SAFFRON
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = ''
-                    e.currentTarget.style.color = ''
-                    e.currentTarget.style.borderColor = ''
-                  }}
+                  className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm text-charcoal font-body transition-all duration-200 hover:scale-105 hover:bg-saffron hover:text-white hover:border-saffron cursor-pointer"
                 >
                   {topic}
                 </motion.button>
@@ -488,9 +466,9 @@ export default function Categories() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center text-steel mt-8"
+              className="text-center text-charcoal-light mt-8"
             >
-              {t('No topics match', 'कोई विषय मेल नहीं खाता')}&ldquo;{searchQuery}&rdquo;
+              {t('No topics match', 'कोई विषय मेल नहीं खाता')} &ldquo;{searchQuery}&rdquo;
             </motion.p>
           )}
         </div>

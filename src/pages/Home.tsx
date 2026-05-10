@@ -32,9 +32,16 @@ function HeroSection() {
   const { t } = useLanguage()
 
   return (
-    <section className="relative min-h-[calc(100dvh-64px)] flex items-center overflow-hidden bg-cream">
+    <section className="relative min-h-[calc(100dvh-64px)] flex items-center overflow-hidden bg-gradient-to-br from-cream via-cream to-[#F5EDE0]">
       {/* Subtle Lahariya pattern overlay */}
-      <div className="absolute inset-0 pattern-overlay-lahariya" />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: 'url(/pattern-lahariya.png)',
+          backgroundSize: '300px',
+          backgroundRepeat: 'repeat',
+        }}
+      />
 
       {/* Warm radial glow */}
       <div
@@ -46,13 +53,14 @@ function HeroSection() {
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-saffron/[0.06] blur-[120px] animate-orb-drift pointer-events-none" />
       <div className="absolute bottom-1/4 -right-32 w-80 h-80 rounded-full bg-indigo/[0.04] blur-[120px] animate-orb-drift pointer-events-none" style={{ animationDelay: '-7s' }} />
 
-      <div className="relative z-10 max-w-container mx-auto px-6 lg:px-12 py-20 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 w-full">
         <div className="grid lg:grid-cols-[55%_45%] gap-12 items-center">
           {/* Left column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
+            className="text-left"
           >
             {/* Tag */}
             <motion.div
@@ -66,7 +74,7 @@ function HeroSection() {
             </motion.div>
 
             {/* Headline */}
-            <h1 className="font-display font-extrabold text-hero text-indigo mb-4 text-balance">
+            <h1 className="font-display font-bold heading-xl text-indigo mb-4 text-left">
               {t('Stories that', 'कहानियाँ जो')}{' '}
               <span className="font-editorial text-saffron">{t('inspire', 'प्रेरित')}</span>{' '}
               {t('India', 'करती हैं')}
@@ -77,7 +85,7 @@ function HeroSection() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="font-body text-h3 text-charcoal-light max-w-[480px] mb-8"
+              className="font-body text-base text-charcoal-light max-w-[480px] mb-8 text-left leading-relaxed"
             >
               {t(
                 'Curated positive news for social workers, youth leaders, government officials, and every proud Indian.',
@@ -120,7 +128,7 @@ function HeroSection() {
                 { num: t('28', '२८'), label: t('States', 'राज्य') },
               ].map((stat, i) => (
                 <div key={stat.label} className="flex items-center gap-6">
-                  <div>
+                  <div className="text-left">
                     <span className="font-mono font-semibold text-sm text-saffron">{stat.num}</span>
                     <span className="font-body text-sm text-charcoal-light ml-1.5">{stat.label}</span>
                   </div>
@@ -179,25 +187,25 @@ function CategorySection() {
   ]
 
   return (
-    <section className="py-20 lg:py-28 bg-cream relative" ref={ref}>
+    <section className="section-padding bg-white relative" ref={ref}>
       {/* Subtle bandhej texture */}
       <div className="absolute inset-0 bandhej-texture pointer-events-none" />
 
-      <div className="max-w-container mx-auto px-6 lg:px-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
-          className="text-center mb-12"
+          className="text-left mb-12"
         >
           <span className="font-mono text-xs text-saffron tracking-[0.15em] uppercase">
             {t('Explore', 'अन्वेषण करें')}
           </span>
-          <h2 className="font-heading font-bold text-h1 text-indigo mt-2">
+          <h2 className="font-display font-bold heading-lg text-indigo mt-2 text-left">
             {t('Featured Categories', 'विशेष श्रेणियाँ')}
           </h2>
-          <p className="text-charcoal-light mt-2 max-w-md mx-auto">
+          <p className="text-charcoal-light mt-2 max-w-md text-left font-body leading-relaxed">
             {t(
               'Discover stories across topics that matter to every Indian.',
               'हर भारतीय के लिए मायने रखने वाले विषयों पर कहानियाँ खोजें।'
@@ -210,7 +218,7 @@ function CategorySection() {
           variants={staggerContainer}
           initial="hidden"
           animate={inView ? 'visible' : 'hidden'}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6"
         >
           {categoryData.map((cat) => {
             const Icon = cat.icon
@@ -219,15 +227,15 @@ function CategorySection() {
                 key={cat.nameEn}
                 variants={fadeUpChild}
                 whileHover={{ y: -4, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] } }}
-                className="group flex flex-col items-center text-center gap-3 p-6 rounded-2xl bg-white border border-gold/20 cursor-pointer transition-all duration-250 hover:border-saffron/40 hover:shadow-warm hover:shadow-warm-lg"
+                className="group flex flex-col items-start text-left gap-3 p-6 rounded-2xl bg-white border border-gold/20 cursor-pointer transition-all duration-250 hover:border-saffron/40 hover:shadow-warm hover:shadow-warm-lg"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${cat.color} transition-transform duration-250 group-hover:scale-110`}>
                   <Icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-heading font-semibold text-indigo text-sm">
+                <h3 className="font-display font-semibold text-indigo text-base text-left">
                   {t(cat.nameEn, cat.nameHi)}
                 </h3>
-                <p className="text-charcoal-light text-xs">{t(cat.countEn, cat.countHi)}</p>
+                <p className="text-charcoal-light text-sm text-left">{t(cat.countEn, cat.countHi)}</p>
               </motion.div>
             )
           })}
@@ -264,8 +272,8 @@ function TrendingSection() {
   ]
 
   return (
-    <section className="py-20 lg:py-28 bg-cream-dark relative" ref={ref}>
-      <div className="max-w-container mx-auto px-6 lg:px-12">
+    <section className="section-padding bg-cream relative" ref={ref}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -273,11 +281,11 @@ function TrendingSection() {
           transition={{ duration: 0.5 }}
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10"
         >
-          <div>
+          <div className="text-left">
             <span className="font-mono text-xs text-saffron tracking-[0.15em] uppercase">
               {t('Trending', 'ट्रेंडिंग')}
             </span>
-            <h2 className="font-heading font-bold text-h1 text-indigo mt-2">
+            <h2 className="font-display font-bold heading-lg text-indigo mt-2 text-left">
               {t("Trending Now — What's Hot", 'ट्रेंडिंग अभी — What\'s Hot')}
             </h2>
           </div>
@@ -310,13 +318,17 @@ function TrendingSection() {
                 </span>
                 <div className="flex-1 min-w-0">
                   {/* Category pill */}
-                  <span className={`tag-pill-${topic.categoryColor === 'tag-pill-indigo' ? 'indigo' : topic.categoryColor === 'tag-pill-green' ? 'green' : 'saffron'} mb-2`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    topic.categoryColor === 'tag-pill-indigo' ? 'bg-indigo/10 text-indigo border-indigo/20' :
+                    topic.categoryColor === 'tag-pill-green' ? 'bg-green/10 text-green border-green/20' :
+                    'bg-saffron/10 text-saffron border-saffron/20'
+                  } mb-2`}>
                     {topic.category}
                   </span>
-                  <h3 className="font-heading font-semibold text-indigo text-sm leading-snug mb-1.5 group-hover:text-saffron transition-colors mt-2">
+                  <h3 className="font-display font-semibold text-indigo text-base leading-snug mb-1.5 group-hover:text-saffron transition-colors mt-2 text-left">
                     {t(topic.titleEn, topic.titleHi)}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-charcoal-light">
+                  <div className="flex items-center gap-2 text-sm text-charcoal-light">
                     <span>{t(topic.sourceEn, topic.sourceHi)}</span>
                     <span>&middot;</span>
                     <span>{t(topic.timeEn, topic.timeHi)}</span>
@@ -339,7 +351,7 @@ function TrendingSection() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={inView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ delay: 0.4 + i * 0.05, duration: 0.4 }}
-                className={`${w.size} ${w.color} ${w.weight} font-heading cursor-pointer hover:text-saffron transition-colors duration-200 animate-float-slow`}
+                className={`${w.size} ${w.color} ${w.weight} font-display cursor-pointer hover:text-saffron transition-colors duration-200 animate-float-slow`}
                 style={{ animationDelay: `${-i * 1.5}s`, animationDuration: `${8 + (i % 3) * 4}s` }}
               >
                 {w.word}
@@ -366,7 +378,7 @@ function AnchorFeatureSection() {
 
   return (
     <section
-      className="py-20 lg:py-28 bg-cream relative overflow-hidden"
+      className="section-padding bg-cream relative overflow-hidden"
       ref={ref}
     >
       {/* Warli divider at top */}
@@ -375,7 +387,7 @@ function AnchorFeatureSection() {
       {/* Subtle left gradient */}
       <div className="absolute top-1/2 -left-48 w-96 h-96 rounded-full bg-saffron/[0.04] blur-[150px] -translate-y-1/2 pointer-events-none" />
 
-      <div className="max-w-container mx-auto px-6 lg:px-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left — Anchor Visual */}
           <motion.div
@@ -425,7 +437,7 @@ function AnchorFeatureSection() {
               initial={{ opacity: 0, x: 40 }}
               animate={inView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.25, duration: 0.6 }}
-              className="font-heading font-bold text-h1 text-indigo mb-4"
+              className="font-display font-bold heading-lg text-indigo mb-4 text-left"
             >
               {t(
                 'Meet Your AI Anchor — News with Indian Soul',
@@ -436,7 +448,7 @@ function AnchorFeatureSection() {
               initial={{ opacity: 0, x: 40 }}
               animate={inView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.35, duration: 0.6 }}
-              className="text-charcoal-light max-w-[460px] mb-8"
+              className="text-charcoal-light max-w-[460px] mb-8 text-left font-body leading-relaxed"
             >
               {t(
                 "Our AI anchor delivers the latest headlines with the warmth of a trusted Indian broadcaster. She understands context, speaks Hindi and English, and brings emotion to every story.",
@@ -458,7 +470,7 @@ function AnchorFeatureSection() {
                     <div className="w-8 h-8 rounded-lg bg-saffron/10 flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4 text-saffron" />
                     </div>
-                    <span className="font-body text-sm text-indigo">
+                    <span className="font-body text-sm text-indigo text-left leading-relaxed">
                       {t(f.textEn, f.textHi)}
                     </span>
                   </motion.li>
@@ -500,7 +512,7 @@ function StatsSection() {
   ]
 
   return (
-    <section className="py-20 bg-indigo relative overflow-hidden" ref={ref}>
+    <section className="section-padding bg-indigo relative overflow-hidden" ref={ref}>
       {/* Warli decorative border */}
       <div className="absolute top-0 left-0 right-0 h-6 warli-divider opacity-30" />
       <div className="absolute bottom-0 left-0 right-0 h-6 warli-divider opacity-30" />
@@ -508,7 +520,7 @@ function StatsSection() {
       {/* Ajrakh subtle overlay */}
       <div className="absolute inset-0 ajrakh-frame opacity-30 pointer-events-none" />
 
-      <div className="max-w-container mx-auto px-6 lg:px-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           variants={staggerContainer}
           initial="hidden"
@@ -548,13 +560,13 @@ function CTABanner() {
   const { ref, inView } = useReveal()
 
   return (
-    <section className="py-20 lg:py-24 bg-cream relative" ref={ref}>
-      <div className="max-w-container mx-auto px-6 lg:px-12">
+    <section className="section-padding bg-cream relative" ref={ref}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.3, duration: 0.6 }}
-          className="relative rounded-3xl p-10 lg:p-16 text-center overflow-hidden saffron-gradient-soft"
+          className="relative rounded-3xl p-10 lg:p-16 text-left overflow-hidden bg-gradient-to-r from-saffron to-terracotta"
         >
           {/* Decorative pattern overlay */}
           <div className="absolute inset-0 bandhej-texture opacity-30 pointer-events-none" />
@@ -564,16 +576,16 @@ function CTABanner() {
           <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
 
           <div className="relative z-10">
-            <h2 className="font-heading font-bold text-h1 text-white mb-4">
+            <h2 className="font-display font-bold heading-lg text-white mb-4 text-left">
               {t('Join the Movement', 'आंदोलन से जुड़ें')}
             </h2>
-            <p className="text-white/80 max-w-xl mx-auto mb-8 font-body">
+            <p className="text-white/80 max-w-xl font-body leading-relaxed mb-8 text-left">
               {t(
                 'Whether you are a social worker, a GenZ changemaker, or a government official — be part of the community spreading positive stories across India.',
                 'चाहे आप सामाजिक कार्यकर्ता हों, GenZ परिवर्तनकर्ता हों, या सरकारी अधिकारी — भारत में सकारात्मक कहानियाँ फैलाने वाले समुदाय का हिस्सा बनें।'
               )}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Link
                 to="/register"
                 className="inline-flex items-center bg-white text-saffron font-body font-semibold rounded-full px-10 py-4 text-base transition-all duration-250 hover:bg-cream hover:scale-[1.03] shadow-warm"
@@ -597,13 +609,13 @@ function CTABanner() {
 /* ─── Home Page ─── */
 export default function Home() {
   return (
-    <>
+    <div className="bg-cream">
       <HeroSection />
       <CategorySection />
       <TrendingSection />
       <AnchorFeatureSection />
       <StatsSection />
       <CTABanner />
-    </>
+    </div>
   )
 }

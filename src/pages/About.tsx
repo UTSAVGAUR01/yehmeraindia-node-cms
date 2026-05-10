@@ -1,494 +1,536 @@
-import { useRef, useEffect, lazy, Suspense, useCallback } from 'react'
-import { Link } from 'react-router'
-import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion'
-import { Database, TrendingUp, Brain, Mic } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { motion, useInView, AnimatePresence } from 'framer-motion'
+import {
+  Heart,
+  Users,
+  Globe,
+  Award,
+  ArrowRight,
+  ChevronDown,
+  Target,
+  Zap,
+  BookOpen,
+  Rocket,
+  MessageCircle,
+} from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 
-// Lazy-load the GSAP-driven process flow to isolate it from Framer Motion
-const ProcessFlowGSAP = lazy(() => import('@/components/ProcessFlowGSAP'))
-
-/* ── Animation helpers ────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────
+   Animation helpers
+   ────────────────────────────────────────────── */
 
 const easeSmooth = [0.4, 0, 0.2, 1] as [number, number, number, number]
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({
+  visible: (delay: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.08, duration: 0.6, ease: easeSmooth },
+    transition: { duration: 0.6, delay, ease: easeSmooth },
   }),
 }
 
-/* ── Tech cards data ──────────────────────────────────────────────── */
-
-interface TechCard {
-  step: string
-  Icon: LucideIcon
-  title: string
-  desc: string
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
 }
 
-const techCards: TechCard[] = [
-  {
-    step: '01',
-    Icon: Database,
-    title: 'Data Aggregation Engine',
-    desc: 'Our ingestion layer processes 25,000+ articles per hour from 500+ trusted Indian sources including Hindi, Tamil, Telugu, Bengali, and Marathi publishers. NLP filtering eliminates duplicates, verifies credibility, and ranks stories by relevance and timeliness.',
-  },
-  {
-    step: '02',
-    Icon: TrendingUp,
-    title: 'Trending Intelligence',
-    desc: 'Real-time analytics monitor social signals across Indian platforms, engagement velocity, and cross-reference patterns. Stories are scored by momentum across 22 official languages \u2014 so you hear about what matters to Bharat, not just what\u2019s loud.',
-  },
-  {
-    step: '03',
-    Icon: Brain,
-    title: 'AI Content Synthesis',
-    desc: 'Advanced language models distill complex articles into clear, concise summaries while preserving nuance and context. The system adapts tone and depth for Indian audiences, supporting Hinglish, regional languages, and cultural context.',
-  },
-  {
-    step: '04',
-    Icon: Mic,
-    title: 'Neural Voice Synthesis',
-    desc: 'Our anchor voice is powered by state-of-the-art neural TTS with emotional range, natural prosody, and multilingual capability. Choose from Hindi, English, Hinglish, and regional language delivery styles with Indian voice personalities.',
-  },
-]
-
-/* ── Stats data ───────────────────────────────────────────────────── */
-
-interface StatItem {
-  raw: number
-  prefix: string
-  suffix: string
-  label: string
-  subLabel: string
-  isText?: boolean
+const staggerItem = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeSmooth } },
 }
 
-const statsEn: StatItem[] = [
-  { raw: 50, prefix: '', suffix: ' lakh+', label: 'Articles processed', subLabel: 'Growing daily' },
-  { raw: 500, prefix: '', suffix: '+', label: 'Indian news sources', subLabel: 'Trusted publishers' },
-  { raw: 2.5, prefix: '', suffix: 'M', label: 'Daily listeners', subLabel: 'From 28 states of India' },
-  { raw: 2, prefix: '< ', suffix: ' min', label: 'Average latency', subLabel: 'From publish to broadcast', isText: true },
+/* ──────────────────────────────────────────────
+   Data
+   ────────────────────────────────────────────── */
+
+const STAT_ITEMS = [
+  { value: '2.5M+', labelEn: 'Monthly Readers', labelHi: 'मासिक पाठक', icon: Users },
+  { value: '50K+', labelEn: 'Positive Stories', labelHi: 'सकारात्मक कहानियाँ', icon: Heart },
+  { value: '28', labelEn: 'States Covered', labelHi: 'कवर किए गए राज्य', icon: Globe },
+  { value: '15+', labelEn: 'Awards Won', labelHi: 'जीते गए पुरस्कार', icon: Award },
 ]
 
-const statsHi: StatItem[] = [
-  { raw: 50, prefix: '', suffix: ' लाख+', label: 'लेख प्रोसेस किए', subLabel: 'हर रोज़ बढ़ता हुआ' },
-  { raw: 500, prefix: '', suffix: '+', label: 'भारतीय समाचार स्रोत', subLabel: 'विश्वसनीय प्रकाशक' },
-  { raw: 2.5, prefix: '', suffix: 'M', label: 'दैनिक श्रोता', subLabel: 'भारत के 28 राज्यों से' },
-  { raw: 2, prefix: '< ', suffix: ' मिनट', label: 'औसत लेटेंसी', subLabel: 'प्रकाशन से प्रसारण तक', isText: true },
+const PRINCIPLES = [
+  {
+    titleEn: 'Authenticity',
+    titleHi: 'प्रामाणिकता',
+    descriptionEn: 'Every story verified. Every source cited. Truth above all.',
+    descriptionHi: 'हर कहानी सत्यापित। हर स्रोत उद्धृत। सबसे ऊपर सच्चाई।',
+    icon: Target,
+    color: 'bg-indigo/10 text-indigo',
+  },
+  {
+    titleEn: 'Innovation',
+    titleHi: 'नवाचार',
+    descriptionEn: 'AI-driven insights. Real-time storytelling. Modern journalism.',
+    descriptionHi: 'AI-संचालित अंतर्दृष्टि। रीयल-टाइम कहानी कहना। आधुनिक पत्रकारिता।',
+    icon: Zap,
+    color: 'bg-saffron/10 text-saffron',
+  },
+  {
+    titleEn: 'Education',
+    titleHi: 'शिक्षा',
+    descriptionEn: 'Context, not just headlines. Depth, not just speed.',
+    descriptionHi: 'केवल सुर्खियाँ नहीं, संदर्भ। केवल गति नहीं, गहराई।',
+    icon: BookOpen,
+    color: 'bg-green/10 text-green',
+  },
+  {
+    titleEn: 'Impact',
+    titleHi: 'प्रभाव',
+    descriptionEn: 'Stories that drive change. News that moves society forward.',
+    descriptionHi: 'परिवर्तन लाने वाली कहानियाँ। समाज को आगे बढ़ाने वाली खबरें।',
+    icon: Rocket,
+    color: 'bg-terracotta/10 text-terracotta',
+  },
 ]
 
-/* ── Animated Counter ─────────────────────────────────────────────── */
+const TIMELINE = [
+  {
+    year: '2019',
+    titleEn: 'Founded in Delhi',
+    titleHi: 'दिल्ली में स्थापना',
+    descriptionEn: 'Started as a small blog focused on positive Indian news stories that mainstream media overlooked.',
+    descriptionHi: 'सकारात्मक भारतीय समाचारों पर केंद्रित एक छोटे ब्लॉग के रूप में शुरुआत।',
+  },
+  {
+    year: '2020',
+    titleEn: 'Nationwide Reach',
+    titleHi: 'राष्ट्रव्यापी पहुंच',
+    descriptionEn: 'Crossed 100K monthly readers during the pandemic, providing hope through positive coverage.',
+    descriptionHi: 'महामारी के दौरान 1 लाख मासिक पाठकों को पार किया।',
+  },
+  {
+    year: '2021',
+    titleEn: 'AI Anchor Launch',
+    titleHi: 'AI एंकर लॉन्च',
+    descriptionEn: 'Introduced India\'s first AI-powered bilingual news anchor for 24/7 broadcast.',
+    descriptionHi: '24/7 प्रसारण के लिए भारत का पहला AI-संचालित द्विभाषी समाचार एंकर पेश किया।',
+  },
+  {
+    year: '2022',
+    titleEn: '28 States Coverage',
+    titleHi: '28 राज्य कवरेज',
+    descriptionEn: 'Expanded to cover positive stories from every corner of India, in multiple languages.',
+    descriptionHi: 'भारत के हर कोने से सकारात्मक कहानियों को कई भाषाओं में कवर किया।',
+  },
+  {
+    year: '2023',
+    titleEn: '2.5M Readers',
+    titleHi: '25 लाख पाठक',
+    descriptionEn: 'Achieved 2.5 million monthly active readers, becoming India\'s #1 positive news platform.',
+    descriptionHi: '2.5 मिलियन मासिक सक्रिय पाठकों तक पहुँच बनाई।',
+  },
+]
 
-function AnimatedCounter({ raw, prefix, suffix, isText }: { raw: number; prefix: string; suffix: string; isText?: boolean }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
-  const count = useMotionValue(0)
-  const rounded = useTransform(count, (v) => {
-    if (isText) {
-      return `${prefix}${Math.round(v)}${suffix}`
-    }
-    if (raw < 1) {
-      return `${prefix}${v.toFixed(1)}${suffix}`
-    }
-    return `${prefix}${Math.round(v)}${suffix}`
-  })
+const FAQS = [
+  {
+    questionEn: 'What makes Yeh Mera India different from other news platforms?',
+    questionHi: 'Yeh Mera India को अन्य समाचार प्लेटफॉर्म से क्या अलग बनाता है?',
+    answerEn: 'We exclusively curate positive, solution-oriented stories about India. No sensationalism, no negativity bias—just stories that inspire pride and action.',
+    answerHi: 'हम केवल भारत के बारे में सकारात्मक, समाधान-उन्मुख कहानियाँ क्यूरेट करते हैं।',
+  },
+  {
+    questionEn: 'How does the AI Anchor work?',
+    questionHi: 'AI एंकर कैसे काम करता है?',
+    answerEn: 'Our AI Anchor uses natural language processing and voice synthesis to deliver news in both Hindi and English, with emotional expression that matches story sentiment.',
+    answerHi: 'हमारा AI एंकर प्राकृतिक भाषा प्रसंस्करण और वॉयस सिंथेसिस का उपयोग करता है।',
+  },
+  {
+    questionEn: 'How do you verify your news sources?',
+    questionHi: 'आप अपने समाचार स्रोतों की कैसे जांच करते हैं?',
+    answerEn: 'Every story goes through a multi-step verification process. We source from 50+ verified Indian and international outlets, cross-reference facts, and clearly cite all sources.',
+    answerHi: 'हर कहानी एक बहु-चरणीय सत्यापन प्रक्रिया से गुजरती है।',
+  },
+  {
+    questionEn: 'Can I contribute stories to Yeh Mera India?',
+    questionHi: 'क्या मैं Yeh Mera India में कहानियाँ योगदान कर सकता हूँ?',
+    answerEn: 'Absolutely! Visit our Author Dashboard after registering. You can submit positive stories, track their performance, and grow as a citizen journalist.',
+    answerHi: 'बिल्कुल! रजिस्टर करने के बाद हमारे Author Dashboard पर जाएँ।',
+  },
+]
+
+/* ──────────────────────────────────────────────
+   Sub-components
+   ────────────────────────────────────────────── */
+
+function StatCounter({ value, label }: { value: string; label: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true })
+  const [displayValue, setDisplayValue] = useState('0')
 
   useEffect(() => {
-    if (!isInView) return
-    const controls = animate(count, raw, {
-      duration: 2,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
-    })
-    return controls.stop
-  }, [isInView, count, raw, isText])
-
-  return <motion.span ref={ref}>{rounded}</motion.span>
-}
-
-/* ── Tech Card SVG Visual ─────────────────────────────────────────── */
-
-function TechCardLine() {
-  const ref = useRef<SVGSVGElement>(null)
-  const isInView = useInView(ref, { once: true, margin: '-50px' })
+    if (!inView) return
+    const numericPart = value.replace(/[^0-9.]/g, '')
+    const suffix = value.replace(/[0-9.]/g, '')
+    const target = parseFloat(numericPart)
+    if (isNaN(target)) {
+      setDisplayValue(value)
+      return
+    }
+    const duration = 1500
+    const start = performance.now()
+    const tick = (now: number) => {
+      const elapsed = now - start
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const current = target * eased
+      if (target >= 1000) {
+        setDisplayValue(`${Math.round(current).toLocaleString('en-IN')}${suffix}`)
+      } else if (numericPart.includes('.')) {
+        setDisplayValue(`${current.toFixed(1)}${suffix}`)
+      } else {
+        setDisplayValue(`${Math.round(current)}${suffix}`)
+      }
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [inView, value])
 
   return (
-    <svg
-      ref={ref}
-      className="w-full h-8 mt-4"
-      viewBox="0 0 200 30"
-      preserveAspectRatio="none"
-    >
-      <motion.path
-        d="M0 15 Q 25 5, 50 15 T 100 15 T 150 15 T 200 15"
-        fill="none"
-        stroke="#FF9933"
-        strokeWidth="1.5"
-        initial={{ pathLength: 0 }}
-        animate={isInView ? { pathLength: 1 } : { pathLength: 0 }}
-        transition={{ duration: 1, ease: easeSmooth, delay: 0.3 }}
-      />
-    </svg>
+    <div ref={ref} className="text-center">
+      <p className="font-display font-bold text-4xl lg:text-5xl text-cream">{displayValue}</p>
+      <p className="text-cream/70 text-sm mt-1 font-body">{label}</p>
+    </div>
   )
 }
 
-/* ═══════════════════════════════════════════════════════════════════ */
-/*  About Page                                                       */
-/* ═══════════════════════════════════════════════════════════════════ */
+function FAQItem({
+  question,
+  answer,
+  isOpen,
+  onToggle,
+}: {
+  question: string
+  answer: string
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="border-b border-gray-200 last:border-0">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between py-5 text-left group"
+      >
+        <span className="font-display font-semibold text-indigo text-base text-left pr-4 group-hover:text-saffron transition-colors">
+          {question}
+        </span>
+        <ChevronDown
+          size={20}
+          className={`text-charcoal-light shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: easeSmooth }}
+            className="overflow-hidden"
+          >
+            <p className="text-charcoal-light text-sm pb-5 font-body leading-relaxed text-left">
+              {answer}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ──────────────────────────────────────────────
+   Main Page
+   ────────────────────────────────────────────── */
 
 export default function About() {
   const { t } = useLanguage()
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0)
   const heroRef = useRef<HTMLDivElement>(null)
-  const techRef = useRef<HTMLDivElement>(null)
-  const statsRef = useRef<HTMLDivElement>(null)
+  const missionRef = useRef<HTMLDivElement>(null)
+  const timelineRef = useRef<HTMLDivElement>(null)
+  const faqRef = useRef<HTMLDivElement>(null)
   const ctaRef = useRef<HTMLDivElement>(null)
 
-  const heroInView = useInView(heroRef, { once: true, margin: '-50px' })
-  const techInView = useInView(techRef, { once: true, margin: '-100px' })
-  const statsInView = useInView(statsRef, { once: true, margin: '-100px' })
+  const missionInView = useInView(missionRef, { once: true, margin: '-100px' })
+  const timelineInView = useInView(timelineRef, { once: true, margin: '-100px' })
   const ctaInView = useInView(ctaRef, { once: true, margin: '-100px' })
 
-  /* Scroll-to-section handler */
-  const scrollToTech = useCallback(() => {
-    techRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
-  const stats = t('en', 'en') === 'en' ? statsEn : statsHi
-
   return (
-    <div className="min-h-[100dvh] bg-void">
-      {/* ════════════════════════════════════════════
-          Section 1 — Hero: "News of India, in a new style"
-      ════════════════════════════════════════════ */}
+    <div className="bg-cream">
+      {/* ─── Section 1: Hero ─── */}
       <section
         ref={heroRef}
-        className="relative min-h-[80vh] flex items-center overflow-hidden pt-16"
+        className="relative min-h-[60vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-terracotta/10 via-cream to-green/10"
       >
-        {/* Subtle left-side gradient orb */}
-        <div
-          className="absolute -left-32 top-1/4 w-[500px] h-[500px] rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,153,51,0.04)', filter: 'blur(150px)' }}
-        />
+        <div className="absolute inset-0 bandhej-texture opacity-30 pointer-events-none" />
 
-        <div className="max-w-container mx-auto px-6 lg:px-12 py-16 md:py-24 w-full">
-          <div className="grid lg:grid-cols-[55%_45%] gap-12 lg:gap-16 items-center">
-            {/* Left Column — Narrative */}
-            <div>
-              {/* Eyebrow */}
-              <motion.span
-                className="inline-block font-mono text-xs tracking-[0.15em] uppercase"
-                style={{ color: '#FF9933' }}
-                initial={{ opacity: 0 }}
-                animate={heroInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.6, ease: easeSmooth }}
-              >
-                {t('Our Mission', 'हमारा मिशन')}
-              </motion.span>
-
-              {/* Title */}
-              <motion.h1
-                className="font-display font-extrabold text-hero text-frost mt-4"
-                initial={{ opacity: 0, y: 40 }}
-                animate={heroInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: 0.15, ease: easeSmooth }}
-              >
-                {t('News of India, in a New Style', 'भारत की खबरें, नए अंदाज़ में')}
-              </motion.h1>
-
-              {/* Body paragraphs */}
-              <motion.p
-                className="text-steel text-body leading-[1.75] mt-6 max-w-[520px]"
-                initial={{ opacity: 0, y: 20 }}
-                animate={heroInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: 0.35, ease: easeSmooth }}
-              >
-                Yeh Mera India was built on a simple belief: every Indian deserves access to news that is instant, unbiased, and delivered in a way that feels natural. In an era of information overload, we use artificial intelligence to cut through the noise &mdash; with stories in Hindi, English, and regional languages.
-              </motion.p>
-
-              <motion.p
-                className="text-steel text-body leading-[1.75] mt-4 max-w-[520px]"
-                initial={{ opacity: 0, y: 20 }}
-                animate={heroInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: 0.5, ease: easeSmooth }}
-              >
-                Our AI anchor doesn&apos;t just read headlines &mdash; it understands context, adapts to your preferences, and delivers stories with the warmth and familiarity of a trusted Indian broadcaster. Available 24/7, in 22 scheduled languages, across every device.
-              </motion.p>
-
-              {/* Founder quote */}
-              <motion.blockquote
-                className="mt-8 border-l-[3px] pl-6"
-                style={{ borderColor: '#FF9933' }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={heroInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.6, delay: 0.65, ease: easeSmooth }}
-              >
-                <p className="font-heading font-semibold text-h3 text-frost">
-                  &ldquo;We didn&apos;t build a news aggregator. We built a news companion for every Indian.&rdquo;
-                </p>
-              </motion.blockquote>
-
-              {/* CTA link */}
-              <motion.button
-                onClick={scrollToTech}
-                className="inline-flex items-center mt-8 font-body font-medium text-sm transition-colors duration-250 hover:opacity-80"
-                style={{ color: '#FF9933' }}
-                initial={{ opacity: 0 }}
-                animate={heroInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.5, delay: 0.8, ease: easeSmooth }}
-              >
-                {t('Meet the Technology', 'तकनीक से मिलें')} &rarr;
-              </motion.button>
-            </div>
-
-            {/* Right Column — Visual */}
-            <motion.div
-              className="relative rounded-[20px] overflow-hidden"
-              initial={{ opacity: 0, y: 30 }}
-              animate={heroInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.7, delay: 0.4, ease: easeSmooth }}
-            >
-              <img
-                src="/about-team.jpg"
-                alt="Yeh Mera India team"
-                className="w-full h-auto object-cover"
-                loading="eager"
-              />
-              {/* Bottom gradient overlay */}
-              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-void to-transparent pointer-events-none" />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          Section 2 — Technology Stack
-      ════════════════════════════════════════════ */}
-      <section ref={techRef} className="py-16 md:py-32">
-        <div className="max-w-container mx-auto px-6 lg:px-12">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <motion.span
-              className="inline-block font-mono text-xs tracking-[0.15em] uppercase"
-              style={{ color: '#FF9933' }}
-              variants={fadeUp}
-              initial="hidden"
-              animate={techInView ? 'visible' : 'hidden'}
-              custom={0}
-            >
-              {t('TECHNOLOGY', 'तकनीक')}
-            </motion.span>
-            <motion.h2
-              className="font-display font-bold text-h1 text-frost mt-3 mx-auto max-w-[700px]"
-              variants={fadeUp}
-              initial="hidden"
-              animate={techInView ? 'visible' : 'hidden'}
-              custom={1}
-            >
-              {t('Built for Speed, Scale, and Intelligence', 'गति, स्केल और बुद्धिमत्ता के लिए बना')}
-            </motion.h2>
-            <motion.p
-              className="text-steel text-body mt-3"
-              variants={fadeUp}
-              initial="hidden"
-              animate={techInView ? 'visible' : 'hidden'}
-              custom={2}
-            >
-              {t('Four pillars power every broadcast.', 'हर प्रसारण को चार स्तंभ शक्ति देते हैं।')}
-            </motion.p>
-          </div>
-
-          {/* Tech Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {techCards.map((card, i) => (
-              <motion.div
-                key={card.step}
-                className="relative bg-midnight rounded-2xl border border-slate p-8 overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                style={{ '--tw-shadow-color': 'rgba(255,153,51,0.15)' } as React.CSSProperties}
-                variants={fadeUp}
-                initial="hidden"
-                animate={techInView ? 'visible' : 'hidden'}
-                custom={i}
-                transition={{ duration: 0.6, ease: easeSmooth }}
-              >
-                {/* Decorative step number */}
-                <span
-                  className="absolute top-4 right-4 font-display font-extrabold text-[4rem] leading-none pointer-events-none select-none"
-                  style={{ color: 'rgba(30,41,59,0.3)' }}
-                >
-                  {card.step}
-                </span>
-
-                {/* Icon */}
-                <div className="relative z-10 flex items-center justify-center w-12 h-12 mb-5">
-                  <card.Icon size={48} strokeWidth={1.5} style={{ color: '#FF9933' }} />
-                </div>
-
-                {/* Title */}
-                <h3 className="relative z-10 font-heading font-semibold text-h3 text-frost mb-3">
-                  {card.title}
-                </h3>
-
-                {/* Description */}
-                <p className="relative z-10 text-steel text-sm leading-[1.65]">
-                  {card.desc}
-                </p>
-
-                {/* SVG line */}
-                <TechCardLine />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          Section 3 — How It Works (Process Flow)
-      ════════════════════════════════════════════ */}
-      <section className="bg-midnight py-16 md:py-32">
-        <div className="max-w-container mx-auto px-6 lg:px-12">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <motion.span
-              className="inline-block font-mono text-xs tracking-[0.1em] uppercase"
-              style={{ color: '#FF9933' }}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: '-100px' }}
-              custom={0}
-            >
-              {t('THE PROCESS', 'प्रक्रिया')}
-            </motion.span>
-            <motion.h2
-              className="font-display font-bold text-h1 text-frost mt-3"
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: '-100px' }}
-              custom={1}
-            >
-              {t('From Headlines to Broadcast in Seconds', 'सेकंडों में सुर्ख़ियों से प्रसारण तक')}
-            </motion.h2>
-          </div>
-
-          {/* Process Flow — GSAP isolated in separate component */}
-          <Suspense
-            fallback={
-              <div className="min-h-[300px] flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-[#FF9933] border-t-transparent rounded-full animate-spin" />
-              </div>
-            }
-          >
-            <ProcessFlowGSAP />
-          </Suspense>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          Section 4 — Platform Stats
-      ════════════════════════════════════════════ */}
-      <section ref={statsRef} className="py-16 md:py-24">
-        <div className="max-w-container mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0">
-            {stats.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                className={`text-center py-8 px-4 ${
-                  i < stats.length - 1 ? 'lg:border-r lg:border-slate' : ''
-                }`}
-                variants={fadeUp}
-                initial="hidden"
-                animate={statsInView ? 'visible' : 'hidden'}
-                custom={i}
-                transition={{ duration: 0.6, ease: easeSmooth }}
-              >
-                <p className="font-display font-extrabold text-hero" style={{ background: 'linear-gradient(135deg, #FF9933 0%, #FFB366 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  <AnimatedCounter
-                    raw={stat.raw}
-                    prefix={stat.prefix}
-                    suffix={stat.suffix}
-                    isText={stat.isText}
-                  />
-                </p>
-                <p className="font-heading font-semibold text-h3 text-frost mt-2">
-                  {stat.label}
-                </p>
-                <p className="text-steel text-sm mt-1">{stat.subLabel}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          Section 5 — CTA + Footer area
-      ════════════════════════════════════════════ */}
-      <section
-        ref={ctaRef}
-        className="py-16 md:py-24 bg-studio-backdrop"
-      >
-        <div className="max-w-container mx-auto px-6 lg:px-12 text-center">
-          <motion.span
-            className="inline-block font-mono text-xs tracking-[0.15em] uppercase"
-            style={{ color: '#FF9933' }}
-            variants={fadeUp}
-            initial="hidden"
-            animate={ctaInView ? 'visible' : 'hidden'}
-            custom={0}
-          >
-            {t('GET STARTED', 'शुरू करें')}
-          </motion.span>
-
-          <motion.h2
-            className="font-display font-bold text-h1 text-frost mt-3 mx-auto max-w-[600px]"
-            variants={fadeUp}
-            initial="hidden"
-            animate={ctaInView ? 'visible' : 'hidden'}
-            custom={1}
-          >
-            {t('Experience the Future of News Delivery', 'समाचार वितरण का भविष्य अनुभव करें')}
-          </motion.h2>
-
-          <motion.p
-            className="text-steel text-body mt-4 max-w-[500px] mx-auto"
-            variants={fadeUp}
-            initial="hidden"
-            animate={ctaInView ? 'visible' : 'hidden'}
-            custom={2}
-          >
-            {t(
-              'Join over 2.5 million daily listeners who trust Yeh Mera India for their daily news.',
-              '25 लाख+ दैनिक श्रोताओं के साथ जुड़ें जो Yeh Mera India पर भरोसा करते हैं।'
-            )}
-          </motion.p>
-
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 w-full">
           <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8"
-            variants={fadeUp}
-            initial="hidden"
-            animate={ctaInView ? 'visible' : 'hidden'}
-            custom={3}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: easeSmooth }}
+            className="text-left max-w-2xl"
           >
-            <Link
-              to="/anchor"
-              className="inline-flex items-center font-body font-semibold rounded-full px-8 py-4 transition-all duration-250 hover:scale-[1.03] hover:shadow-lg"
-              style={{ backgroundColor: '#FF9933', color: '#0B0F1A' }}
-            >
-              {t('Launch Anchor Studio', 'एंकर स्टूडियो लॉन्च करें')}
-            </Link>
-            <Link
-              to="/categories"
-              className="inline-flex items-center bg-transparent border border-slate text-frost font-body font-semibold rounded-full px-8 py-4 transition-all duration-250 hover:border-[#FF9933]"
-              style={{ '--tw-text-opacity': 1 } as React.CSSProperties}
-            >
-              {t('Explore Categories', 'श्रेणियाँ देखें')}
-            </Link>
+            <span className="inline-block font-mono text-xs text-saffron tracking-[0.15em] uppercase mb-4">
+              {t('About Us', 'हमारे बारे में')}
+            </span>
+            <h1 className="font-display font-bold heading-xl text-indigo mb-6 text-left">
+              {t(
+                "Telling India's Story, One Triumph at a Time",
+                'भारत की कहानी, एक विजय at a Time'
+              )}
+            </h1>
+            <p className="text-charcoal-light text-base font-body leading-relaxed max-w-xl text-left">
+              {t(
+                'Yeh Mera India is India\'s premier positive news platform, dedicated to showcasing the stories of progress, innovation, and human spirit that make our nation extraordinary.',
+                'Yeh Mera India भारत का प्रमुख सकारात्मक समाचार प्लेटफॉर्म है।'
+              )}
+            </p>
           </motion.div>
         </div>
+      </section>
+
+      {/* ─── Section 2: Stats ─── */}
+      <section className="section-padding bg-indigo relative overflow-hidden">
+        <div className="absolute inset-0 ajrakh-frame opacity-30 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12"
+          >
+            {STAT_ITEMS.map((stat) => (
+              <motion.div key={stat.labelEn} variants={staggerItem}>
+                <StatCounter
+                  value={stat.value}
+                  label={t(stat.labelEn, stat.labelHi)}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Section 3: Mission & Principles ─── */}
+      <section ref={missionRef} className="section-padding bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-[40%_60%] gap-12 lg:gap-20">
+            {/* Left — Mission text */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate={missionInView ? 'visible' : 'hidden'}
+              custom={0}
+              className="flex flex-col justify-center"
+            >
+              <span className="font-mono text-xs text-saffron tracking-[0.15em] uppercase text-left">
+                {t('OUR MISSION', 'हमारा मिशन')}
+              </span>
+              <h2 className="font-display font-bold heading-lg text-indigo mt-3 mb-6 text-left">
+                {t('Why We Exist', 'हम क्यों मौजूद हैं')}
+              </h2>
+              <p className="text-charcoal-light font-body leading-relaxed mb-4 text-left">
+                {t(
+                  "In a media landscape dominated by negativity, we believe India's stories deserve better. Every day, millions of Indians achieve extraordinary things, communities come together, and innovations emerge from unexpected corners.",
+                  'नकारात्मकता से भरे मीडिया परिदृश्य में, हम मानते हैं कि भारत की कहानियाँ बेहतर की हकदार हैं।'
+                )}
+              </p>
+              <p className="text-charcoal-light font-body leading-relaxed mb-6 text-left">
+                {t(
+                  'We exist to shine a light on these stories. To remind every Indian of the incredible nation we are building together. To inspire action, foster unity, and spread hope.',
+                  'हम इन कहानियों पर प्रकाश डालने के लिए मौजूद हैं।'
+                )}
+              </p>
+              <blockquote className="border-l-4 border-saffron pl-5 py-2">
+                <p className="font-editorial text-xl text-indigo italic text-left">
+                  &ldquo;{t(
+                    'The story of India is not written in headlines alone, but in the quiet triumphs of everyday Indians.',
+                    'भारत की कहानी केवल सुर्खियों में नहीं लिखी जाती, बल्कि रोजमर्रा के भारतीयों की शांत विजयों में।'
+                  )}&rdquo;
+                </p>
+              </blockquote>
+            </motion.div>
+
+            {/* Right — Principles grid */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              {PRINCIPLES.map((p, i) => {
+                const Icon = p.icon
+                return (
+                  <motion.div
+                    key={p.titleEn}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate={missionInView ? 'visible' : 'hidden'}
+                    custom={0.1 + i * 0.1}
+                    className="bg-cream rounded-2xl border border-gold/20 p-6 transition-all duration-300 hover:border-saffron/40 hover:shadow-warm"
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${p.color} mb-4`}>
+                      <Icon size={22} />
+                    </div>
+                    <h3 className="font-display font-semibold text-indigo text-base mb-2 text-left">
+                      {t(p.titleEn, p.titleHi)}
+                    </h3>
+                    <p className="text-charcoal-light text-sm font-body leading-relaxed text-left">
+                      {t(p.descriptionEn, p.descriptionHi)}
+                    </p>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Section 4: Timeline ─── */}
+      <section ref={timelineRef} className="section-padding bg-cream">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate={timelineInView ? 'visible' : 'hidden'}
+            custom={0}
+            className="text-left mb-14"
+          >
+            <span className="inline-block font-mono text-xs text-saffron tracking-[0.15em] uppercase mb-3">
+              {t('Our Journey', 'हमारी यात्रा')}
+            </span>
+            <h2 className="font-display font-bold heading-lg text-indigo text-left">
+              {t('From Blog to Movement', 'ब्लॉग से आंदोलन तक')}
+            </h2>
+          </motion.div>
+
+          {/* Timeline */}
+          <div className="relative max-w-3xl">
+            {/* Vertical line */}
+            <div className="absolute left-4 lg:left-1/2 top-0 bottom-0 w-0.5 bg-gold/30 -translate-x-1/2" />
+
+            {TIMELINE.map((item, i) => {
+              const isLeft = i % 2 === 0
+              return (
+                <motion.div
+                  key={item.year}
+                  variants={fadeUp}
+                  initial="hidden"
+                  animate={timelineInView ? 'visible' : 'hidden'}
+                  custom={0.1 + i * 0.1}
+                  className={`relative flex items-start gap-8 mb-12 last:mb-0 ${
+                    isLeft ? 'lg:flex-row' : 'lg:flex-row-reverse'
+                  }`}
+                >
+                  {/* Dot */}
+                  <div className="absolute left-4 lg:left-1/2 -translate-x-1/2 z-10">
+                    <div className="w-8 h-8 rounded-full bg-saffron border-4 border-cream flex items-center justify-center">
+                      <span className="font-mono text-[10px] font-bold text-white">{item.year.slice(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Content card */}
+                  <div className={`ml-12 lg:ml-0 lg:w-[calc(50%-2rem)] ${isLeft ? 'lg:mr-auto lg:pr-8' : 'lg:ml-auto lg:pl-8'}`}>
+                    <div className="bg-white rounded-xl border border-gold/15 p-5 shadow-warm">
+                      <span className="font-mono text-xs text-saffron font-semibold">{item.year}</span>
+                      <h3 className="font-display font-semibold text-indigo text-base mt-1 mb-2 text-left">
+                        {t(item.titleEn, item.titleHi)}
+                      </h3>
+                      <p className="text-charcoal-light text-sm font-body leading-relaxed text-left">
+                        {t(item.descriptionEn, item.descriptionHi)}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Section 5: FAQ ─── */}
+      <section ref={faqRef} className="section-padding bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+            className="text-left mb-10"
+          >
+            <span className="inline-block font-mono text-xs text-saffron tracking-[0.15em] uppercase mb-3">
+              {t('FAQ', 'सामान्य प्रश्न')}
+            </span>
+            <h2 className="font-display font-bold heading-lg text-indigo text-left">
+              {t('Questions & Answers', 'प्रश्न और उत्तर')}
+            </h2>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="border-t border-gray-200"
+          >
+            {FAQS.map((faq, i) => (
+              <motion.div key={i} variants={staggerItem}>
+                <FAQItem
+                  question={t(faq.questionEn, faq.questionHi)}
+                  answer={t(faq.answerEn, faq.answerHi)}
+                  isOpen={openFaqIndex === i}
+                  onToggle={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Section 6: CTA ─── */}
+      <section ref={ctaRef} className="section-padding bg-cream">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate={ctaInView ? 'visible' : 'hidden'}
+          custom={0}
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        >
+          <div className="relative rounded-3xl p-10 lg:p-16 bg-gradient-to-r from-saffron to-terracotta overflow-hidden text-left">
+            <div className="absolute inset-0 bandhej-texture opacity-30 pointer-events-none" />
+            <div className="absolute -top-20 -left-20 w-60 h-60 rounded-full bg-white/5 pointer-events-none" />
+            <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
+
+            <div className="relative z-10">
+              <h2 className="font-display font-bold heading-lg text-white mb-4 text-left">
+                {t('Be Part of the Story', 'कहानी का हिस्सा बनें')}
+              </h2>
+              <p className="text-white/80 max-w-xl font-body leading-relaxed mb-8 text-left">
+                {t(
+                  'Join our community of changemakers, readers, and storytellers. Together, we can reshape how India sees itself.',
+                  'परिवर्तनकर्ताओं, पाठकों और कथावाचकों की हमारी समुदाय में शामिल हों।'
+                )}
+              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <a
+                  href="/register"
+                  className="inline-flex items-center gap-2 bg-white text-saffron font-body font-semibold rounded-full px-8 py-3.5 transition-all duration-250 hover:bg-cream hover:scale-[1.03] shadow-warm"
+                >
+                  {t('Get Started', 'शुरू करें')}
+                  <ArrowRight size={16} />
+                </a>
+                <a
+                  href="/author"
+                  className="inline-flex items-center gap-2 border-2 border-white/40 text-white font-body font-semibold rounded-full px-8 py-3.5 transition-all duration-250 hover:bg-white/10"
+                >
+                  <MessageCircle size={16} />
+                  {t('Author Dashboard', 'लेखक डैशबोर्ड')}
+                </a>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </section>
     </div>
   )

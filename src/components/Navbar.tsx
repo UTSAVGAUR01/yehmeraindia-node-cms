@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { Menu, X, Globe, LogIn, LogOut, User, ChevronDown, Crown, LayoutDashboard } from 'lucide-react'
+import {
+  Menu, X, Globe, LogIn, LogOut, User, ChevronDown,
+  Crown, LayoutDashboard, PenTool, ShieldCheck,
+} from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -13,19 +16,22 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 
-const navLinks = [
+// Public nav links visible to everyone
+const publicNavLinks = [
   { labelEn: 'Home', labelHi: 'होम', path: '/' },
   { labelEn: 'Categories', labelHi: 'श्रेणियाँ', path: '/categories' },
   { labelEn: 'Trending', labelHi: 'ट्रेंडिंग', path: '/trending' },
   { labelEn: 'About', labelHi: 'हमारे बारे में', path: '/about' },
-  { labelEn: 'Author', labelHi: 'लेखक', path: '/author' },
 ]
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   const { language, toggleLanguage, t } = useLanguage()
-  const { isAuthenticated, user, isAdmin, logout } = useAuth()
+  const { isAuthenticated, user, isAdmin, isAuthor, logout } = useAuth()
+
+  const showAuthor = isAdmin || isAuthor
+  const showAdmin = isAdmin
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
 
@@ -60,7 +66,7 @@ export default function Navbar() {
 
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
+          {publicNavLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
@@ -78,6 +84,45 @@ export default function Navbar() {
               />
             </Link>
           ))}
+
+          {/* Author Dashboard link — visible to authors and admins */}
+          {showAuthor && (
+            <Link
+              to="/author"
+              className={`relative font-body text-sm font-medium transition-colors duration-250 group ${
+                location.pathname === '/author'
+                  ? 'text-saffron'
+                  : 'text-charcoal-light hover:text-indigo'
+              }`}
+            >
+              {t('Author', 'लेखक')}
+              <span
+                className={`absolute -bottom-1 left-0 h-0.5 bg-saffron rounded-full transition-all duration-300 ease-out ${
+                  location.pathname === '/author' ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}
+              />
+            </Link>
+          )}
+
+          {/* Admin Dashboard link — visible only to admins */}
+          {showAdmin && (
+            <Link
+              to="/admin"
+              className={`relative font-body text-sm font-medium transition-colors duration-250 group flex items-center gap-1 ${
+                location.pathname === '/admin'
+                  ? 'text-saffron'
+                  : 'text-charcoal-light hover:text-indigo'
+              }`}
+            >
+              <ShieldCheck size={13} />
+              {t('Admin', 'एडमिन')}
+              <span
+                className={`absolute -bottom-1 left-0 h-0.5 bg-saffron rounded-full transition-all duration-300 ease-out ${
+                  location.pathname === '/admin' ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}
+              />
+            </Link>
+          )}
         </div>
 
         {/* Right Section: Auth + Language + CTA */}
@@ -103,7 +148,7 @@ export default function Navbar() {
           {isAuthenticated && user ? (
             <>
               {/* Admin Badge */}
-              {isAdmin && (
+              {showAdmin && (
                 <Link to="/admin">
                   <Badge
                     variant="outline"
@@ -114,6 +159,18 @@ export default function Navbar() {
                     Admin
                   </Badge>
                 </Link>
+              )}
+
+              {/* Author Badge (non-admin authors) */}
+              {isAuthor && !isAdmin && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 px-2 py-0.5 text-xs font-medium rounded-full"
+                  style={{ borderColor: 'rgba(29,53,87,0.3)', color: '#1D3557', backgroundColor: 'rgba(29,53,87,0.05)' }}
+                >
+                  <PenTool size={12} />
+                  Author
+                </Badge>
               )}
 
               {/* User Dropdown */}
@@ -151,11 +208,20 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
 
-                  {isAdmin && (
+                  {showAuthor && (
+                    <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+                      <Link to="/author">
+                        <PenTool size={14} style={{ color: '#1D3557' }} />
+                        <span style={{ color: '#2B2D42' }}>Author Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
+                  {showAdmin && (
                     <DropdownMenuItem asChild className="gap-2 cursor-pointer">
                       <Link to="/admin">
                         <LayoutDashboard size={14} style={{ color: '#E85D04' }} />
-                        <span style={{ color: '#E85D04' }}>Dashboard</span>
+                        <span style={{ color: '#E85D04' }}>Admin Dashboard</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -173,19 +239,33 @@ export default function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            /* Not logged in → Login link */
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 text-sm font-medium transition-all duration-200 rounded-full px-4 py-2 border"
-              style={{
-                borderColor: '#E5E7EB',
-                color: '#2B2D42',
-                backgroundColor: '#F9FAFB',
-              }}
-            >
-              <LogIn size={16} />
-              {t('Login', 'लॉग इन')}
-            </Link>
+            /* Not logged in → Login + Register links */
+            <>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 text-sm font-medium transition-all duration-200 rounded-full px-4 py-2 border"
+                style={{
+                  borderColor: '#E5E7EB',
+                  color: '#2B2D42',
+                  backgroundColor: '#F9FAFB',
+                }}
+              >
+                <LogIn size={16} />
+                {t('Login', 'लॉग इन')}
+              </Link>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-1.5 text-sm font-medium transition-all duration-200 rounded-full px-4 py-2 border"
+                style={{
+                  borderColor: '#E85D04',
+                  color: '#E85D04',
+                  backgroundColor: 'rgba(232,93,4,0.05)',
+                }}
+              >
+                <User size={16} />
+                {t('Register', 'रजिस्टर')}
+              </Link>
+            </>
           )}
 
           {/* Watch Anchor CTA (hide on auth pages) */}
@@ -235,7 +315,7 @@ export default function Navbar() {
                     <p className="text-xs" style={{ color: '#9CA3AF' }}>{user.email}</p>
                   </div>
                 </div>
-                {isAdmin && (
+                {showAdmin && (
                   <Link
                     to="/admin"
                     onClick={() => setMobileOpen(false)}
@@ -245,21 +325,42 @@ export default function Navbar() {
                     <Crown size={16} /> Admin Dashboard
                   </Link>
                 )}
+                {showAuthor && !showAdmin && (
+                  <Link
+                    to="/author"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full text-center py-2.5 rounded-lg font-medium flex items-center justify-center gap-2"
+                    style={{ backgroundColor: 'rgba(29,53,87,0.08)', color: '#1D3557' }}
+                  >
+                    <PenTool size={16} /> Author Dashboard
+                  </Link>
+                )}
               </div>
             ) : (
-              <Link
-                to="/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 text-base font-medium px-6 py-3 rounded-full"
-                style={{ backgroundColor: '#F3F4F6', color: '#2B2D42' }}
-              >
-                <LogIn size={18} /> {t('Login', 'लॉग इन')}
-              </Link>
+              <div className="flex flex-col items-center gap-2 w-full px-8">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full text-center flex items-center justify-center gap-2 text-base font-medium px-6 py-3 rounded-full"
+                  style={{ backgroundColor: '#F3F4F6', color: '#2B2D42' }}
+                >
+                  <LogIn size={18} /> {t('Login', 'लॉग इन')}
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full text-center flex items-center justify-center gap-2 text-base font-medium px-6 py-3 rounded-full"
+                  style={{ borderColor: '#E85D04', color: '#E85D04', border: '1px solid' }}
+                >
+                  <User size={18} /> {t('Register', 'रजिस्टर')}
+                </Link>
+              </div>
             )}
 
             <div className="w-16 h-px" style={{ backgroundColor: '#E5E7EB' }} />
 
-            {navLinks.map((link) => (
+            {/* Public nav links */}
+            {publicNavLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
@@ -272,6 +373,36 @@ export default function Navbar() {
                 {t(link.labelEn, link.labelHi)}
               </Link>
             ))}
+
+            {/* Author link in mobile */}
+            {showAuthor && (
+              <Link
+                to="/author"
+                onClick={() => setMobileOpen(false)}
+                className="font-body text-lg font-medium transition-colors flex items-center gap-2"
+                style={{
+                  color: location.pathname === '/author' ? '#E85D04' : '#4B5563',
+                }}
+              >
+                <PenTool size={18} />
+                {t('Author', 'लेखक')}
+              </Link>
+            )}
+
+            {/* Admin link in mobile */}
+            {showAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileOpen(false)}
+                className="font-body text-lg font-medium transition-colors flex items-center gap-2"
+                style={{
+                  color: location.pathname === '/admin' ? '#E85D04' : '#4B5563',
+                }}
+              >
+                <ShieldCheck size={18} />
+                {t('Admin', 'एडमिन')}
+              </Link>
+            )}
 
             {/* Mobile Language Toggle */}
             <button

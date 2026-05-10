@@ -106,7 +106,7 @@ const CATEGORIES_MAP: Record<string, string[]> = {
   'India': ['India'],
 }
 
-const SAFFRON = '#FF9933'
+const SAFFRON = '#E85D04'
 
 /* ──────────────────────────────────────────────
    Animation helpers
@@ -142,8 +142,8 @@ const scaleIn = {
 const LivePulseDot = memo(function LivePulseDot() {
   return (
     <span className="relative flex h-3 w-3">
-      <span className="absolute inline-flex h-full w-full rounded-full bg-signal-red opacity-75 animate-pulse-dot" />
-      <span className="relative inline-flex rounded-full h-3 w-3 bg-signal-red" />
+      <span className="absolute inline-flex h-full w-full rounded-full bg-saffron opacity-75 animate-pulse-dot" />
+      <span className="relative inline-flex rounded-full h-3 w-3 bg-saffron" />
     </span>
   )
 })
@@ -212,43 +212,32 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 /** Heat map cell */
 function HeatMapCell({ topic, index }: { topic: HeatMapTopic; index: number }) {
   const levelConfig = {
-    hot: { bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)', iconColor: '#F97316', label: '\uD83D\uDD25\uD83D\uDD25\uD83D\uDD25' },
-    warm: { bg: 'rgba(255,153,51,0.1)', border: 'rgba(255,153,51,0.35)', iconColor: SAFFRON, label: '\uD83D\uDD25\uD83D\uDD25' },
-    rising: { bg: 'rgba(30,41,59,0.8)', border: 'rgba(30,41,59,1)', iconColor: '#475569', label: '\uD83D\uDD25' },
-    declining: { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', iconColor: '#EF4444', label: '\uD83D\uDD25' },
+    hot: { bg: 'rgba(232,93,4,0.1)', border: 'rgba(232,93,4,0.3)', iconColor: '#E85D04', label: '\uD83D\uDD25\uD83D\uDD25\uD83D\uDD25' },
+    warm: { bg: 'rgba(232,93,4,0.06)', border: 'rgba(232,93,4,0.2)', iconColor: '#F4A261', label: '\uD83D\uDD25\uD83D\uDD25' },
+    rising: { bg: 'rgba(29,53,87,0.06)', border: 'rgba(29,53,87,0.15)', iconColor: '#457B9D', label: '\uD83D\uDD25' },
+    declining: { bg: 'rgba(188,71,73,0.06)', border: 'rgba(188,71,73,0.2)', iconColor: '#BC4749', label: '\uD83D\uDD25' },
   }
 
   const config = levelConfig[topic.level]
-  const sparkColor = topic.level === 'hot' ? '#F97316' : topic.level === 'declining' ? '#EF4444' : SAFFRON
+  const sparkColor = topic.level === 'hot' ? '#E85D04' : topic.level === 'declining' ? '#BC4749' : SAFFRON
 
   return (
     <motion.div
       variants={scaleIn}
       custom={index}
       whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
-      className="rounded-xl p-4 cursor-pointer transition-shadow duration-200"
-      style={{
-        backgroundColor: config.bg,
-        border: `1px solid ${config.border}`,
-        '--tw-shadow-color': 'rgba(255,153,51,0.15)',
-      } as React.CSSProperties}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 0 20px rgba(255,153,51,0.15)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = ''
-      }}
+      className="rounded-xl p-4 cursor-pointer transition-shadow duration-200 bg-white border border-gray-200 hover:shadow-warm"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <p className="font-heading font-semibold text-sm text-frost truncate">{topic.name}</p>
-          <p className="font-mono text-xs text-steel mt-0.5">{topic.mentions} mentions</p>
+          <p className="font-display font-semibold text-sm text-indigo truncate text-left">{topic.name}</p>
+          <p className="font-mono text-xs text-charcoal-light mt-0.5 text-left">{topic.mentions} mentions</p>
         </div>
         <div className="ml-2 shrink-0">
           {topic.direction === 'up' ? (
-            <TrendingUp size={14} className="text-emerald" />
+            <TrendingUp size={14} className="text-green" />
           ) : (
-            <TrendingDown size={14} className="text-signal-red" />
+            <TrendingDown size={14} className="text-terracotta" />
           )}
         </div>
       </div>
@@ -265,15 +254,15 @@ function TimelineItem({ story, index }: { story: TimelineStory; index: number })
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
   const isLeft = index % 2 === 0
-  const barColor = story.viralScore >= 90 ? '#F97316' : story.viralScore >= 75 ? SAFFRON : SAFFRON
+  const barColor = story.viralScore >= 90 ? '#E85D04' : story.viralScore >= 75 ? SAFFRON : SAFFRON
 
   return (
     <div ref={ref} className="relative flex items-center w-full mb-8 last:mb-0">
       {/* Timeline dot */}
       <div className="absolute left-1/2 -translate-x-1/2 z-10">
         <motion.div
-          className="w-3 h-3 rounded-full border-2"
-          style={{ borderColor: SAFFRON, backgroundColor: isInView ? SAFFRON : '#0B0F1A' }}
+          className="w-3 h-3 rounded-full border-2 border-saffron"
+          style={{ backgroundColor: isInView ? SAFFRON : '#FFFFFF' }}
           initial={{ scale: 0 }}
           animate={isInView ? { scale: 1 } : { scale: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
@@ -287,29 +276,18 @@ function TimelineItem({ story, index }: { story: TimelineStory; index: number })
         animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: isLeft ? -30 : 30 }}
         transition={{ duration: 0.5, delay: index * 0.15, ease: easeSmooth }}
       >
-        <div
-          className="bg-void rounded-xl border border-slate p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-          style={{ '--tw-hover-border-opacity': 1 } as React.CSSProperties}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = SAFFRON
-            e.currentTarget.style.boxShadow = '0 0 20px rgba(255,153,51,0.15)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = ''
-            e.currentTarget.style.boxShadow = ''
-          }}
-        >
-          <span className="font-mono text-xs" style={{ color: SAFFRON }}>{story.time}</span>
-          <h4 className="font-heading font-semibold text-sm text-frost mt-1.5 leading-snug">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-warm hover:border-saffron/30">
+          <span className="font-mono text-xs text-saffron">{story.time}</span>
+          <h4 className="font-display font-semibold text-sm text-indigo mt-1.5 leading-snug text-left">
             {story.headline}
           </h4>
-          <p className="text-steel text-xs mt-1">{story.source}</p>
+          <p className="text-charcoal-light text-xs mt-1 text-left">{story.source}</p>
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="font-mono text-xs text-steel">Viral score</span>
+              <span className="font-mono text-xs text-charcoal-light">Viral score</span>
               <span className="font-mono text-xs font-medium" style={{ color: barColor }}>{story.viralScore}/100</span>
             </div>
-            <div className="h-1 rounded-full bg-slate overflow-hidden">
+            <div className="h-1 rounded-full bg-gray-200 overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ backgroundColor: barColor }}
@@ -328,24 +306,15 @@ function TimelineItem({ story, index }: { story: TimelineStory; index: number })
 /** Region card */
 function RegionCard({ region, data }: { region: string; data: RegionItem }) {
   const iconMap: Record<string, React.ReactElement> = {
-    'North India': <MapPin size={28} style={{ color: SAFFRON }} />,
-    'South India': <MapPin size={28} style={{ color: SAFFRON }} />,
-    'Northeast': <Globe size={28} style={{ color: SAFFRON }} />,
+    'North India': <MapPin size={28} className="text-saffron" />,
+    'South India': <MapPin size={28} className="text-saffron" />,
+    'Northeast': <Globe size={28} className="text-saffron" />,
   }
 
   return (
     <motion.div
       variants={fadeUp}
-      className="bg-midnight rounded-2xl border border-slate p-6 transition-all duration-300 hover:shadow-lg"
-      style={{ '--tw-hover-border-opacity': 1 } as React.CSSProperties}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = SAFFRON
-        e.currentTarget.style.boxShadow = '0 0 20px rgba(255,153,51,0.15)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = ''
-        e.currentTarget.style.boxShadow = ''
-      }}
+      className="bg-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:shadow-warm hover:border-saffron/30"
     >
       <div className="flex items-center gap-3 mb-5">
         <motion.div
@@ -354,12 +323,12 @@ function RegionCard({ region, data }: { region: string; data: RegionItem }) {
         >
           {iconMap[region]}
         </motion.div>
-        <h3 className="font-heading font-bold text-h2 text-frost">{region}</h3>
+        <h3 className="font-display font-bold heading-md text-indigo text-left">{region}</h3>
       </div>
 
-      <div className="mb-5 pb-5 border-b border-slate">
-        <p className="text-frost text-sm font-medium leading-relaxed">{data.headline}</p>
-        <p className="text-steel text-xs mt-1">{data.source}</p>
+      <div className="mb-5 pb-5 border-b border-gray-200">
+        <p className="text-indigo text-sm font-medium leading-relaxed text-left">{data.headline}</p>
+        <p className="text-charcoal-light text-xs mt-1 text-left">{data.source}</p>
       </div>
 
       <ul className="space-y-3">
@@ -372,25 +341,24 @@ function RegionCard({ region, data }: { region: string; data: RegionItem }) {
             transition={{ delay: 0.2 + i * 0.05 }}
             className="flex items-center gap-2"
           >
-            <span className="font-mono text-xs text-steel w-5">{i + 1}.</span>
-            <span className="text-frost text-sm flex-1">{item.text}</span>
+            <span className="font-mono text-xs text-charcoal-light w-5">{i + 1}.</span>
+            <span className="text-indigo text-sm flex-1 text-left">{item.text}</span>
             {item.direction === 'up2' ? (
               <span className="flex gap-0.5">
-                <TrendingUp size={14} className="text-emerald" />
-                <TrendingUp size={14} className="text-emerald -ml-1" />
+                <TrendingUp size={14} className="text-green" />
+                <TrendingUp size={14} className="text-green -ml-1" />
               </span>
             ) : item.direction === 'up' ? (
-              <TrendingUp size={14} className="text-emerald" />
+              <TrendingUp size={14} className="text-green" />
             ) : (
-              <TrendingDown size={14} className="text-signal-red" />
+              <TrendingDown size={14} className="text-terracotta" />
             )}
           </motion.li>
         ))}
       </ul>
 
       <button
-        className="mt-5 flex items-center gap-1 text-sm font-medium transition-colors duration-200 group hover:opacity-80"
-        style={{ color: SAFFRON }}
+        className="mt-5 flex items-center gap-1 text-sm font-medium text-saffron hover:text-saffron-light transition-colors duration-200 group"
       >
         View all
         <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-1" />
@@ -428,36 +396,16 @@ export default function Trending() {
   }, [])
 
   return (
-    <div className="bg-void">
+    <div className="bg-[#F0F4F8]">
       {/* ─── Section 1: Dashboard Hero ─── */}
       <section
         ref={heroRef}
-        className="relative h-[420px] flex items-center justify-center overflow-hidden"
+        className="relative h-[420px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-indigo via-[#2D4A6F] to-indigo"
       >
-        {/* Background image with Ken Burns */}
-        <motion.div
-          className="absolute inset-0 z-0"
-          initial={{ scale: 1 }}
-          animate={{ scale: 1.05 }}
-          transition={{ duration: 20, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
-        >
-          <img
-            src="/trending-visual.png"
-            alt=""
-            className="w-full h-full object-cover opacity-30"
-          />
-        </motion.div>
-        {/* Dark overlay gradient */}
-        <div
-          className="absolute inset-0 z-[1]"
-          style={{ background: 'linear-gradient(180deg, rgba(11,15,26,0.3) 0%, rgba(11,15,26,0.9) 100%)' }}
-        />
-
         {/* Content */}
-        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+        <div className="relative z-10 text-center px-4 sm:px-6 max-w-4xl mx-auto">
           <motion.span
-            className="inline-block font-mono font-medium text-xs tracking-[0.15em] uppercase mb-4"
-            style={{ color: SAFFRON }}
+            className="inline-block font-mono font-medium text-xs tracking-[0.15em] uppercase mb-4 text-saffron"
             initial={{ opacity: 0, y: 10 }}
             animate={heroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, ease: easeSmooth }}
@@ -466,19 +414,17 @@ export default function Trending() {
           </motion.span>
 
           <motion.h1
-            className="font-heading font-extrabold text-hero text-frost mb-4"
+            className="font-display font-bold heading-xl text-white mb-4 text-left sm:text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={heroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.1, ease: easeSmooth }}
           >
             {t('Trending', 'ट्रेंडिंग')}{' '}
-            <span style={{ background: 'linear-gradient(135deg, #FF9933 0%, #FFB366 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              {t('Now', 'अभी')}
-            </span>
+            <span className="text-saffron">{t('Now', 'अभी')}</span>
           </motion.h1>
 
           <motion.p
-            className="font-body text-h3 text-steel max-w-[520px] mx-auto mb-5"
+            className="font-body text-base text-cream/70 max-w-[520px] mx-auto mb-5 text-left sm:text-center leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={heroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.2, ease: easeSmooth }}
@@ -497,7 +443,7 @@ export default function Trending() {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <LivePulseDot />
-            <span className="font-mono text-sm text-steel">
+            <span className="font-mono text-sm text-cream/60">
               {t(
                 'Tracking 500+ Indian sources in real-time',
                 '500+ भारतीय स्रोत रियल-टाइम में ट्रैक किए जा रहे हैं'
@@ -521,12 +467,12 @@ export default function Trending() {
               <motion.div
                 key={stat.labelEn}
                 variants={staggerItem}
-                className="bg-midnight/80 backdrop-blur-[12px] rounded-xl border border-slate px-8 py-5 min-w-[140px]"
+                className="bg-white/90 backdrop-blur-[12px] rounded-xl border border-gray-200 px-8 py-5 min-w-[140px]"
               >
-                <div className="font-heading font-bold text-[2.5rem] leading-none" style={{ color: SAFFRON }}>
+                <div className="font-display font-bold text-[2.5rem] leading-none text-saffron">
                   <AnimatedCounter target={stat.value} suffix={stat.suffix} />
                 </div>
-                <div className="font-body text-xs text-steel mt-1">{t(stat.labelEn, stat.labelHi)}</div>
+                <div className="font-body text-xs text-charcoal-light mt-1">{t(stat.labelEn, stat.labelHi)}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -534,8 +480,8 @@ export default function Trending() {
       </section>
 
       {/* ─── Section 2: Trending Heat Map ─── */}
-      <section ref={heatRef} className="py-24 px-6 lg:px-12">
-        <div className="max-w-container mx-auto">
+      <section ref={heatRef} className="section-padding px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           {/* Section header */}
           <motion.div
             className="mb-10"
@@ -543,10 +489,10 @@ export default function Trending() {
             animate={heatInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: easeSmooth }}
           >
-            <span className="inline-block font-mono font-medium text-xs tracking-[0.1em] uppercase mb-3" style={{ color: '#FF9933' }}>
+            <span className="inline-block font-mono font-medium text-xs tracking-[0.1em] uppercase mb-3 text-saffron">
               {t('Heat Map', 'Heat Map')}
             </span>
-            <h2 className="font-heading font-bold text-h1 text-frost mb-6">
+            <h2 className="font-display font-bold heading-lg text-indigo mb-6 text-left">
               {t("What's Heating Up", "What's Heating Up")}
             </h2>
 
@@ -556,12 +502,11 @@ export default function Trending() {
                 <button
                   key={tab}
                   onClick={() => setActiveFilter(tab)}
-                  className={
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                     activeFilter === tab
-                      ? 'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200'
-                      : 'px-4 py-2 rounded-full text-sm font-medium bg-midnight text-frost border border-slate transition-all duration-200 hover:border-[#FF9933]'
-                  }
-                  style={activeFilter === tab ? { backgroundColor: SAFFRON, color: '#0B0F1A' } : {}}
+                      ? 'bg-saffron text-white'
+                      : 'bg-white text-indigo border border-gray-200 hover:border-saffron'
+                  }`}
                 >
                   {tab}
                 </button>
@@ -585,19 +530,19 @@ export default function Trending() {
       </section>
 
       {/* ─── Section 3: Viral Stories Timeline ─── */}
-      <section ref={timelineRef} className="py-24 px-6 lg:px-12 bg-midnight">
-        <div className="max-w-container mx-auto">
+      <section ref={timelineRef} className="section-padding px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
           <motion.div
-            className="text-center mb-14"
+            className="text-left mb-14"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: easeSmooth }}
           >
-            <h2 className="font-heading font-bold text-h1 text-frost mb-3">
+            <h2 className="font-display font-bold heading-lg text-indigo mb-3 text-left">
               {t('Viral Stories Timeline', 'Viral Stories Timeline')}
             </h2>
-            <p className="text-steel text-body max-w-xl mx-auto">
+            <p className="text-charcoal-light text-base max-w-xl text-left font-body leading-relaxed">
               {t(
                 'Track how stories explode across the internet in real-time.',
                 'देखें कि कैसे खबरें इंटरनेट पर तहलका मचाती हैं।'
@@ -608,7 +553,7 @@ export default function Trending() {
           {/* Timeline */}
           <div className="relative max-w-3xl mx-auto">
             {/* Center line */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-slate rounded-full" />
+            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-gray-200 rounded-full" />
 
             {TIMELINE_STORIES.map((story, i) => (
               <TimelineItem key={story.id} story={story} index={i} />
@@ -618,18 +563,18 @@ export default function Trending() {
       </section>
 
       {/* ─── Section 4: Trending by Region ─── */}
-      <section ref={regionRef} className="py-24 px-6 lg:px-12">
-        <div className="max-w-container mx-auto">
+      <section ref={regionRef} className="section-padding px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <motion.div
-            className="text-center mb-14"
+            className="text-left mb-14"
             initial={{ opacity: 0, y: 20 }}
             animate={regionInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: easeSmooth }}
           >
-            <span className="inline-block font-mono font-medium text-xs tracking-[0.15em] uppercase mb-3" style={{ color: SAFFRON }}>
+            <span className="inline-block font-mono font-medium text-xs tracking-[0.15em] uppercase mb-3 text-saffron">
               {t('Bharat Pulse', 'भारत का पल्स')}
             </span>
-            <h2 className="font-heading font-bold text-h1 text-frost">
+            <h2 className="font-display font-bold heading-lg text-indigo text-left">
               {t("What's Trending Where", 'कहाँ क्या ट्रेंड कर रहा है')}
             </h2>
           </motion.div>
@@ -648,9 +593,9 @@ export default function Trending() {
       </section>
 
       {/* ─── Section 5: Get Alerts CTA ─── */}
-      <section ref={ctaRef} className="py-20 px-6 lg:px-12">
+      <section ref={ctaRef} className="section-padding px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="max-w-[640px] mx-auto bg-midnight rounded-[20px] border border-slate p-8 md:p-12 text-center"
+          className="max-w-[640px] mx-auto bg-white rounded-[20px] border border-gray-200 p-8 md:p-12 text-center shadow-warm"
           initial={{ opacity: 0, y: 30 }}
           animate={ctaInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: easeSmooth }}
@@ -661,16 +606,16 @@ export default function Trending() {
             animate={{ rotate: [0, 5, -5, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <Bell size={40} style={{ color: SAFFRON }} />
+            <Bell size={40} className="text-saffron" />
           </motion.div>
 
-          <h2 className="font-heading font-bold text-h1 text-frost mb-4">
+          <h2 className="font-display font-bold heading-md text-indigo mb-4 text-center">
             {t(
               'Never Miss a Breaking Story',
               'कोई ब्रेकिंग खबर मिस न करें'
             )}
           </h2>
-          <p className="text-steel text-body mb-8 max-w-md mx-auto">
+          <p className="text-charcoal-light text-base mb-8 max-w-md mx-auto font-body leading-relaxed">
             {t(
               'Get instant alerts when stories start trending in your chosen categories.',
               'अपनी पसंदीदा श्रेणियों में जब खबरें ट्रेंड करने लगें तो तुरंत अलर्ट पाएँ।'
@@ -689,21 +634,17 @@ export default function Trending() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('Enter your email', 'अपना ईमेल दर्ज करें')}
-              className="w-full sm:w-[280px] bg-void border border-slate rounded-full px-6 py-3 text-frost text-sm placeholder:text-steel focus:outline-none transition-colors duration-200"
-              style={{ '--tw-focus-border-opacity': 1 } as React.CSSProperties}
-              onFocus={(e) => { e.currentTarget.style.borderColor = SAFFRON }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = '' }}
+              className="w-full sm:w-[280px] bg-white border border-gray-200 rounded-full px-6 py-3 text-charcoal text-sm placeholder:text-charcoal-light focus:outline-none transition-colors duration-200 focus:border-saffron"
             />
             <button
               type="submit"
-              className="w-full sm:w-auto font-body font-semibold text-sm rounded-full px-6 py-3 transition-all duration-200 hover:scale-[1.03] shrink-0"
-              style={{ backgroundColor: SAFFRON, color: '#0B0F1A' }}
+              className="w-full sm:w-auto font-body font-semibold text-sm rounded-full px-6 py-3 transition-all duration-200 hover:scale-[1.03] shrink-0 bg-saffron text-white"
             >
               {t('Get Alerts', 'अलर्ट पाएँ')}
             </button>
           </motion.form>
 
-          <p className="text-steel text-xs">
+          <p className="text-charcoal-light text-xs">
             {t(
               'Join 1M+ subscribers. No spam, ever.',
               '10 लाख+ सब्सक्राइबर्स के साथ जुड़ें। कोई स्पैम नहीं।'

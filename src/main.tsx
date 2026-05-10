@@ -5,15 +5,18 @@ import App from './App.tsx'
 import { LanguageProvider } from './context/LanguageContext'
 import { AuthorProvider } from './context/AuthorContext'
 import { AuthProvider } from './context/AuthContext'
+import { PageBuilderProvider } from './context/PageBuilderContext'
 
 createRoot(document.getElementById('root')!).render(
   <HashRouter>
     <AuthProvider>
-      <LanguageProvider>
-        <AuthorProvider>
-          <App />
-        </AuthorProvider>
-      </LanguageProvider>
+      <PageBuilderProvider>
+        <LanguageProvider>
+          <AuthorProvider>
+            <App />
+          </AuthorProvider>
+        </LanguageProvider>
+      </PageBuilderProvider>
     </AuthProvider>
   </HashRouter>,
 )

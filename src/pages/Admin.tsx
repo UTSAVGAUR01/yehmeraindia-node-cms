@@ -1,625 +1,352 @@
-import { useState, useMemo } from 'react'
-import { Link } from 'react-router'
-import { motion } from 'framer-motion'
-import { toast } from 'sonner'
+import { useState, useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
 import {
+  LayoutDashboard,
   Users,
-  PenTool,
   FileText,
-  Eye,
-  ChevronUp,
-  ChevronDown,
-  Trash2,
-  ShieldCheck,
-  UserCheck,
-  Clock,
-  LogIn,
-  UserPlus,
-  Award,
+  TrendingUp,
+  Settings,
+  Search,
+  Bell,
+  ArrowUpRight,
+  ArrowDownRight,
+  MoreHorizontal,
   BarChart3,
-  Activity,
-  ArrowLeft,
-  Crown,
-  User,
+  Clock,
 } from 'lucide-react'
-import { useAuth, type UserRole } from '@/context/AuthContext'
-import type { User as UserType } from '@/context/AuthContext'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { useLanguage } from '@/context/LanguageContext'
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────
+   Animation helpers
+   ────────────────────────────────────────────── */
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+const easeSmooth = [0.4, 0, 0.2, 1] as [number, number, number, number]
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+const staggerItem = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeSmooth } },
 }
 
-function roleIcon(role: UserRole) {
-  switch (role) {
-    case 'admin': return <Crown size={14} />
-    case 'author': return <PenTool size={14} />
-    default: return <User size={14} />
-  }
-}
+/* ──────────────────────────────────────────────
+   Mock Data
+   ────────────────────────────────────────────── */
 
-function roleColor(role: UserRole): { bg: string; text: string; border: string } {
-  switch (role) {
-    case 'admin': return { bg: 'rgba(232,93,4,0.1)', text: '#E85D04', border: 'rgba(232,93,4,0.3)' }
-    case 'author': return { bg: 'rgba(29,53,87,0.1)', text: '#1D3557', border: 'rgba(29,53,87,0.3)' }
-    default: return { bg: 'rgba(45,106,79,0.1)', text: '#2D6A4F', border: 'rgba(45,106,79,0.3)' }
-  }
-}
+const ADMIN_STATS = [
+  { labelEn: 'Total Users', labelHi: 'कुल उपयोगकर्ता', value: '48,592', change: '+12.5%', up: true, icon: Users, color: 'text-indigo', bg: 'bg-indigo/10' },
+  { labelEn: 'Total Articles', labelHi: 'कुल लेख', value: '15,847', change: '+8.2%', up: true, icon: FileText, color: 'text-saffron', bg: 'bg-saffron/10' },
+  { labelEn: 'Page Views', labelHi: 'पेज व्यूज', value: '2.4M', change: '+23.1%', up: true, icon: TrendingUp, color: 'text-green', bg: 'bg-green/10' },
+  { labelEn: 'Avg. Session', labelHi: 'औसत सेशन', value: '6m 42s', change: '-1.3%', up: false, icon: Clock, color: 'text-terracotta', bg: 'bg-terracotta/10' },
+]
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
+const RECENT_ARTICLES = [
+  { id: 1, title: 'ISRO Successfully Tests Gaganyaan Crew Module', author: 'Rahul Sharma', category: 'Science', status: 'published', views: '52.1K', likes: '4,231', date: 'Dec 20, 2025' },
+  { id: 2, title: 'Digital India 2.0: Rural Connectivity Milestone', author: 'Priya Patel', category: 'Technology', status: 'published', views: '38.7K', likes: '2,891', date: 'Dec 19, 2025' },
+  { id: 3, title: 'IPL 2025: Playoff Predictions & Analysis', author: 'Amit Kumar', category: 'Sports', status: 'pending', views: '--', likes: '--', date: 'Dec 18, 2025' },
+  { id: 4, title: 'Green Revolution 2.0 in Punjab', author: 'Simran Kaur', category: 'Agriculture', status: 'published', views: '29.3K', likes: '1,876', date: 'Dec 17, 2025' },
+  { id: 5, title: 'India-UK FTA: What It Means for Business', author: 'Vikram Mehta', category: 'Business', status: 'published', views: '41.2K', likes: '3,102', date: 'Dec 16, 2025' },
+]
 
-function StatCard({
-  title, value, icon, color, delay,
-}: {
-  title: string; value: string | number; icon: React.ReactNode; color: string; delay: number
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      className="rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
-      style={{ borderColor: '#E5E7EB' }}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium" style={{ color: '#6B7280' }}>{title}</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: '#2B2D42' }}>{value}</p>
-        </div>
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}18`, color }}
-        >
-          {icon}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
+const TOP_AUTHORS = [
+  { name: 'Rahul Sharma', articles: 142, views: '1.2M', followers: '8.5K', trend: '+15%' },
+  { name: 'Priya Patel', articles: 98, views: '892K', followers: '6.2K', trend: '+22%' },
+  { name: 'Amit Kumar', articles: 87, views: '756K', followers: '5.1K', trend: '+18%' },
+  { name: 'Simran Kaur', articles: 64, views: '534K', followers: '3.8K', trend: '+31%' },
+  { name: 'Vikram Mehta', articles: 51, views: '421K', followers: '2.9K', trend: '+12%' },
+]
 
-// ─── Main Admin Page ─────────────────────────────────────────────────────────
+const CATEGORY_PERFORMANCE = [
+  { name: 'Technology', articles: 4523, views: '856K', engagement: '92%', trend: '+18%' },
+  { name: 'Sports', articles: 3891, views: '723K', engagement: '88%', trend: '+25%' },
+  { name: 'Politics', articles: 3247, views: '612K', engagement: '85%', trend: '+8%' },
+  { name: 'Science', articles: 2104, views: '498K', engagement: '91%', trend: '+14%' },
+  { name: 'Business', articles: 2867, views: '534K', engagement: '79%', trend: '+11%' },
+]
+
+const SIDEBAR_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'articles', label: 'Articles', icon: FileText },
+  { id: 'users', label: 'Users', icon: Users },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'settings', label: 'Settings', icon: Settings },
+]
+
+/* ──────────────────────────────────────────────
+   Main Page
+   ────────────────────────────────────────────── */
 
 export default function Admin() {
-  const { users, activityLog, deleteUser, updateUserRole, user: currentUser } = useAuth()
-  const [activeTab, setActiveTab] = useState('overview')
-  const [userSort, setUserSort] = useState<{ key: 'name' | 'role' | 'createdAt'; asc: boolean }>({
-    key: 'createdAt',
-    asc: false,
+  const { t } = useLanguage()
+  const [activeSection, setActiveSection] = useState('dashboard')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'pending' | 'draft'>('all')
+  const statsRef = useRef<HTMLDivElement>(null)
+  const statsInView = useInView(statsRef, { once: true, margin: '-80px' })
+
+  const filteredArticles = RECENT_ARTICLES.filter((a) => {
+    if (statusFilter !== 'all' && a.status !== statusFilter) return false
+    if (searchQuery && !a.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    return true
   })
 
-  // Computed stats
-  const totalUsers = users.length
-  const totalAuthors = users.filter((u) => u.role === 'author').length
-  
-  // Demo posts data
-  const posts = useMemo(() => {
-    const titles = [
-      'Farmers Protest Enters Day 45 at Delhi Borders',
-      'ISRO Successfully Launches Chandrayaan-4 Mission',
-      'Bollywood Blockbuster Breaks All Records',
-      'Supreme Court Ruling on Digital Privacy',
-      'Startup India: Unicorn Valuations Soar',
-      'IPL 2025: New Champions Crowned',
-      'Ayushman Bharat Expansion Announced',
-      'Make in India: Manufacturing Boom',
-      'Diwali Celebrations Across the Nation',
-      'Tech Giants Invest $10B in India',
-    ]
-    return titles.map((title, i) => ({
-      id: `post-${i + 1}`,
-      title,
-      author: users[i % users.length]?.name ?? 'Unknown',
-      views: Math.floor(Math.random() * 50000) + 1000,
-      status: i < 7 ? 'published' : 'pending',
-      date: new Date(Date.now() - i * 86400000).toISOString(),
-    }))
-  }, [users])
-
-  const totalPosts = posts.length
-  const totalViews = posts.reduce((acc, p) => acc + p.views, 0)
-
-  // Sorted users
-  const sortedUsers = useMemo(() => {
-    const sorted = [...users].sort((a, b) => {
-      const aVal = a[userSort.key]
-      const bVal = b[userSort.key]
-      if (aVal < bVal) return userSort.asc ? -1 : 1
-      if (aVal > bVal) return userSort.asc ? 1 : -1
-      return 0
-    })
-    return sorted
-  }, [users, userSort])
-
-  // Analytics: views per day (CSS bar chart)
-  const analyticsDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const analyticsViews = [12400, 18900, 15600, 22100, 19800, 28700, 24500]
-  const maxViews = Math.max(...analyticsViews)
-
-  const toggleSort = (key: 'name' | 'role' | 'createdAt') => {
-    setUserSort((prev) => ({
-      key,
-      asc: prev.key === key ? !prev.asc : true,
-    }))
-  }
-
-  const SortIcon = ({ col }: { col: 'name' | 'role' | 'createdAt' }) => {
-    if (userSort.key !== col) return <span className="opacity-20"><ChevronUp size={12} /></span>
-    return userSort.asc ? <ChevronUp size={12} /> : <ChevronDown size={12} />
-  }
-
-  const handlePromote = (u: UserType) => {
-    const newRole: UserRole = u.role === 'user' ? 'author' : 'admin'
-    updateUserRole(u.id, newRole)
-    toast.success(`Promoted ${u.name} to ${newRole}`)
-  }
-
-  const handleDemote = (u: UserType) => {
-    const newRole: UserRole = u.role === 'admin' ? 'author' : 'user'
-    updateUserRole(u.id, newRole)
-    toast.success(`Demoted ${u.name} to ${newRole}`)
-  }
-
-  const handleDelete = (u: UserType) => {
-    if (u.id === currentUser?.id) {
-      toast.error('Cannot delete yourself!')
-      return
-    }
-    deleteUser(u.id)
-    toast.success(`Deleted user ${u.name}`)
-  }
-
   return (
-    <div className="min-h-[100dvh] pt-16" style={{ backgroundColor: '#FFF8F0' }}>
-      {/* Warli pattern overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: 'url(/pattern-warli.png)',
-          backgroundSize: '200px',
-          backgroundRepeat: 'repeat',
-        }}
-      />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
-        >
-          <div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/"
-                className="flex items-center gap-1 text-sm font-medium hover:underline"
-                style={{ color: '#6B7280' }}
-              >
-                <ArrowLeft size={16} /> Home
-              </Link>
-              <span style={{ color: '#D1D5DB' }}>/</span>
-              <span className="text-sm font-medium" style={{ color: '#2B2D42' }}>Admin Dashboard</span>
-            </div>
-            <h1 className="text-3xl font-bold mt-2" style={{ color: '#2B2D42' }}>
-              Dashboard
-            </h1>
-            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
-              Manage users, authors, and monitor platform activity.
-            </p>
-          </div>
-          <Badge
-            variant="outline"
-            className="w-fit gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full"
-            style={{ borderColor: 'rgba(232,93,4,0.3)', color: '#E85D04', backgroundColor: 'rgba(232,93,4,0.08)' }}
-          >
-            <ShieldCheck size={14} />
-            Admin Access
-          </Badge>
-        </motion.div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Total Users" value={totalUsers} icon={<Users size={20} />} color="#1D3557" delay={0} />
-          <StatCard title="Total Authors" value={totalAuthors} icon={<PenTool size={20} />} color="#E85D04" delay={0.1} />
-          <StatCard title="Total Posts" value={totalPosts} icon={<FileText size={20} />} color="#2D6A4F" delay={0.2} />
-          <StatCard title="Total Views" value={totalViews.toLocaleString('en-IN')} icon={<Eye size={20} />} color="#BC4749" delay={0.3} />
-        </div>
-
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6" style={{ backgroundColor: '#F3F4F6' }}>
-            {[
-              { id: 'overview', label: 'Overview', icon: BarChart3 },
-              { id: 'users', label: 'Users', icon: Users },
-              { id: 'posts', label: 'Posts', icon: FileText },
-              { id: 'activity', label: 'Activity Log', icon: Activity },
-            ].map((t) => (
-              <TabsTrigger
-                key={t.id}
-                value={t.id}
-                className="gap-1.5 data-[state=active]:bg-white"
-                style={{ color: '#6B7280' }}
-              >
-                <t.icon size={14} />
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Analytics Bar Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="rounded-xl border bg-white p-6 shadow-sm"
-              style={{ borderColor: '#E5E7EB' }}
-            >
-              <div className="flex items-center gap-2 mb-6">
-                <BarChart3 size={18} style={{ color: '#E85D04' }} />
-                <h2 className="text-lg font-semibold" style={{ color: '#2B2D42' }}>
-                  Views — Last 7 Days
-                </h2>
-              </div>
-
-              <div className="flex items-end gap-3 h-48">
-                {analyticsDays.map((day, i) => {
-                  const height = (analyticsViews[i] / maxViews) * 100
-                  return (
-                    <div key={day} className="flex-1 flex flex-col items-center gap-2">
-                      <span className="text-xs font-medium" style={{ color: '#6B7280' }}>
-                        {(analyticsViews[i] / 1000).toFixed(1)}k
-                      </span>
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ delay: 0.2 + i * 0.08, duration: 0.5, ease: 'easeOut' }}
-                        className="w-full rounded-t-md relative group cursor-pointer"
-                        style={{
-                          backgroundColor: i === analyticsDays.length - 1 ? '#E85D04' : '#1D3557',
-                          opacity: i === analyticsDays.length - 1 ? 1 : 0.7 + (i * 0.05),
-                        }}
-                      >
-                        <div
-                          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
-                          style={{ backgroundColor: '#2B2D42' }}
-                        >
-                          {analyticsViews[i].toLocaleString('en-IN')} views
-                        </div>
-                      </motion.div>
-                      <span className="text-xs font-medium" style={{ color: '#6B7280' }}>{day}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </motion.div>
-
-            {/* Quick Activity */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-xl border bg-white p-6 shadow-sm"
-              style={{ borderColor: '#E5E7EB' }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Activity size={18} style={{ color: '#2D6A4F' }} />
-                <h2 className="text-lg font-semibold" style={{ color: '#2B2D42' }}>Recent Activity</h2>
-              </div>
-              <div className="space-y-3">
-                {activityLog.slice(0, 5).map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center gap-3 p-3 rounded-lg"
-                    style={{ backgroundColor: '#F9FAFB' }}
+    <div className="min-h-[calc(100dvh-64px)] bg-[#F1F5F9]">
+      <div className="flex">
+        {/* ─── Sidebar ─── */}
+        <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-[calc(100dvh-64px)] sticky top-16">
+          <div className="p-4">
+            <nav className="space-y-1">
+              {SIDEBAR_ITEMS.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body transition-colors text-left ${
+                      activeSection === item.id
+                        ? 'bg-saffron/10 text-saffron'
+                        : 'text-charcoal-light hover:bg-gray-50 hover:text-charcoal'
+                    }`}
                   >
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: log.type === 'login' ? 'rgba(232,93,4,0.1)' :
-                          log.type === 'register' ? 'rgba(45,106,79,0.1)' :
-                          log.type === 'delete' ? 'rgba(188,71,73,0.1)' :
-                          'rgba(29,53,87,0.1)',
-                        color: log.type === 'login' ? '#E85D04' :
-                          log.type === 'register' ? '#2D6A4F' :
-                          log.type === 'delete' ? '#BC4749' : '#1D3557',
-                      }}
-                    >
-                      {log.type === 'login' && <LogIn size={14} />}
-                      {log.type === 'register' && <UserPlus size={14} />}
-                      {log.type === 'delete' && <Trash2 size={14} />}
-                      {log.type === 'role_change' && <Award size={14} />}
-                      {log.type === 'post' && <FileText size={14} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: '#2B2D42' }}>{log.action}</p>
-                      <p className="text-xs" style={{ color: '#6B7280' }}>by {log.user}</p>
-                    </div>
-                    <span className="text-xs shrink-0" style={{ color: '#9CA3AF' }}>{timeAgo(log.timestamp)}</span>
-                  </div>
-                ))}
-                {activityLog.length === 0 && (
-                  <p className="text-sm text-center py-4" style={{ color: '#9CA3AF' }}>No activity yet</p>
-                )}
-              </div>
-            </motion.div>
-          </TabsContent>
+                    <Icon size={18} />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        </aside>
 
-          {/* Users Tab */}
-          <TabsContent value="users">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border bg-white shadow-sm overflow-hidden"
-              style={{ borderColor: '#E5E7EB' }}
-            >
-              <div className="p-6 border-b" style={{ borderColor: '#F3F4F6' }}>
-                <div className="flex items-center gap-2">
-                  <Users size={18} style={{ color: '#1D3557' }} />
-                  <h2 className="text-lg font-semibold" style={{ color: '#2B2D42' }}>All Users</h2>
-                  <Badge variant="secondary" className="ml-2 text-xs" style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}>
-                    {totalUsers}
-                  </Badge>
+        {/* ─── Main Content ─── */}
+        <main className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="text-left">
+                <h1 className="font-display font-bold heading-md text-indigo text-left">
+                  {t('Admin Dashboard', 'एडमिन डैशबोर्ड')}
+                </h1>
+                <p className="text-charcoal-light text-sm font-body mt-0.5 text-left">
+                  {t('Overview of your platform performance', 'आपके प्लेटफॉर्म प्रदर्शन का अवलोकन')}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-light" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('Search...', 'खोजें...')}
+                    className="w-48 bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm text-charcoal placeholder:text-charcoal-light outline-none focus:border-saffron font-body"
+                  />
                 </div>
+                <button className="relative w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-charcoal-light hover:text-saffron hover:border-saffron transition-colors">
+                  <Bell size={16} />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-terracotta rounded-full text-white text-[10px] font-medium flex items-center justify-center">3</span>
+                </button>
               </div>
+            </div>
+          </div>
 
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow style={{ borderColor: '#F3F4F6' }}>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')} style={{ color: '#6B7280' }}>
-                        <span className="flex items-center gap-1">Name <SortIcon col="name" /></span>
-                      </TableHead>
-                      <TableHead style={{ color: '#6B7280' }}>Email</TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('role')} style={{ color: '#6B7280' }}>
-                        <span className="flex items-center gap-1">Role <SortIcon col="role" /></span>
-                      </TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('createdAt')} style={{ color: '#6B7280' }}>
-                        <span className="flex items-center gap-1">Joined <SortIcon col="createdAt" /></span>
-                      </TableHead>
-                      <TableHead className="text-right" style={{ color: '#6B7280' }}>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedUsers.map((u) => {
-                      const rc = roleColor(u.role)
-                      return (
-                        <TableRow key={u.id} style={{ borderColor: '#F3F4F6' }}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              {u.avatar ? (
-                                <img src={u.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
-                              ) : (
-                                <div
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                                  style={{ backgroundColor: rc.bg, color: rc.text }}
-                                >
-                                  {u.name.charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                              <span className="font-medium text-sm" style={{ color: '#2B2D42' }}>{u.name}</span>
-                              {u.id === currentUser?.id && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0" style={{ borderColor: '#D1D5DB', color: '#9CA3AF' }}>
-                                  You
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm" style={{ color: '#4B5563' }}>{u.email}</TableCell>
-                          <TableCell>
-                            <span
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border"
-                              style={{ backgroundColor: rc.bg, color: rc.text, borderColor: rc.border }}
-                            >
-                              {roleIcon(u.role)}
-                              {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-sm" style={{ color: '#6B7280' }}>{formatDate(u.createdAt)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-1">
-                              {u.role !== 'admin' && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 rounded-lg"
-                                  onClick={() => handlePromote(u)}
-                                  title="Promote"
-                                >
-                                  <ChevronUp size={16} style={{ color: '#2D6A4F' }} />
-                                </Button>
-                              )}
-                              {u.role !== 'user' && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 rounded-lg"
-                                  onClick={() => handleDemote(u)}
-                                  title="Demote"
-                                >
-                                  <ChevronDown size={16} style={{ color: '#E85D04' }} />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 rounded-lg hover:bg-red-50"
-                                onClick={() => handleDelete(u)}
-                                title="Delete"
-                              >
-                                <Trash2 size={16} style={{ color: '#BC4749' }} />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </motion.div>
-          </TabsContent>
-
-          {/* Posts Tab */}
-          <TabsContent value="posts">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border bg-white shadow-sm overflow-hidden"
-              style={{ borderColor: '#E5E7EB' }}
-            >
-              <div className="p-6 border-b" style={{ borderColor: '#F3F4F6' }}>
-                <div className="flex items-center gap-2">
-                  <FileText size={18} style={{ color: '#2D6A4F' }} />
-                  <h2 className="text-lg font-semibold" style={{ color: '#2B2D42' }}>Posts Overview</h2>
-                  <Badge variant="secondary" className="ml-2 text-xs" style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}>
-                    {totalPosts}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow style={{ borderColor: '#F3F4F6' }}>
-                      <TableHead style={{ color: '#6B7280' }}>Title</TableHead>
-                      <TableHead style={{ color: '#6B7280' }}>Author</TableHead>
-                      <TableHead style={{ color: '#6B7280' }}>Views</TableHead>
-                      <TableHead style={{ color: '#6B7280' }}>Status</TableHead>
-                      <TableHead style={{ color: '#6B7280' }}>Date</TableHead>
-                      <TableHead className="text-right" style={{ color: '#6B7280' }}>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {posts.map((post) => (
-                      <TableRow key={post.id} style={{ borderColor: '#F3F4F6' }}>
-                        <TableCell>
-                          <span className="text-sm font-medium line-clamp-1 max-w-[300px]" style={{ color: '#2B2D42' }}>
-                            {post.title}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm" style={{ color: '#4B5563' }}>{post.author}</TableCell>
-                        <TableCell className="text-sm font-medium" style={{ color: '#1D3557' }}>
-                          {post.views.toLocaleString('en-IN')}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: post.status === 'published' ? 'rgba(45,106,79,0.1)' : 'rgba(232,93,4,0.1)',
-                              color: post.status === 'published' ? '#2D6A4F' : '#E85D04',
-                            }}
-                          >
-                            {post.status === 'published' ? <ShieldCheck size={12} /> : <Clock size={12} />}
-                            {post.status === 'published' ? 'Published' : 'Pending'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm" style={{ color: '#6B7280' }}>{formatDate(post.date)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-8 rounded-lg" title="Approve">
-                              <UserCheck size={16} style={{ color: '#2D6A4F' }} />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-red-50" title="Delete">
-                              <Trash2 size={16} style={{ color: '#BC4749' }} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </motion.div>
-          </TabsContent>
-
-          {/* Activity Log Tab */}
-          <TabsContent value="activity">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border bg-white shadow-sm overflow-hidden"
-              style={{ borderColor: '#E5E7EB' }}
-            >
-              <div className="p-6 border-b" style={{ borderColor: '#F3F4F6' }}>
-                <div className="flex items-center gap-2">
-                  <Activity size={18} style={{ color: '#BC4749' }} />
-                  <h2 className="text-lg font-semibold" style={{ color: '#2B2D42' }}>Activity Log</h2>
-                  <Badge variant="secondary" className="ml-2 text-xs" style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}>
-                    {activityLog.length}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="divide-y" style={{ borderColor: '#F3F4F6' }}>
-                {activityLog.map((log, i) => {
-                  const typeColors: Record<string, { icon: React.ReactNode; bg: string; color: string }> = {
-                    login: { icon: <LogIn size={14} />, bg: 'rgba(232,93,4,0.08)', color: '#E85D04' },
-                    register: { icon: <UserPlus size={14} />, bg: 'rgba(45,106,79,0.08)', color: '#2D6A4F' },
-                    post: { icon: <FileText size={14} />, bg: 'rgba(29,53,87,0.08)', color: '#1D3557' },
-                    role_change: { icon: <Award size={14} />, bg: 'rgba(232,93,4,0.08)', color: '#E85D04' },
-                    delete: { icon: <Trash2 size={14} />, bg: 'rgba(188,71,73,0.08)', color: '#BC4749' },
-                  }
-                  const tc = typeColors[log.type] || typeColors.login
-
+          {/* ─── Stats Cards ─── */}
+          <section ref={statsRef} className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate={statsInView ? 'visible' : 'hidden'}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+              >
+                {ADMIN_STATS.map((stat) => {
+                  const Icon = stat.icon
                   return (
                     <motion.div
-                      key={log.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+                      key={stat.labelEn}
+                      variants={staggerItem}
+                      className="bg-white rounded-xl border border-gray-200 p-5 transition-all duration-200 hover:shadow-warm"
                     >
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: tc.bg, color: tc.color }}
-                      >
-                        {tc.icon}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                          <Icon size={18} className={stat.color} />
+                        </div>
+                        <span className={`font-mono text-xs font-medium flex items-center gap-0.5 ${stat.up ? 'text-green' : 'text-terracotta'}`}>
+                          {stat.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                          {stat.change}
+                        </span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium" style={{ color: '#2B2D42' }}>{log.action}</p>
-                        <p className="text-xs" style={{ color: '#6B7280' }}>by {log.user}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs" style={{ color: '#9CA3AF' }}>{timeAgo(log.timestamp)}</p>
-                        <p className="text-[10px]" style={{ color: '#D1D5DB' }}>{formatDate(log.timestamp)}</p>
-                      </div>
+                      <p className="font-display font-bold text-2xl text-indigo text-left">{stat.value}</p>
+                      <p className="text-charcoal-light text-xs font-body mt-0.5 text-left">{t(stat.labelEn, stat.labelHi)}</p>
                     </motion.div>
                   )
                 })}
-                {activityLog.length === 0 && (
-                  <p className="text-sm text-center py-8" style={{ color: '#9CA3AF' }}>No activity recorded</p>
-                )}
+              </motion.div>
+            </div>
+          </section>
+
+          {/* ─── Articles Table ─── */}
+          <section className="px-4 sm:px-6 lg:px-8 pb-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Table header */}
+                <div className="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className="font-display font-semibold text-indigo text-base text-left">
+                    {t('Recent Articles', 'हाल के लेख')}
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    {(['all', 'published', 'pending'] as const).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => setStatusFilter(status)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-body capitalize transition-colors ${
+                          statusFilter === status
+                            ? 'bg-saffron text-white'
+                            : 'text-charcoal-light hover:text-charcoal bg-gray-50'
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-5 py-3 text-xs font-medium text-charcoal-light uppercase tracking-wider font-body">
+                          {t('Article', 'लेख')}
+                        </th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-charcoal-light uppercase tracking-wider font-body hidden sm:table-cell">
+                          {t('Author', 'लेखक')}
+                        </th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-charcoal-light uppercase tracking-wider font-body hidden md:table-cell">
+                          {t('Category', 'श्रेणी')}
+                        </th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-charcoal-light uppercase tracking-wider font-body">
+                          {t('Status', 'स्थिति')}
+                        </th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-charcoal-light uppercase tracking-wider font-body hidden lg:table-cell">
+                          {t('Views', 'व्यूज')}
+                        </th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-charcoal-light uppercase tracking-wider font-body hidden lg:table-cell">
+                          {t('Date', 'तारीख')}
+                        </th>
+                        <th className="px-5 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredArticles.map((article) => (
+                        <tr
+                          key={article.id}
+                          className="border-b border-gray-50 last:border-0 hover:bg-cream/50 transition-colors"
+                        >
+                          <td className="px-5 py-3.5">
+                            <p className="font-display font-medium text-indigo text-sm text-left line-clamp-1">{article.title}</p>
+                          </td>
+                          <td className="px-5 py-3.5 hidden sm:table-cell">
+                            <span className="text-sm text-charcoal font-body">{article.author}</span>
+                          </td>
+                          <td className="px-5 py-3.5 hidden md:table-cell">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo/10 text-indigo text-xs font-medium">
+                              {article.category}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              article.status === 'published'
+                                ? 'bg-green/10 text-green'
+                                : article.status === 'pending'
+                                ? 'bg-gold/10 text-gold'
+                                : 'bg-gray-100 text-charcoal-light'
+                            }`}>
+                              {article.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 hidden lg:table-cell">
+                            <span className="font-mono text-xs text-charcoal-light">{article.views}</span>
+                          </td>
+                          <td className="px-5 py-3.5 hidden lg:table-cell">
+                            <span className="font-mono text-xs text-charcoal-light">{article.date}</span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <button className="text-charcoal-light hover:text-charcoal transition-colors">
+                              <MoreHorizontal size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </motion.div>
-          </TabsContent>
-        </Tabs>
+            </div>
+          </section>
+
+          {/* ─── Bottom Grid: Top Authors + Category Performance ─── */}
+          <section className="px-4 sm:px-6 lg:px-8 pb-8">
+            <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-6">
+              {/* Top Authors */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="font-display font-semibold text-indigo text-base mb-4 text-left">
+                  {t('Top Authors', 'शीर्ष लेखक')}
+                </h3>
+                <div className="space-y-3">
+                  {TOP_AUTHORS.map((author, i) => (
+                    <div key={author.name} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                      <span className="font-mono text-xs text-charcoal-light w-5 text-center">{i + 1}</span>
+                      <div className="w-8 h-8 rounded-full bg-cream flex items-center justify-center font-display font-semibold text-xs text-indigo">
+                        {author.name.split(' ').map((n) => n[0]).join('')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display font-medium text-sm text-indigo text-left truncate">{author.name}</p>
+                        <p className="text-xs text-charcoal-light font-body text-left">{author.articles} {t('articles', 'लेख')}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-xs text-charcoal">{author.views}</p>
+                        <p className="font-mono text-xs text-green">{author.trend}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category Performance */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="font-display font-semibold text-indigo text-base mb-4 text-left">
+                  {t('Category Performance', 'श्रेणी प्रदर्शन')}
+                </h3>
+                <div className="space-y-3">
+                  {CATEGORY_PERFORMANCE.map((cat) => (
+                    <div key={cat.name} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo/10 text-indigo text-xs font-medium w-24 justify-center shrink-0">
+                        {cat.name}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-charcoal-light font-body">{cat.articles} {t('articles', 'लेख')}</span>
+                          <span className="font-mono text-xs text-charcoal">{cat.views}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-saffron rounded-full"
+                            style={{ width: cat.engagement }}
+                          />
+                        </div>
+                      </div>
+                      <span className="font-mono text-xs text-green shrink-0">{cat.trend}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
   )

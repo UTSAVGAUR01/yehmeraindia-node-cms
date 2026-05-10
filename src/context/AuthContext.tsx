@@ -1,6 +1,31 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Permission Types ────────────────────────────────────────────────────────
+
+export type Permission =
+  | 'create_posts' | 'edit_posts' | 'delete_posts' | 'publish_posts'
+  | 'manage_users' | 'assign_roles' | 'moderate_content'
+  | 'view_analytics' | 'edit_settings' | 'manage_pages'
+
+export interface PermissionMatrix {
+  [role: string]: Permission[]
+}
+
+export const DEFAULT_PERMISSIONS: PermissionMatrix = {
+  admin: ['create_posts', 'edit_posts', 'delete_posts', 'publish_posts',
+          'manage_users', 'assign_roles', 'moderate_content',
+          'view_analytics', 'edit_settings', 'manage_pages'],
+  author: ['create_posts', 'edit_posts', 'delete_posts', 'publish_posts'],
+  user: [],
+}
+
+export const ALL_PERMISSIONS: Permission[] = [
+  'create_posts', 'edit_posts', 'delete_posts', 'publish_posts',
+  'manage_users', 'assign_roles', 'moderate_content',
+  'view_analytics', 'edit_settings', 'manage_pages',
+]
+
+// ─── User & Activity Types ───────────────────────────────────────────────────
 
 export type UserRole = 'admin' | 'author' | 'user'
 
@@ -11,20 +36,7 @@ export interface User {
   role: UserRole
   avatar?: string
   createdAt: string
-}
-
-export interface AuthContextType {
-  user: User | null
-  isAuthenticated: boolean
-  isAdmin: boolean
-  isAuthor: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  register: (name: string, email: string, password: string, role?: UserRole) => Promise<boolean>
-  logout: () => void
-  users: User[]
-  deleteUser: (id: string) => void
-  updateUserRole: (id: string, role: UserRole) => void
-  activityLog: ActivityEntry[]
+  customPermissions?: Permission[]
 }
 
 export interface ActivityEntry {
@@ -32,7 +44,24 @@ export interface ActivityEntry {
   action: string
   user: string
   timestamp: string
-  type: 'login' | 'register' | 'post' | 'role_change' | 'delete'
+  type: 'login' | 'register' | 'post' | 'role_change' | 'delete' | 'permission_change'
+}
+
+export interface AuthContextType {
+  user: User | null
+  isAuthenticated: boolean
+  isAdmin: boolean
+  isAuthor: boolean
+  permissions: Permission[]
+  hasPermission: (perm: Permission) => boolean
+  login: (email: string, password: string) => Promise<boolean>
+  register: (name: string, email: string, password: string, role?: UserRole) => Promise<boolean>
+  logout: () => void
+  users: User[]
+  deleteUser: (id: string) => void
+  updateUserRole: (id: string, role: UserRole) => void
+  updateUserPermissions: (userId: string, permissions: Permission[]) => void
+  activityLog: ActivityEntry[]
 }
 
 // ─── Demo Users ──────────────────────────────────────────────────────────────
@@ -49,7 +78,7 @@ const DEMO_USERS: User[] = [
   {
     id: '2',
     email: 'author@yehmeraindia.com',
-    name: 'Demo Author',
+    name: 'Rahul Sharma',
     role: 'author',
     avatar: '/anchor-hero.png',
     createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
@@ -57,7 +86,7 @@ const DEMO_USERS: User[] = [
   {
     id: '3',
     email: 'user@yehmeraindia.com',
-    name: 'Demo User',
+    name: 'Priya Patel',
     role: 'user',
     createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -85,6 +114,7 @@ const STORAGE_KEY_USERS = 'ymi_users'
 const STORAGE_KEY_PASSWORDS = 'ymi_passwords'
 const STORAGE_KEY_TOKEN = 'ymi_auth_token'
 const STORAGE_KEY_LOG = 'ymi_activity_log'
+// const STORAGE_KEY_USER_PERMS = 'ymi_user_permissions'
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
@@ -154,6 +184,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [users])
+
+  // Get permissions for a user (role defaults + custom overrides)
+  const getUserPermissions = useCallback((u: User | null): Permission[] => {
+    if (!u) return []
+    if (u.customPermissions) return u.customPermissions
+    return DEFAULT_PERMISSIONS[u.role] || []
+  }, [])
+
+  // Computed permissions for current user
+  const permissions = getUserPermissions(user)
+
+  // Check if current user has a specific permission
+  const hasPermission = useCallback((perm: Permission): boolean => {
+    return permissions.includes(perm)
+  }, [permissions])
 
   const addActivity = useCallback(
     (action: string, userName: string, type: ActivityEntry['type']) => {
@@ -246,17 +291,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [addActivity, user],
   )
 
+  const updateUserPermissions = useCallback(
+    (userId: string, newPermissions: Permission[]) => {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, customPermissions: newPermissions } : u
+        )
+      )
+      // Also update current user if it's the same user
+      if (user?.id === userId) {
+        setUser((prev) => prev ? { ...prev, customPermissions: newPermissions } : null)
+      }
+      const targetUser = users.find((u) => u.id === userId)
+      addActivity(
+        `Permissions updated for ${targetUser?.name ?? 'user'} (ID: ${userId})`,
+        user?.name ?? 'Admin',
+        'permission_change'
+      )
+    },
+    [addActivity, user, users],
+  )
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isAuthor: user?.role === 'author' || user?.role === 'admin',
+    permissions,
+    hasPermission,
     login,
     register,
     logout,
     users,
     deleteUser,
     updateUserRole,
+    updateUserPermissions,
     activityLog,
   }
 
