@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bot, Eye, ImagePlus, MessageCircle, Plus, Send, Trash2, TrendingUp, Upload, Vote } from 'lucide-react';
+import { Bot, Eye, ImagePlus, Images, MessageCircle, Plus, Send, Trash2, TrendingUp, Upload, Vote } from 'lucide-react';
 import { articles, sampleSwipePosts } from './data';
 import { loadSwipePosts, saveSwipePost } from './storage';
 import type { Article, BotMessage, MediaItem, Question, SwipePost } from './types';
