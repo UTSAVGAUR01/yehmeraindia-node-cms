@@ -1,6 +1,3 @@
-// tRPC implementation scaffold for the Instagram-style swipe post feature.
-// Connect this router with Hono/tRPC and Drizzle when backend auth context is available.
-
 import { z } from 'zod';
 
 export const mediaInput = z.object({
@@ -10,10 +7,21 @@ export const mediaInput = z.object({
   sortOrder: z.number().int().min(0).default(0)
 });
 
-export const postInput = z.object({
+export const swipePostInput = z.object({
   caption: z.string().min(3),
   status: z.enum(['draft', 'published', 'archived']).default('draft'),
   location: z.string().optional(),
   tags: z.array(z.string()).default([]),
   media: z.array(mediaInput).min(1)
+});
+
+export const questionInput = z.object({
+  title: z.string().min(8),
+  body: z.string().min(10),
+  topic: z.string().min(2)
+});
+
+export const answerInput = z.object({
+  questionId: z.number().int().positive(),
+  content: z.string().min(10)
 });

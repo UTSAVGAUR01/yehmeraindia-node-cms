@@ -1,1 +1,0 @@
-export function UserDashboard() { return <main className="mx-auto max-w-5xl px-6 py-32"><h1 className="font-display text-6xl">User <span className="text-saffron">Dashboard</span></h1><section className="card mt-8 p-6"><p>Bookmarks, comments, and become-author controls will appear here.</p></section></main>; }

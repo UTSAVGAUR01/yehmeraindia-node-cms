@@ -1,23 +1,28 @@
-# Ye Hmaari India / Ye Mera India
+# YE MERA INDIA
 
-Bold black, parchment, and saffron Indian news CMS built with React, TypeScript, Vite, and Tailwind.
+YE MERA INDIA is a mixed social-news platform for Indian public discussion, explainers, visual posts, and AI-powered latest-news interaction.
 
-## Added in this repo update
+## Product direction
 
-- Author dashboard with Instagram-style swipe post creation.
-- Admin dashboard with the same media-post creation flow and post directory.
-- Author profile route `/author/:id` with posts directory grid.
-- Post model scaffold for backend integration in `db/schema.ts` and `api/post-router.ts`.
-- No React StrictMode in `src/main.tsx`.
+This is not only a news article website. It combines:
+
+1. **Quora-style interaction**: users can ask questions, write answer-style explainers, upvote, and comment.
+2. **Instagram-style swipe posts**: authors/admins can create visual card posts with multiple images or videos.
+3. **AI latest-news bot**: frontend assistant UI is ready. Backend can later connect to RSS feeds, News API, Google News RSS, or your own editorial feed.
+4. **Author profile + posts directory**: every creator profile can show articles, answers, and swipe posts in one place.
 
 ## Run
 
 ```bash
 npm install
-npm run dev
 npm run build
+npm run dev
 ```
 
-## Media post behavior
+## Hosting note
 
-The current implementation stores created swipe posts in browser localStorage so UI and format can be tested immediately. Backend table/router scaffolds are included for connecting this to MySQL/tRPC later.
+All build dependencies are kept in `dependencies` because some shared hosting builders skip `devDependencies` during deployment.
+
+## Current implementation
+
+The current frontend uses local sample data and browser localStorage for quick testing. The backend schema/router scaffolds describe how to persist questions, answers, posts, media, and AI bot requests later.

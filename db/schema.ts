@@ -5,17 +5,28 @@ export const users = mysqlTable('users', {
   unionId: varchar('unionId', { length: 255 }).notNull().unique(),
   name: varchar('name', { length: 255 }),
   email: varchar('email', { length: 320 }),
+  avatar: text('avatar'),
   role: mysqlEnum('role', ['user', 'author', 'admin']).default('user').notNull(),
   createdAt: timestamp('createdAt').defaultNow().notNull()
 });
 
-export const articles = mysqlTable('articles', {
+export const discussionQuestions = mysqlTable('discussionQuestions', {
   id: serial('id').primaryKey(),
+  userId: bigint('userId', { mode: 'number', unsigned: true }).notNull().references(() => users.id),
   title: varchar('title', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  body: text('body').notNull(),
+  topic: varchar('topic', { length: 100 }).notNull(),
+  upvotes: int('upvotes').default(0).notNull(),
+  createdAt: timestamp('createdAt').defaultNow().notNull()
+});
+
+export const discussionAnswers = mysqlTable('discussionAnswers', {
+  id: serial('id').primaryKey(),
+  questionId: bigint('questionId', { mode: 'number', unsigned: true }).notNull().references(() => discussionQuestions.id),
+  userId: bigint('userId', { mode: 'number', unsigned: true }).notNull().references(() => users.id),
   content: longtext('content').notNull(),
-  authorId: bigint('authorId', { mode: 'number', unsigned: true }).notNull().references(() => users.id),
-  status: mysqlEnum('status', ['draft', 'published', 'archived']).default('draft').notNull()
+  upvotes: int('upvotes').default(0).notNull(),
+  createdAt: timestamp('createdAt').defaultNow().notNull()
 });
 
 export const socialPosts = mysqlTable('socialPosts', {
@@ -38,7 +49,18 @@ export const socialPostMedia = mysqlTable('socialPostMedia', {
   createdAt: timestamp('createdAt').defaultNow().notNull()
 });
 
+export const aiNewsRequests = mysqlTable('aiNewsRequests', {
+  id: serial('id').primaryKey(),
+  userId: bigint('userId', { mode: 'number', unsigned: true }).references(() => users.id),
+  prompt: text('prompt').notNull(),
+  response: longtext('response'),
+  sources: json('sources'),
+  createdAt: timestamp('createdAt').defaultNow().notNull()
+});
+
 export type User = typeof users.$inferSelect;
-export type Article = typeof articles.$inferSelect;
+export type DiscussionQuestion = typeof discussionQuestions.$inferSelect;
+export type DiscussionAnswer = typeof discussionAnswers.$inferSelect;
 export type SocialPost = typeof socialPosts.$inferSelect;
 export type SocialPostMedia = typeof socialPostMedia.$inferSelect;
+export type AiNewsRequest = typeof aiNewsRequests.$inferSelect;
