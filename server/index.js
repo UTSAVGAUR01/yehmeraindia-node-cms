@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import postRoutes from './routes/posts.js';
 import adminRoutes from './routes/admin.js';
+import { query } from './db.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +26,15 @@ app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'YE MERA INDIA API is running' });
+});
+
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const rows = await query('SELECT COUNT(*) AS total_users FROM users');
+    res.json({ success: true, database: 'connected', total_users: rows[0].total_users });
+  } catch (error) {
+    res.status(500).json({ success: false, database: 'failed', message: error.message });
+  }
 });
 
 app.use('/api/auth', authRoutes);
