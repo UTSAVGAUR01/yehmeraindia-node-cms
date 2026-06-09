@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import postRoutes from './routes/posts.js';
 import adminRoutes from './routes/admin.js';
+import aiRoutes from './routes/ai.js';
 import { query } from './db.js';
 
 const app = express();
@@ -40,6 +41,7 @@ app.get('/api/health/db', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.use(express.static(distDir));
 
