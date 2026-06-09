@@ -33,7 +33,7 @@ app.use('/api/admin', adminRoutes);
 
 app.use(express.static(distDir));
 
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));
 });
 
