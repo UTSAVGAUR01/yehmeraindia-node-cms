@@ -4,14 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        saffron: '#FF6600',
-        parchment: '#F2F0E6',
-        surface: '#1A1A1A',
-        borderline: '#333333'
+        saffron: '#F97316',
+        rosewood: '#9F1239',
+        marigold: '#FBBF24',
+        royal: '#1E1B4B',
+        olive: '#365314',
+        parchment: '#FFF7ED',
+        surface: '#1C1917',
+        borderline: '#7C2D12'
       },
       fontFamily: {
         display: ['DM Serif Display', 'Georgia', 'serif'],
         body: ['DM Sans', 'Arial', 'sans-serif']
+      },
+      boxShadow: {
+        festive: '0 24px 70px rgba(159, 18, 57, 0.22)'
       }
     }
   },
