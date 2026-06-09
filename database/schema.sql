@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(160) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_users_email (email)
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  author_id BIGINT UNSIGNED NULL,
+  title VARCHAR(220) NOT NULL,
+  slug VARCHAR(260) NOT NULL,
+  excerpt TEXT NULL,
+  content LONGTEXT NOT NULL,
+  cover_image VARCHAR(600) NULL,
+  category VARCHAR(100) NOT NULL DEFAULT 'General',
+  status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_posts_slug (slug),
+  KEY idx_posts_status (status),
+  KEY idx_posts_author_id (author_id),
+  CONSTRAINT fk_posts_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+);
