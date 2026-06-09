@@ -1,4 +1,10 @@
-import type { User } from './types';
+export type SessionUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  status: string;
+};
 
 const API_BASE = '/api';
 const TOKEN_KEY = 'ymi_token';
@@ -8,17 +14,17 @@ export function getToken(): string {
   return localStorage.getItem(TOKEN_KEY) || '';
 }
 
-export function getStoredUser(): User | null {
+export function getStoredUser(): SessionUser | null {
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as User;
+    return JSON.parse(raw) as SessionUser;
   } catch {
     return null;
   }
 }
 
-export function saveSession(token: string, user: User): void {
+export function saveSession(token: string, user: SessionUser): void {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   window.dispatchEvent(new Event('ymi-auth-updated'));
