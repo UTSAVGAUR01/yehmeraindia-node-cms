@@ -38,10 +38,16 @@ export function clearSession(): void {
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
   };
+
+  if (options.headers) {
+    const incomingHeaders = new Headers(options.headers);
+    incomingHeaders.forEach((value, key) => {
+      headers[key] = value;
+    });
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
