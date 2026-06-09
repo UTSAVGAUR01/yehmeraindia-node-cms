@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, ReactElement, useEffect, useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { Bot, BookOpen, Home, Images, LogOut, Newspaper, PenLine, Shield, UserRound } from 'lucide-react';
-import { ArticleCard, AskQuestionPanel, BotPanel, ComposerPanel, PostGrid, QuestionCard } from './components';
+import { BookOpen, Home, LogOut, PenLine, Shield, UserRound } from 'lucide-react';
+import { ArticleCard, AskQuestionPanel, BotPanel, PostGrid, QuestionCard } from './components';
 import { articles, questions } from './data';
 import { apiRequest, clearSession, getStoredUser, saveSession, type SessionUser } from './api';
 
@@ -18,25 +18,17 @@ type BlogPost = {
   created_at: string;
 };
 
-type AuthResponse = {
-  success: boolean;
-  token: string;
-  user: SessionUser;
-};
+type AuthResponse = { success: boolean; token: string; user: SessionUser };
+type PostsResponse = { success: boolean; posts: BlogPost[] };
+type StatsResponse = { success: boolean; stats: { users: number; posts: number; published: number; drafts: number } };
 
-type PostsResponse = {
-  success: boolean;
-  posts: BlogPost[];
-};
-
-type StatsResponse = {
-  success: boolean;
-  stats: {
-    users: number;
-    posts: number;
-    published: number;
-    drafts: number;
-  };
+type PostForm = {
+  title: string;
+  excerpt: string;
+  content: string;
+  cover_image: string;
+  category: string;
+  status: 'draft' | 'published';
 };
 
 function useAuth() {
@@ -260,7 +252,7 @@ function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   );
 }
 
-function ProtectedRoute({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) {
+function ProtectedRoute({ children, adminOnly = false }: { children: ReactElement; adminOnly?: boolean }) {
   const user = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
@@ -307,9 +299,10 @@ function UserDashboard() {
 }
 
 function AdminDashboard() {
+  const emptyForm: PostForm = { title: '', excerpt: '', content: '', cover_image: '', category: 'Culture', status: 'published' };
   const [stats, setStats] = useState({ users: 0, posts: 0, published: 0, drafts: 0 });
   const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [form, setForm] = useState({ title: '', excerpt: '', content: '', cover_image: '', category: 'Culture', status: 'published' });
+  const [form, setForm] = useState<PostForm>(emptyForm);
   const [message, setMessage] = useState('');
 
   function loadAdminData() {
@@ -323,7 +316,7 @@ function AdminDashboard() {
     event.preventDefault();
     setMessage('');
     await apiRequest('/posts', { method: 'POST', body: JSON.stringify(form) });
-    setForm({ title: '', excerpt: '', content: '', cover_image: '', category: 'Culture', status: 'published' });
+    setForm(emptyForm);
     setMessage('Post saved successfully.');
     loadAdminData();
   }
@@ -348,7 +341,7 @@ function AdminDashboard() {
             <input className="input" value={form.excerpt} onChange={(event) => setForm({ ...form, excerpt: event.target.value })} placeholder="Short excerpt" />
             <input className="input" value={form.cover_image} onChange={(event) => setForm({ ...form, cover_image: event.target.value })} placeholder="Cover image URL" />
             <input className="input" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} placeholder="Category" />
-            <select className="input" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <select className="input" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as PostForm['status'] })}>
               <option value="published">Published</option>
               <option value="draft">Draft</option>
             </select>
