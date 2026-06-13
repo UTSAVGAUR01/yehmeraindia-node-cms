@@ -13,7 +13,7 @@ let memoryPosts = [
 
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: '8mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 async function db(sql, params = []) {
   if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) throw new Error('DB env not configured');
@@ -31,32 +31,29 @@ function parseCookies(req) {
     return [decodeURIComponent(v.slice(0, i).trim()), decodeURIComponent(v.slice(i + 1).trim())];
   }));
 }
-
 function signSession(user) {
-  const payload = Buffer.from(JSON.stringify({ email: user.email, role: user.role, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ email: user.email, role: user.role, exp: Date.now() + 604800000 })).toString('base64url');
   const sig = crypto.createHmac('sha256', sessionSecret).update(payload).digest('base64url');
   return payload + '.' + sig;
 }
-
 function verifySession(token) {
   try {
     const [payload, sig] = token.split('.');
     const expected = crypto.createHmac('sha256', sessionSecret).update(payload).digest('base64url');
     if (!crypto.timingSafeEqual(Buffer.from(sig || ''), Buffer.from(expected))) return null;
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
-    if (Date.now() > data.exp || data.role !== 'admin') return null;
-    return data;
+    return Date.now() < data.exp && data.role === 'admin' ? data : null;
   } catch { return null; }
 }
-
 function getAdmin(req) { return verifySession(parseCookies(req).ymi_admin || ''); }
 function requireAdminPage(req, res, next) { if (!getAdmin(req)) return res.redirect('/login'); next(); }
 function requireAdminApi(req, res, next) { if (!getAdmin(req)) return res.status(401).json({ success: false, message: 'Admin login required' }); next(); }
+function slugify(title) { return String(title || 'post').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now(); }
 
 function page(title, body) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>
-  *{box-sizing:border-box}body{margin:0;background:#080302;color:#fff7ed;font-family:Inter,Arial,sans-serif}a{text-decoration:none;color:inherit}.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 7%;background:#170805;border-bottom:1px solid #7c2d12;position:sticky;top:0;z-index:5}.brand{font:900 32px Georgia;letter-spacing:.08em}.gold{color:#fbbf24}.links{display:flex;gap:24px;font-size:12px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.wrap{max-width:1180px;margin:auto;padding:70px 24px}.hero{min-height:82vh;display:grid;grid-template-columns:1fr 1fr;gap:45px;align-items:center;background:radial-gradient(circle at 82% 20%,#0ea5e955,transparent 30%),radial-gradient(circle at 12% 22%,#ff6a0055,transparent 32%)}h1{font:900 82px/.95 Georgia;margin:18px 0}h2{font:900 46px Georgia;margin:10px 0 24px}h3{font:900 28px Georgia}.lead,p{color:#d8c9bb;line-height:1.75;font-size:18px}.badge{display:inline-block;border:1px solid #fbbf2470;color:#fbbf24;padding:9px 12px;font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.btn,button{display:inline-block;border:0;background:linear-gradient(135deg,#ff6a00,#fbbf24);color:#170805;padding:14px 20px;margin:8px 8px 8px 0;font-weight:900;text-transform:uppercase;letter-spacing:.1em;cursor:pointer}.btn2{background:transparent;color:#fff7ed;border:1px solid #fbbf2470}.art{min-height:520px;border:1px solid #fbbf2438;position:relative;background:linear-gradient(145deg,#fff7ed12,#ff6a0010);overflow:hidden}.sun{position:absolute;right:55px;top:45px;width:120px;height:120px;border-radius:50%;background:#fbbf24;box-shadow:0 0 60px #fbbf2490}.circle{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:220px;height:220px;border-radius:50%;background:conic-gradient(#ff6a00,#fbbf24,#22c55e,#38bdf8,#fb7185,#ff6a00);display:grid;place-items:center}.circle span{width:185px;height:185px;background:#100503;border-radius:50%;display:grid;place-items:center;text-align:center;font:900 42px Georgia}.chip{position:absolute;background:#090403d9;border:1px solid #ffffff35;padding:14px;width:160px}.c1{left:30px;top:50px}.c2{left:60px;bottom:70px}.c3{right:40px;top:210px}.c4{right:80px;bottom:55px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}.card{background:linear-gradient(145deg,#fff7ed12,#ff6a000b);border:1px solid #fbbf2430;padding:25px}.ribbon{padding:20px;background:linear-gradient(90deg,#ff6a00,#fff7ed,#22c55e);color:#140604;font:900 28px Georgia;white-space:nowrap;overflow:hidden}input,textarea,select{width:100%;margin:8px 0;padding:14px;background:#120807;border:1px solid #fbbf2440;color:#fff7ed;font-size:15px}textarea{min-height:150px}.preview{max-width:100%;border:1px solid #fbbf2440;margin-top:12px;filter:brightness(var(--b,1)) contrast(var(--c,1)) saturate(var(--s,1))}.small{font-size:13px;color:#bfae9d}.error{color:#fecaca;background:#450a0a;border:1px solid #ef4444;padding:12px}.success{color:#bbf7d0;background:#052e16;border:1px solid #22c55e;padding:12px}footer{border-top:1px solid #fbbf2430;padding:35px 7%;color:#d8c9bb}@media(max-width:900px){.hero,.grid,.two{grid-template-columns:1fr}h1{font-size:52px}.links{display:none}.chip,.sun,.circle{position:relative;left:auto;right:auto;top:auto;bottom:auto;transform:none;margin:15px}.art{min-height:auto;padding:20px}}
-  </style></head><body><nav class="nav"><a class="brand" href="/">YE MERA <span class="gold">INDIA</span></a><div class="links"><a href="/">Home</a><a href="/posts">Posts</a><a href="/studio">Studio</a><a href="/logout">Logout</a></div></nav>${body}<footer>YE MERA INDIA — vivid states, many voices, one united story.</footer></body></html>`;
+*{box-sizing:border-box}body{margin:0;background:#080302;color:#fff7ed;font-family:Inter,Arial,sans-serif}a{text-decoration:none;color:inherit}.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 7%;background:#170805;border-bottom:1px solid #7c2d12;position:sticky;top:0;z-index:5}.brand{font:900 32px Georgia;letter-spacing:.08em}.gold{color:#fbbf24}.links{display:flex;gap:22px;font-size:12px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.wrap{max-width:1180px;margin:auto;padding:64px 24px}.hero{min-height:78vh;display:grid;grid-template-columns:1fr 1fr;gap:45px;align-items:center;background:radial-gradient(circle at 82% 20%,#0ea5e955,transparent 30%),radial-gradient(circle at 12% 22%,#ff6a0055,transparent 32%)}h1{font:900 78px/.95 Georgia;margin:18px 0}h2{font:900 42px Georgia;margin:10px 0 24px}h3{font:900 25px Georgia}.lead,p{color:#d8c9bb;line-height:1.75;font-size:18px}.badge{display:inline-block;border:1px solid #fbbf2470;color:#fbbf24;padding:8px 11px;font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.btn,button{display:inline-block;border:0;background:linear-gradient(135deg,#ff6a00,#fbbf24);color:#170805;padding:13px 18px;margin:8px 8px 8px 0;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.btn2,.ghost{background:transparent;color:#fff7ed;border:1px solid #fbbf2470}.danger{background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff}.art{min-height:500px;border:1px solid #fbbf2438;position:relative;background:linear-gradient(145deg,#fff7ed12,#ff6a0010);overflow:hidden}.sun{position:absolute;right:55px;top:45px;width:120px;height:120px;border-radius:50%;background:#fbbf24;box-shadow:0 0 60px #fbbf2490}.circle{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:220px;height:220px;border-radius:50%;background:conic-gradient(#ff6a00,#fbbf24,#22c55e,#38bdf8,#fb7185,#ff6a00);display:grid;place-items:center}.circle span{width:185px;height:185px;background:#100503;border-radius:50%;display:grid;place-items:center;text-align:center;font:900 42px Georgia}.chip{position:absolute;background:#090403d9;border:1px solid #ffffff35;padding:14px;width:160px}.c1{left:30px;top:50px}.c2{left:60px;bottom:70px}.c3{right:40px;top:210px}.c4{right:80px;bottom:55px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.two{display:grid;grid-template-columns:.9fr 1.1fr;gap:24px}.card{background:linear-gradient(145deg,#fff7ed12,#ff6a000b);border:1px solid #fbbf2430;padding:22px}.ribbon{padding:18px;background:linear-gradient(90deg,#ff6a00,#fff7ed,#22c55e);color:#140604;font:900 24px Georgia;white-space:nowrap;overflow:hidden}input,textarea,select{width:100%;margin:7px 0;padding:13px;background:#120807;border:1px solid #fbbf2440;color:#fff7ed;font-size:15px}textarea{min-height:135px}.preview{max-width:100%;border:1px solid #fbbf2440;margin-top:12px;filter:brightness(var(--b,1)) contrast(var(--c,1)) saturate(var(--s,1))}.small{font-size:13px;color:#bfae9d}.error{color:#fecaca;background:#450a0a;border:1px solid #ef4444;padding:12px}.success{color:#bbf7d0;background:#052e16;border:1px solid #22c55e;padding:12px}.postitem{border:1px solid #fbbf2430;padding:14px;margin:10px 0;background:#120807}.postitem h4{margin:0 0 6px;font:900 20px Georgia}.manager{max-height:620px;overflow:auto}footer{border-top:1px solid #fbbf2430;padding:35px 7%;color:#d8c9bb}@media(max-width:900px){.hero,.grid,.two{grid-template-columns:1fr}h1{font-size:52px}.links{display:none}.chip,.sun,.circle{position:relative;left:auto;right:auto;top:auto;bottom:auto;transform:none;margin:15px}.art{min-height:auto;padding:20px}}
+</style></head><body><nav class="nav"><a class="brand" href="/">YE MERA <span class="gold">INDIA</span></a><div class="links"><a href="/">Home</a><a href="/posts">Posts</a><a href="/studio">Studio</a><a href="/logout">Logout</a></div></nav>${body}<footer>YE MERA INDIA — vivid states, many voices, one united story.</footer></body></html>`;
 }
 
 async function validateAdmin(email, password) {
@@ -65,13 +62,10 @@ async function validateAdmin(email, password) {
     const user = rows[0];
     if (user && user.role === 'admin' && user.status === 'active') {
       const bcrypt = await import('bcryptjs');
-      const ok = await bcrypt.default.compare(password, user.password);
-      if (ok) return { email: user.email, role: 'admin' };
+      if (await bcrypt.default.compare(password, user.password)) return { email: user.email, role: 'admin' };
     }
   } catch {}
-  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-    return { email, role: 'admin' };
-  }
+  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) return { email, role: 'admin' };
   return null;
 }
 
@@ -85,58 +79,75 @@ app.post('/api/auth/login', async (req, res) => {
   res.setHeader('Set-Cookie', 'ymi_admin=' + encodeURIComponent(signSession(user)) + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800' + secure);
   res.json({ success: true, user: { email: user.email, role: user.role } });
 });
-
-app.get('/logout', (req, res) => {
-  res.setHeader('Set-Cookie', 'ymi_admin=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
-  res.redirect('/login');
-});
+app.get('/logout', (req, res) => { res.setHeader('Set-Cookie', 'ymi_admin=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'); res.redirect('/login'); });
 
 app.get('/api/posts', async (req, res) => {
   try {
-    const rows = await db('SELECT id,title,category,excerpt,content,created_at FROM posts ORDER BY id DESC LIMIT 50');
+    const rows = await db('SELECT id,title,category,excerpt,content,created_at FROM posts ORDER BY id DESC LIMIT 100');
     res.json({ success: true, source: 'database', posts: rows });
-  } catch {
-    res.json({ success: true, source: 'memory', posts: memoryPosts });
-  }
+  } catch { res.json({ success: true, source: 'memory', posts: memoryPosts }); }
 });
-
+app.get('/api/admin/posts', requireAdminApi, async (req, res) => {
+  try {
+    const rows = await db('SELECT id,title,category,excerpt,content,created_at FROM posts ORDER BY id DESC LIMIT 100');
+    res.json({ success: true, source: 'database', posts: rows });
+  } catch { res.json({ success: true, source: 'memory', posts: memoryPosts }); }
+});
 app.post('/api/posts', requireAdminApi, async (req, res) => {
   const p = req.body || {};
   const post = { id: Date.now(), title: p.title || 'Untitled Post', category: p.category || 'Vivid India', excerpt: p.excerpt || '', content: p.content || '', hashtags: p.hashtags || '', created_at: new Date().toISOString() };
   try {
-    const slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
-    await db('INSERT INTO posts (title,slug,excerpt,content,category,status) VALUES (?,?,?,?,?,?)', [post.title, slug, post.excerpt, post.content + '\n\n' + post.hashtags, post.category, 'published']);
+    await db('INSERT INTO posts (title,slug,excerpt,content,category,status) VALUES (?,?,?,?,?,?)', [post.title, slugify(post.title), post.excerpt, post.content + '\n\n' + post.hashtags, post.category, 'published']);
     res.json({ success: true, source: 'database', post });
   } catch {
     memoryPosts.unshift(post);
     res.json({ success: true, source: 'memory', post });
   }
 });
+app.put('/api/posts/:id', requireAdminApi, async (req, res) => {
+  const id = Number(req.params.id);
+  const p = req.body || {};
+  try {
+    await db('UPDATE posts SET title=?, excerpt=?, content=?, category=? WHERE id=?', [p.title || 'Untitled Post', p.excerpt || '', (p.content || '') + '\n\n' + (p.hashtags || ''), p.category || 'Vivid India', id]);
+    res.json({ success: true, source: 'database' });
+  } catch {
+    memoryPosts = memoryPosts.map(x => x.id === id ? { ...x, title: p.title, category: p.category, excerpt: p.excerpt, content: p.content, hashtags: p.hashtags } : x);
+    res.json({ success: true, source: 'memory' });
+  }
+});
+app.delete('/api/posts/:id', requireAdminApi, async (req, res) => {
+  const id = Number(req.params.id);
+  try { await db('DELETE FROM posts WHERE id=?', [id]); res.json({ success: true, source: 'database' }); }
+  catch { memoryPosts = memoryPosts.filter(x => x.id !== id); res.json({ success: true, source: 'memory' }); }
+});
 
 app.post('/api/ai/post-assist', requireAdminApi, async (req, res) => {
-  const { title = '', content = '', category = 'Vivid India' } = req.body || {};
-  const fallback = { title: title || 'Vivid India: Many Colours, One Soul', excerpt: 'A warm visual story about India’s states, landscapes, art and united cultural spirit.', category, content: `${title || 'Vivid India'}\n\nIndia is a living canvas. From Himalayan silence to Rajasthan’s golden desert, from Bengal’s rivers to Kerala’s rain-green backwaters, every state carries a different mood and memory.\n\n${content || 'Write about people, places, colours, festivals and the idea that India is vivid but united.'}\n\nThe story should close with the feeling that every region adds one brushstroke to the same national canvas.`, tags: ['india','vivid india','culture','states','artist','author'], hashtags: ['#VividIndia','#OneIndia','#IndianArt','#IndianStories','#Blog'] };
+  const { title = '', content = '', category = 'Vivid India', mode = 'create' } = req.body || {};
+  const task = mode === 'modify' ? 'Improve and rewrite this existing post while preserving the core idea' : 'Create a new author blog post';
+  const fallback = { title: title || 'Vivid India: Many Colours, One Soul', excerpt: 'A warm visual story about India’s states, landscapes, art and united cultural spirit.', category, content: `${title || 'Vivid India'}\n\nIndia is a living canvas. From Himalayan silence to Rajasthan’s golden desert, from Bengal’s rivers to Kerala’s rain-green backwaters, every state carries a different mood and memory.\n\n${content || 'Write about people, places, colours, festivals and the idea that India is vivid but united.'}\n\nEvery region adds one brushstroke to the same national canvas.`, tags: ['india','vivid india','culture','states','artist','author'], hashtags: ['#VividIndia','#OneIndia','#IndianArt','#IndianStories','#Blog'] };
   if (!process.env.OPENAI_API_KEY) return res.json({ success: true, source: 'fallback', suggestion: fallback });
   try {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: process.env.OPENAI_MODEL || 'gpt-4o-mini', messages: [{ role: 'system', content: 'Return only valid JSON with title, excerpt, category, content, tags array, hashtags array.' }, { role: 'user', content: `Create an author blog post about vivid India. Title:${title}. Category:${category}. Idea:${content}` }], temperature: .7 }) });
+    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: process.env.OPENAI_MODEL || 'gpt-4o-mini', messages: [{ role: 'system', content: 'Return only valid JSON with title, excerpt, category, content, tags array, hashtags array.' }, { role: 'user', content: `${task} for YE MERA INDIA. Title:${title}. Category:${category}. Content:${content}` }], temperature: .7 }) });
     const data = await r.json();
     const text = data?.choices?.[0]?.message?.content || '{}';
-    const json = JSON.parse(text.replace(/```json|```/g, '').trim());
-    res.json({ success: true, source: 'openai', suggestion: json });
+    res.json({ success: true, source: 'openai', suggestion: JSON.parse(text.replace(/```json|```/g, '').trim()) });
   } catch { res.json({ success: true, source: 'fallback', suggestion: fallback }); }
 });
 
 app.get('/', (req, res) => res.type('html').send(page('YE MERA INDIA', `<section class="wrap hero"><div><span class="badge">Author + Artist Website</span><h1>Vivid India, <span class="gold">one canvas.</span></h1><p class="lead">A premium website for an author and artist to publish blogs, visual stories and AI-assisted posts about India, its states, people, colours, festivals and unity.</p><a class="btn" href="/posts">Read Posts</a><a class="btn btn2" href="/studio">Open Studio</a></div><div class="art"><div class="sun"></div><div class="chip c1"><b>Himalaya</b><br>snow and silence</div><div class="chip c2"><b>Rajasthan</b><br>desert and forts</div><div class="chip c3"><b>Bengal</b><br>art and rivers</div><div class="chip c4"><b>Kerala</b><br>rain and green</div><div class="circle"><span>ONE<br>INDIA</span></div></div></section><div class="ribbon">Many states • many colours • one India • author stories • artist vision • vivid culture</div><section class="wrap"><span class="badge">Vivid States</span><h2>Different environments of India</h2><div class="grid"><div class="card"><h3>🏔️ Himalaya</h3><p>Mountains, valleys and spiritual quiet.</p></div><div class="card"><h3>🏜️ Rajasthan</h3><p>Desert, forts, textile art and folk colour.</p></div><div class="card"><h3>🌊 River Plains</h3><p>Ghats, farms, cities and living history.</p></div><div class="card"><h3>🌿 Kerala</h3><p>Backwaters, rain and green landscapes.</p></div><div class="card"><h3>🎨 Bengal</h3><p>Books, art, festivals and river life.</p></div><div class="card"><h3>🌅 Tamil Nadu</h3><p>Temples, coast and classical art.</p></div></div></section>`)));
-
-app.get('/login', (req, res) => res.type('html').send(page('Admin Login', `<section class="wrap"><div class="card" style="max-width:520px;margin:auto"><span class="badge">Admin Login</span><h1>Studio Access</h1><p>Login to create posts, use AI writing assistant and photo editor.</p><input id="email" type="email" placeholder="Admin email"><input id="password" type="password" placeholder="Password"><button onclick="login()">Sign In</button><p id="msg" class="small"></p></div></section><script>async function login(){msg.textContent='Checking...';let r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:password.value})});let d=await r.json();if(d.success){location.href='/studio'}else{msg.className='error';msg.textContent=d.message||'Login failed'}}</script>`)));
-
+app.get('/login', (req, res) => res.type('html').send(page('Admin Login', `<section class="wrap"><div class="card" style="max-width:520px;margin:auto"><span class="badge">Admin Login</span><h1>Studio Access</h1><p>Login to manage posts, use AI assistant and photo editor.</p><input id="email" type="email" placeholder="Admin email"><input id="password" type="password" placeholder="Password"><button onclick="login()">Sign In</button><p id="msg" class="small"></p></div></section><script>async function login(){msg.textContent='Checking...';let r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:password.value})});let d=await r.json();if(d.success){location.href='/studio'}else{msg.className='error';msg.textContent=d.message||'Login failed'}}</script>`)));
 app.get('/posts', (req, res) => res.type('html').send(page('Posts', `<section class="wrap"><span class="badge">Blog</span><h1>Posts & Stories</h1><div id="posts" class="grid"></div></section><script>fetch('/api/posts').then(r=>r.json()).then(d=>{posts.innerHTML=d.posts.map(p=>'<article class="card"><span class="badge">'+(p.category||'India')+'</span><h3>'+p.title+'</h3><p>'+p.excerpt+'</p><p class="small">'+new Date(p.created_at).toLocaleDateString()+'</p></article>').join('')||'<p>No posts yet.</p>'})</script>`)));
-
-app.get('/studio', requireAdminPage, (req, res) => res.type('html').send(page('Studio', `<section class="wrap"><span class="badge">Protected Admin Studio</span><h1>Write, edit photo, publish</h1><div class="two"><div class="card"><h2>AI Post Writing</h2><input id="title" placeholder="Post title"><input id="category" value="Vivid India" placeholder="Category"><textarea id="idea" placeholder="Write small idea about India..."></textarea><button onclick="aiWrite()">AI Help Me Write</button><input id="excerpt" placeholder="Excerpt"><textarea id="content" placeholder="Full post content"></textarea><input id="hashtags" placeholder="#VividIndia #OneIndia"><button onclick="savePost()">Publish Post</button><p id="msg" class="small"></p></div><div class="card"><h2>Photo Studio</h2><p class="small">Upload photo, adjust brightness, contrast and colour, then download edited image.</p><input type="file" id="photo" accept="image/*"><label>Brightness</label><input type="range" id="b" min="0.5" max="1.8" step="0.1" value="1"><label>Contrast</label><input type="range" id="c" min="0.5" max="1.8" step="0.1" value="1"><label>Saturation</label><input type="range" id="s" min="0" max="2" step="0.1" value="1"><img id="preview" class="preview"><button onclick="downloadImg()">Download Edited Photo</button></div></div></section><script>
-const qs=x=>document.getElementById(x);function apply(){qs('preview').style.setProperty('--b',qs('b').value);qs('preview').style.setProperty('--c',qs('c').value);qs('preview').style.setProperty('--s',qs('s').value)}['b','c','s'].forEach(id=>qs(id).oninput=apply);qs('photo').onchange=e=>{let f=e.target.files[0];if(f){qs('preview').src=URL.createObjectURL(f);apply()}};
-async function aiWrite(){msg.className='small';msg.textContent='Generating...';let r=await fetch('/api/ai/post-assist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title.value,category:category.value,content:idea.value})});let d=await r.json();if(!d.success){msg.className='error';msg.textContent=d.message;return}let x=d.suggestion;title.value=x.title||title.value;category.value=x.category||category.value;excerpt.value=x.excerpt||'';content.value=x.content||'';hashtags.value=(x.hashtags||[]).join(' ');msg.className='success';msg.textContent='AI suggestion applied.'}
-async function savePost(){msg.className='small';msg.textContent='Saving...';let r=await fetch('/api/posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title.value,category:category.value,excerpt:excerpt.value,content:content.value,hashtags:hashtags.value})});let d=await r.json();if(!d.success){msg.className='error';msg.textContent=d.message;return}msg.className='success';msg.textContent='Post saved using '+d.source+'. Open Posts page.'}
-function downloadImg(){let img=qs('preview');if(!img.src)return alert('Upload image first');let a=document.createElement('a');a.href=img.src;a.download='yehmeraindia-edited-photo.png';a.click()}
+app.get('/studio', requireAdminPage, (req, res) => res.type('html').send(page('Studio', `<section class="wrap"><span class="badge">Protected Admin Dashboard</span><h1>Post Manager + AI Studio</h1><div class="two"><div class="card manager"><h2>Post Manager</h2><button onclick="newPost()">New Post</button><button class="ghost" onclick="loadPosts()">Refresh</button><div id="postList"></div></div><div><div class="card"><h2 id="editorTitle">Create / Modify Post</h2><input id="postId" type="hidden"><input id="title" placeholder="Post title"><input id="category" value="Vivid India" placeholder="Category"><textarea id="idea" placeholder="Small idea or instruction for AI..."></textarea><button onclick="aiWrite('create')">AI Create</button><button class="ghost" onclick="aiWrite('modify')">AI Modify Current Post</button><input id="excerpt" placeholder="Excerpt"><textarea id="content" placeholder="Full post content"></textarea><input id="hashtags" placeholder="#VividIndia #OneIndia"><button onclick="savePost()">Save / Update Post</button><button class="danger" onclick="deleteCurrent()">Delete Current</button><p id="msg" class="small"></p></div><div class="card" style="margin-top:24px"><h2>Photo Studio</h2><p class="small">Upload photo, adjust brightness, contrast and colour, then download edited image.</p><input type="file" id="photo" accept="image/*"><label>Brightness</label><input type="range" id="b" min="0.5" max="1.8" step="0.1" value="1"><label>Contrast</label><input type="range" id="c" min="0.5" max="1.8" step="0.1" value="1"><label>Saturation</label><input type="range" id="s" min="0" max="2" step="0.1" value="1"><img id="preview" class="preview"><button onclick="downloadImg()">Download Edited Photo</button></div></div></div></section><script>
+const qs=x=>document.getElementById(x);let allPosts=[];function safe(v){return String(v||'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
+async function loadPosts(){postList.innerHTML='<p class="small">Loading...</p>';let r=await fetch('/api/admin/posts');let d=await r.json();allPosts=d.posts||[];postList.innerHTML=allPosts.map(p=>'<div class="postitem"><h4>'+safe(p.title)+'</h4><p class="small">'+safe(p.category)+' · '+new Date(p.created_at).toLocaleDateString()+'</p><button onclick="editPost('+p.id+')">Edit</button><button class="ghost" onclick="quickModify('+p.id+')">AI Modify</button><button class="danger" onclick="deletePost('+p.id+')">Delete</button></div>').join('')||'<p>No posts yet.</p>'}
+function newPost(){postId.value='';title.value='';category.value='Vivid India';idea.value='';excerpt.value='';content.value='';hashtags.value='';editorTitle.textContent='Create New Post';msg.textContent=''}
+function editPost(id){let p=allPosts.find(x=>Number(x.id)===Number(id));if(!p)return;postId.value=p.id;title.value=p.title||'';category.value=p.category||'Vivid India';excerpt.value=p.excerpt||'';content.value=(p.content||'').replace(/\n\n#.*$/s,'');hashtags.value=((p.content||'').match(/#\w+/g)||[]).join(' ');idea.value='';editorTitle.textContent='Modify Post #'+p.id;window.scrollTo({top:0,behavior:'smooth'})}
+async function quickModify(id){editPost(id);await aiWrite('modify')}
+async function aiWrite(mode){msg.className='small';msg.textContent=mode==='modify'?'Improving current post...':'Creating draft...';let r=await fetch('/api/ai/post-assist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,title:title.value,category:category.value,content:(content.value||idea.value)})});let d=await r.json();if(!d.success){msg.className='error';msg.textContent=d.message;return}let x=d.suggestion||{};title.value=x.title||title.value;category.value=x.category||category.value;excerpt.value=x.excerpt||'';content.value=x.content||'';hashtags.value=(x.hashtags||[]).join(' ');msg.className='success';msg.textContent=(mode==='modify'?'AI modified current post.':'AI created draft.')+' Review and Save.'}
+async function savePost(){let id=postId.value;let body={title:title.value,category:category.value,excerpt:excerpt.value,content:content.value,hashtags:hashtags.value};let r=await fetch(id?'/api/posts/'+id:'/api/posts',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d=await r.json();if(!d.success){msg.className='error';msg.textContent=d.message;return}msg.className='success';msg.textContent=(id?'Post updated using ':'Post saved using ')+d.source;await loadPosts();if(!id)newPost()}
+async function deleteCurrent(){if(!postId.value)return alert('Select a post first');await deletePost(postId.value);newPost()}
+async function deletePost(id){if(!confirm('Delete this post?'))return;let r=await fetch('/api/posts/'+id,{method:'DELETE'});let d=await r.json();msg.className=d.success?'success':'error';msg.textContent=d.success?'Post deleted.':(d.message||'Delete failed');await loadPosts()}
+function apply(){preview.style.setProperty('--b',b.value);preview.style.setProperty('--c',c.value);preview.style.setProperty('--s',s.value)}['b','c','s'].forEach(id=>qs(id).oninput=apply);photo.onchange=e=>{let f=e.target.files[0];if(f){preview.src=URL.createObjectURL(f);apply()}};function downloadImg(){if(!preview.src)return alert('Upload image first');let a=document.createElement('a');a.href=preview.src;a.download='yehmeraindia-edited-photo.png';a.click()}loadPosts();
 </script>`)));
 
 app.get(/.*/, (req, res) => res.redirect('/'));
