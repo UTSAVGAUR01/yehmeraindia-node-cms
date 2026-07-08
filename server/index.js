@@ -1,81 +1,42 @@
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import authRoutes from './routes/auth.js';
-import postRoutes from './routes/posts.js';
-import adminRoutes from './routes/admin.js';
-import aiRoutes from './routes/ai.js';
-import { query } from './db.js';
+import dotenv from 'dotenv';
 
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection:', reason);
-});
+dotenv.config();
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const distDir = path.join(rootDir, 'dist');
-const indexHtml = path.join(distDir, 'index.html');
-const port = Number(process.env.PORT || 3000);
+const port = process.env.PORT || 8080;
 
-console.log('Starting YE MERA INDIA Express app...');
-console.log('Node version:', process.version);
-console.log('Port:', port);
-console.log('Dist directory:', distDir);
-console.log('Index exists:', fs.existsSync(indexHtml));
+app.use(helmet());
+app.use(cors());
+app.use(express.json({ limit: '1mb' }));
 
-if (!process.env.JWT_SECRET) {
-  console.warn('JWT_SECRET is not set. Add it in Hostinger environment variables.');
-}
-
-app.disable('x-powered-by');
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: process.env.FRONTEND_URL || true, credentials: true }));
-app.use(express.json({ limit: '2mb' }));
-
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'YE MERA INDIA API is running' });
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', app: 'Yeh Mera India fresh starter' });
 });
 
-app.get('/api/health/db', async (req, res) => {
-  try {
-    const rows = await query('SELECT COUNT(*) AS total_users FROM users');
-    res.json({ success: true, database: 'connected', total_users: rows[0].total_users });
-  } catch (error) {
-    res.status(500).json({ success: false, database: 'failed', message: error.message });
-  }
+app.get('/api/roadmap', (_req, res) => {
+  res.json({
+    phases: [
+      'Public magazine website',
+      'CMS for stories, books, gallery and events',
+      'AI visitor guide and story recommendation',
+      'Analytics, newsletter and India Atlas'
+    ]
+  });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/ai', aiRoutes);
-
-if (fs.existsSync(indexHtml)) {
-  app.use(express.static(distDir));
-
-  app.get(/.*/, (req, res) => {
-    res.sendFile(indexHtml);
+app.post('/api/ai-guide', (req, res) => {
+  const question = String(req.body?.question || '').trim();
+  res.json({
+    answer: question
+      ? `YMI Guide will answer from published Yeh Mera India content for: ${question}`
+      : 'Ask about Indian culture, geography, stories, books, theatre or journalism.',
+    nextSteps: ['Recommend related stories', 'Explain in Hindi', 'Suggest category pages']
   });
-} else {
-  app.get('/', (req, res) => {
-    res.status(200).send('YE MERA INDIA API is running. Frontend build is missing. Run npm run build during deployment.');
-  });
+});
 
-  app.get(/.*/, (req, res) => {
-    res.status(404).json({ success: false, message: 'Frontend build not found', path: req.path });
-  });
-}
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`YE MERA INDIA server running on 0.0.0.0:${port}`);
+app.listen(port, () => {
+  console.log(`Yeh Mera India API running on port ${port}`);
 });

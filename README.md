@@ -1,28 +1,66 @@
-# YE MERA INDIA
+# Yeh Mera India Fresh Starter
 
-YE MERA INDIA is a mixed social-news platform for Indian public discussion, explainers, visual posts, and AI-powered latest-news interaction.
+Fresh rebuild for **yehmeraindia.com**.
 
-## Product direction
+## Positioning
 
-This is not only a news article website. It combines:
+Yeh Mera India is designed as a premium digital magazine and author-led storytelling platform for:
 
-1. **Quora-style interaction**: users can ask questions, write answer-style explainers, upvote, and comment.
-2. **Instagram-style swipe posts**: authors/admins can create visual card posts with multiple images or videos.
-3. **AI latest-news bot**: frontend assistant UI is ready. Backend can later connect to RSS feeds, News API, Google News RSS, or your own editorial feed.
-4. **Author profile + posts directory**: every creator profile can show articles, answers, and swipe posts in one place.
+- Indian culture
+- Geography and places
+- Journalism and field notes
+- Books and author profile
+- Theatre and events
+- Gallery and human stories
+- AI-powered visitor engagement
 
-## Run
+## Current fresh scope
+
+This branch intentionally starts clean. Old code is preserved in backup branches.
+
+Included now:
+
+- React + Vite frontend
+- Clean landing page design
+- Magazine category structure
+- India Atlas concept section
+- Author/founder section
+- AI Guide UI concept
+- Simple Express backend starter
+- Deployment-friendly npm scripts
+
+## Run frontend
 
 ```bash
 npm install
-npm run build
 npm run dev
 ```
 
-## Hosting note
+## Build frontend
 
-All build dependencies are kept in `dependencies` because some shared hosting builders skip `devDependencies` during deployment.
+```bash
+npm run build
+```
 
-## Current implementation
+## Run backend
 
-The current frontend uses local sample data and browser localStorage for quick testing. The backend schema/router scaffolds describe how to persist questions, answers, posts, media, and AI bot requests later.
+```bash
+npm run server
+```
+
+## Backup
+
+Old main code was backed up before fresh replacement:
+
+- `backup/main-before-fresh-20260708`
+- `backup/main-before-fresh-20260708-v2`
+- `backup/main-before-fresh-20260708-v3`
+- `backup/main-with-marker-before-fresh-20260708`
+
+## Next build phases
+
+1. Public website pages
+2. Admin CMS
+3. Database schema
+4. AI visitor guide
+5. Visitor analytics and recommendation engine
