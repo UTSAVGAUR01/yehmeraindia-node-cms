@@ -206,6 +206,25 @@ export async function initializeDatabase() {
     ],
   );
 
+  await query(`CREATE TABLE IF NOT EXISTS ai_jobs (
+    id CHAR(36) NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    job_type ENUM('rewrite', 'page_rewrite', 'post_image', 'page_image') NOT NULL,
+    status ENUM('queued', 'in_progress', 'completed', 'failed') NOT NULL DEFAULT 'queued',
+    provider_id VARCHAR(160) NULL,
+    target_id BIGINT UNSIGNED NULL,
+    result LONGTEXT NULL,
+    error TEXT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_ai_jobs_user (user_id, created_at),
+    KEY idx_ai_jobs_expiry (expires_at),
+    CONSTRAINT fk_ai_jobs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
+  await query("DELETE FROM ai_jobs WHERE expires_at < NOW()");
+
   const counts = await query('SELECT COUNT(*) AS total FROM posts');
   if (!Number(counts[0]?.total)) {
     await query(

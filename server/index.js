@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
@@ -17,6 +18,14 @@ const rootDir = path.resolve(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 const indexHtml = path.join(distDir, "index.html");
 const port = Number(process.env.PORT || 3000);
+const aiTextTimeoutMs = Math.min(
+  Math.max(Number(process.env.AI_TEXT_TIMEOUT_MS || 180000), 30000),
+  300000,
+);
+const aiImageTimeoutMs = Math.min(
+  Math.max(Number(process.env.AI_IMAGE_TIMEOUT_MS || 180000), 30000),
+  300000,
+);
 let databaseState = {
   connected: false,
   message: "Database initialization pending.",
@@ -239,11 +248,16 @@ async function createAiCover(post, user) {
     throw new Error("OPENAI_API_KEY is not configured.");
   const { imageModel } = await modelsForUser(user);
   const prompt = [
-    `Create a wide editorial ${post.section ? "website section" : "article cover"} illustration for Yeh Mera India.`,
+    `Create a premium wide editorial ${post.section ? "website section" : "article cover"} image for Yeh Mera India.`,
     `${post.section ? "Section" : "Article"}: ${post.title}.`,
     post.excerpt ? `Context: ${post.excerpt}.` : "",
+    post.content ? `Article extract: ${String(post.content).slice(0, 1800)}.` : "",
     `Theme: ${post.category || "Journal"}.`,
-    "Cinematic Indian theatre heritage, deep indigo, warm saffron, ivory manuscript texture, culturally respectful, premium literary magazine, atmospheric stage lighting, no text, no logo, no watermark.",
+    "First identify the central theme, place, period, emotional tone and strongest visual metaphor supported by the supplied text.",
+    "Use authentic Indian geography, architecture, clothing and cultural details only when supported by the context; do not invent a recognisable person, landmark or historical event.",
+    "Compose a cinematic 3:2 landscape with one clear focal subject, atmospheric depth and useful negative space for a responsive website crop.",
+    "Heritage Stage art direction: deep indigo, warm saffron, ivory manuscript texture, subtle theatrical lighting, culturally respectful, sophisticated literary magazine quality, highly detailed and natural.",
+    "No written words, captions, letters, logo, watermark, border, collage, malformed hands or duplicated subjects.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -258,10 +272,10 @@ async function createAiCover(post, user) {
       model: imageModel,
       prompt,
       size: "1536x1024",
-      quality: "medium",
+      quality: "high",
       output_format: "webp",
     }),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(aiImageTimeoutMs),
   });
   const result = await response.json();
   if (!response.ok)
@@ -281,28 +295,101 @@ function responseText(result) {
   return "";
 }
 
-async function rewritePostWithAi({ title, category, excerpt, content }, user) {
-  if (!process.env.OPENAI_API_KEY)
-    throw new Error("OPENAI_API_KEY is not configured.");
-  if (!String(excerpt || "").trim() && !String(content || "").trim())
-    throw new Error("Add a short introduction or article content first.");
-  const { textModel } = await modelsForUser(user);
+function jobStatus(status) {
+  if (status === "completed") return "completed";
+  if (["failed", "cancelled", "incomplete"].includes(status)) return "failed";
+  return status === "in_progress" ? "in_progress" : "queued";
+}
 
+async function saveProviderJobResult(jobId, response) {
+  const status = jobStatus(response.status);
+  if (status === "completed") {
+    const text = responseText(response);
+    if (!text) throw new Error("AI rewrite returned no text.");
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error("AI rewrite returned an invalid response. Please try again.");
+    }
+    await query(
+      "UPDATE ai_jobs SET status = 'completed', result = ?, error = NULL WHERE id = ?",
+      [JSON.stringify(result), jobId],
+    );
+    return { status, result };
+  }
+  if (status === "failed") {
+    const message =
+      response.error?.message ||
+      response.incomplete_details?.reason ||
+      "The AI rewrite could not be completed.";
+    await query("UPDATE ai_jobs SET status = 'failed', error = ? WHERE id = ?", [message, jobId]);
+    return { status, error: message };
+  }
+  await query("UPDATE ai_jobs SET status = ? WHERE id = ?", [status, jobId]);
+  return { status };
+}
+
+async function createResponseJob({ user, jobType, body }) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
+    body: JSON.stringify({ ...body, background: true }),
+    signal: AbortSignal.timeout(30000),
+  });
+  const providerResponse = await response.json();
+  if (!response.ok) throw new Error(aiError(providerResponse.error, response.status));
+  if (!providerResponse.id) throw new Error("AI background job was not created.");
+  const jobId = randomUUID();
+  await query(
+    `INSERT INTO ai_jobs (id, user_id, job_type, status, provider_id, expires_at)
+     VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))`,
+    [jobId, user.id, jobType, jobStatus(providerResponse.status), providerResponse.id],
+  );
+  const saved = await saveProviderJobResult(jobId, providerResponse);
+  return { jobId, status: saved.status };
+}
+
+async function startPostRewriteJob(
+  { title, category, excerpt, content, rewriteMode, useResearch },
+  user,
+) {
+  if (!process.env.OPENAI_API_KEY)
+    throw new Error("OPENAI_API_KEY is not configured.");
+  if (!String(excerpt || "").trim() && !String(content || "").trim())
+    throw new Error("Add a short introduction or article content first.");
+  const { textModel } = await modelsForUser(user);
+  const deep = rewriteMode !== "quick";
+  const research = deep && useResearch !== false;
+  return createResponseJob({
+    user,
+    jobType: "rewrite",
+    body: {
       model: textModel,
-      store: false,
+      ...(textModel.startsWith("gpt-5")
+        ? { reasoning: { effort: "low" } }
+        : {}),
+      ...(research
+        ? {
+            tools: [{ type: "web_search", search_context_size: "medium" }],
+            tool_choice: "auto",
+          }
+        : {}),
       instructions: [
-        "You are the editorial assistant for Yeh Mera India, an Indian author and theatre platform.",
-        "Rewrite the supplied short introduction and article into polished, natural, engaging prose.",
-        "Preserve the author's meaning, point of view, language, names and factual claims.",
-        "Do not invent facts, quotations, dates, people, sources or experiences.",
-        "Keep paragraph breaks in the article. Return only the requested structured fields.",
+        "You are a senior research editor for Yeh Mera India, an Indian author and theatre platform.",
+        "First infer what the author is trying to communicate, the likely audience, tone and central argument.",
+        research
+          ? "Research relevant factual and cultural context on the web before rewriting. Use trustworthy sources and list them separately."
+          : "Do not perform external research; work only from the supplied draft.",
+        "Preserve the author's distinctive voice, meaning, viewpoint, names and personal experiences.",
+        "Improve structure, depth, transitions, clarity and reader engagement.",
+        "Never invent facts, quotations, dates, people, sources or experiences.",
+        "If a factual claim cannot be verified, preserve it cautiously or flag it in researchNotes instead of presenting it as verified.",
+        "Keep paragraph breaks in the article. Do not place research notes inside the article body.",
+        "Return only the requested structured fields.",
       ].join(" "),
       input: JSON.stringify({
         title: title || "",
@@ -318,29 +405,30 @@ async function rewritePostWithAi({ title, category, excerpt, content }, user) {
           schema: {
             type: "object",
             properties: {
+              intentSummary: { type: "string" },
               excerpt: { type: "string" },
               content: { type: "string" },
+              researchNotes: { type: "string" },
+              sources: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    url: { type: "string" },
+                  },
+                  required: ["title", "url"],
+                  additionalProperties: false,
+                },
+              },
             },
-            required: ["excerpt", "content"],
+            required: ["intentSummary", "excerpt", "content", "researchNotes", "sources"],
             additionalProperties: false,
           },
         },
       },
-    }),
-    signal: AbortSignal.timeout(60000),
+    },
   });
-  const result = await response.json();
-  if (!response.ok)
-    throw new Error(aiError(result.error, response.status));
-  const text = responseText(result);
-  if (!text) throw new Error("AI rewrite returned no text.");
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(
-      "AI rewrite returned an invalid response. Please try again.",
-    );
-  }
 }
 
 async function rewritePageSectionWithAi(section, user) {
@@ -349,15 +437,14 @@ async function rewritePageSectionWithAi(section, user) {
   if (!String(section?.title || "").trim() && !String(section?.body || "").trim())
     throw new Error("Add a section title or content before rewriting.");
   const { textModel } = await modelsForUser(user);
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  return createResponseJob({
+    user,
+    jobType: "page_rewrite",
+    body: {
       model: textModel,
-      store: false,
+      ...(textModel.startsWith("gpt-5")
+        ? { reasoning: { effort: "low" } }
+        : {}),
       instructions: [
         "You are the homepage editor for Yeh Mera India, an Indian author, playwright and culture platform.",
         "Polish the supplied homepage copy while preserving its meaning, Indian cultural context and human voice.",
@@ -389,18 +476,79 @@ async function rewritePageSectionWithAi(section, user) {
           },
         },
       },
-    }),
-    signal: AbortSignal.timeout(60000),
+    },
   });
-  const result = await response.json();
-  if (!response.ok) throw new Error(aiError(result.error, response.status));
-  const text = responseText(result);
-  if (!text) throw new Error("AI rewrite returned no text.");
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error("AI rewrite returned an invalid response. Please try again.");
+}
+
+async function startImageJob({ user, jobType, targetId = null, generate }) {
+  const jobId = randomUUID();
+  await query(
+    `INSERT INTO ai_jobs (id, user_id, job_type, status, target_id, expires_at)
+     VALUES (?, ?, ?, 'queued', ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))`,
+    [jobId, user.id, jobType, targetId],
+  );
+  setImmediate(async () => {
+    try {
+      await query("UPDATE ai_jobs SET status = 'in_progress' WHERE id = ?", [jobId]);
+      const image = await generate();
+      if (jobType === "post_image" && targetId) {
+        await query("UPDATE posts SET cover_image = ? WHERE id = ?", [image, targetId]);
+      }
+      await query(
+        "UPDATE ai_jobs SET status = 'completed', result = ?, error = NULL WHERE id = ?",
+        [JSON.stringify({ image }), jobId],
+      );
+    } catch (error) {
+      console.error(`AI image job ${jobId} failed:`, error.message);
+      await query("UPDATE ai_jobs SET status = 'failed', error = ? WHERE id = ?", [
+        error.message || "AI image generation failed.",
+        jobId,
+      ]).catch(() => {});
+    }
+  });
+  return { jobId, status: "queued" };
+}
+
+async function readAiJob(job, user) {
+  if (String(job.user_id) !== String(user.id) && user.role !== "admin")
+    throw Object.assign(new Error("AI job not found."), { statusCode: 404 });
+  if (
+    ["rewrite", "page_rewrite"].includes(job.job_type) &&
+    ["queued", "in_progress"].includes(job.status) &&
+    job.provider_id
+  ) {
+    const response = await fetch(
+      `https://api.openai.com/v1/responses/${encodeURIComponent(job.provider_id)}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        signal: AbortSignal.timeout(Math.min(aiTextTimeoutMs, 30000)),
+      },
+    );
+    const providerResponse = await response.json();
+    if (!response.ok) throw new Error(aiError(providerResponse.error, response.status));
+    await saveProviderJobResult(job.id, providerResponse);
+    const refreshed = await query("SELECT * FROM ai_jobs WHERE id = ? LIMIT 1", [job.id]);
+    return refreshed[0];
   }
+  return job;
+}
+
+function mapAiJob(job) {
+  let result = null;
+  if (job.result) {
+    try {
+      result = JSON.parse(job.result);
+    } catch {
+      result = null;
+    }
+  }
+  return {
+    jobId: job.id,
+    type: job.job_type,
+    status: job.status,
+    result,
+    error: job.error || "",
+  };
 }
 
 app.get("/api/health", (_req, res) => {
@@ -629,9 +777,25 @@ app.get("/api/admin/posts", requireStaff, async (req, res, next) => {
 
 app.post("/api/admin/rewrite", requireStaff, async (req, res, next) => {
   try {
-    const rewritten = await rewritePostWithAi(req.body || {}, req.user);
-    res.json(rewritten);
+    const job = await startPostRewriteJob(req.body || {}, req.user);
+    res.status(202).json(job);
   } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/ai-jobs/:id", requireStaff, async (req, res, next) => {
+  try {
+    const rows = await query(
+      "SELECT * FROM ai_jobs WHERE id = ? AND expires_at > NOW() LIMIT 1",
+      [req.params.id],
+    );
+    if (!rows.length) return res.status(404).json({ message: "AI job not found or expired." });
+    const job = await readAiJob(rows[0], req.user);
+    res.json(mapAiJob(job));
+  } catch (error) {
+    if (error.statusCode)
+      return res.status(error.statusCode).json({ message: error.message });
     next(error);
   }
 });
@@ -789,18 +953,20 @@ app.post(
         return res.status(404).json({ message: "Post not found." });
       if (!canManagePost(req.user, rows[0]))
         return res.status(403).json({ message: "You can only update your own articles." });
-      const coverImage = await createAiCover({
-        ...mapPost(rows[0]),
-        excerpt: req.body?.prompt || rows[0].excerpt,
-      }, req.user);
-      await query("UPDATE posts SET cover_image = ? WHERE id = ?", [
-        coverImage,
-        req.params.id,
-      ]);
-      const updated = await query("SELECT * FROM posts WHERE id = ?", [
-        req.params.id,
-      ]);
-      res.json(mapPost(updated[0]));
+      const job = await startImageJob({
+        user: req.user,
+        jobType: "post_image",
+        targetId: req.params.id,
+        generate: () =>
+          createAiCover(
+            {
+              ...mapPost(rows[0]),
+              excerpt: req.body?.prompt || rows[0].excerpt,
+            },
+            req.user,
+          ),
+      });
+      res.status(202).json(job);
     } catch (error) {
       next(error);
     }
@@ -883,7 +1049,7 @@ app.put("/api/admin/homepage", requireAdmin, async (req, res, next) => {
 
 app.post("/api/admin/homepage/rewrite", requireAdmin, async (req, res, next) => {
   try {
-    res.json(await rewritePageSectionWithAi(req.body || {}, req.user));
+    res.status(202).json(await rewritePageSectionWithAi(req.body || {}, req.user));
   } catch (error) {
     next(error);
   }
@@ -894,11 +1060,16 @@ app.post("/api/admin/homepage/generate-image", requireAdmin, async (req, res, ne
     const section = String(req.body?.section || "Homepage section").slice(0, 100);
     const title = String(req.body?.title || section).slice(0, 500);
     const context = String(req.body?.prompt || req.body?.body || "").slice(0, 3000);
-    const image = await createAiCover(
-      { section, title, excerpt: context, category: req.body?.page || "Homepage" },
-      req.user,
-    );
-    res.json({ image });
+    const job = await startImageJob({
+      user: req.user,
+      jobType: "page_image",
+      generate: () =>
+        createAiCover(
+          { section, title, excerpt: context, category: req.body?.page || "Homepage" },
+          req.user,
+        ),
+    });
+    res.status(202).json(job);
   } catch (error) {
     next(error);
   }
@@ -1017,6 +1188,11 @@ app.use((error, _req, res, _next) => {
   console.error("Request error:", error.message);
   if (error instanceof multer.MulterError)
     return res.status(400).json({ message: error.message });
+  if (error.name === "TimeoutError" || error.name === "AbortError")
+    return res.status(504).json({
+      message:
+        "The AI request took longer than three minutes. Try again or ask Admin to select a faster model such as GPT-5.4 mini.",
+    });
   const databaseError =
     String(error.code || "").startsWith("ER_") ||
     ["ECONNREFUSED", "ETIMEDOUT", "ENOTFOUND"].includes(error.code);

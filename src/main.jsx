@@ -81,6 +81,28 @@ async function request(path, options = {}) {
   return data;
 }
 
+const wait = (milliseconds) =>
+  new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+async function waitForAiJob(jobId, token, onProgress) {
+  let attempts = 0;
+  while (true) {
+    const job = await request(`/api/admin/ai-jobs/${jobId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (job.status === "completed") return job.result || {};
+    if (job.status === "failed")
+      throw new Error(job.error || "The AI job could not be completed.");
+    attempts += 1;
+    onProgress?.(
+      attempts < 4
+        ? "AI job started in the background…"
+        : "Still working—deep research and high-quality images can take several minutes. You can keep this screen open.",
+    );
+    await wait(2500);
+  }
+}
+
 function go(path) {
   if (path.startsWith("/#")) {
     const id = path.slice(2);
@@ -1051,7 +1073,7 @@ function HomepageEditor({ token, onClose }) {
   async function rewriteSection() {
     setBusy("rewrite"); setError(""); setNotice("");
     try {
-      const data = await request("/api/admin/homepage/rewrite", {
+      const job = await request("/api/admin/homepage/rewrite", {
         method: "POST",
         headers: { ...auth, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1062,6 +1084,8 @@ function HomepageEditor({ token, onClose }) {
           body: form[active.body],
         }),
       });
+      setNotice("AI rewrite started in the background…");
+      const data = await waitForAiJob(job.jobId, token, setNotice);
       setForm((old) => ({
         ...old,
         ...(active.eyebrow ? { [active.eyebrow]: data.eyebrow } : {}),
@@ -1074,7 +1098,7 @@ function HomepageEditor({ token, onClose }) {
   async function generateImage() {
     setBusy("image"); setError(""); setNotice("");
     try {
-      const data = await request("/api/admin/homepage/generate-image", {
+      const job = await request("/api/admin/homepage/generate-image", {
         method: "POST",
         headers: { ...auth, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1085,6 +1109,8 @@ function HomepageEditor({ token, onClose }) {
           prompt: imagePrompts[active.key] || form[active.body],
         }),
       });
+      setNotice("High-quality image generation started in the background…");
+      const data = await waitForAiJob(job.jobId, token, setNotice);
       update(active.image, data.image);
       setNotice(`AI image generated for ${active.label}. Review and save it.`);
     } catch (e) { setError(e.message); } finally { setBusy(""); }
@@ -1207,6 +1233,9 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
   const [uploading, setUploading] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [rewritePreview, setRewritePreview] = useState(null);
+  const [rewriteMode, setRewriteMode] = useState("deep");
+  const [useResearch, setUseResearch] = useState(true);
+  const [aiProgress, setAiProgress] = useState("");
   const [aiModel, setAiModel] = useState("");
   const [error, setError] = useState("");
   const auth = { Authorization: `Bearer ${token}` };
@@ -1263,18 +1292,22 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
     }
     setBusy(true);
     setError("");
+    setAiProgress("Starting high-quality cover generation…");
     try {
-      const updated = await request(
+      const job = await request(
         `/api/admin/posts/${form.id}/generate-image`,
         {
           method: "POST",
           headers: { ...auth, "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: form.excerpt }),
+          body: JSON.stringify({ prompt: form.imageAlt || form.excerpt }),
         },
       );
-      setForm({ ...updated, generateImage: false });
+      const result = await waitForAiJob(job.jobId, token, setAiProgress);
+      setForm((old) => ({ ...old, coverImage: result.image, generateImage: false }));
+      setAiProgress("High-quality cover generated. Save the post to keep it.");
     } catch (e) {
       setError(e.message);
+      setAiProgress("");
     } finally {
       setBusy(false);
     }
@@ -1287,8 +1320,13 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
     setRewriting(true);
     setError("");
     setRewritePreview(null);
+    setAiProgress(
+      rewriteMode === "deep"
+        ? "Analysing the author's intent and starting research…"
+        : "Starting a quick editorial polish…",
+    );
     try {
-      const rewritten = await request("/api/admin/rewrite", {
+      const job = await request("/api/admin/rewrite", {
         method: "POST",
         headers: { ...auth, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1296,11 +1334,16 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
           category: form.category,
           excerpt: form.excerpt,
           content: form.content,
+          rewriteMode,
+          useResearch,
         }),
       });
+      const rewritten = await waitForAiJob(job.jobId, token, setAiProgress);
       setRewritePreview(rewritten);
+      setAiProgress("Rewrite ready for your review.");
     } catch (e) {
       setError(e.message);
+      setAiProgress("");
     } finally {
       setRewriting(false);
     }
@@ -1383,6 +1426,12 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
                   <h3>Review before using</h3>
                   <span>Your post has not been changed yet.</span>
                 </div>
+                {rewritePreview.intentSummary && (
+                  <div className="rewrite-insight">
+                    <b>What AI understood the author wants to say</b>
+                    <p>{rewritePreview.intentSummary}</p>
+                  </div>
+                )}
                 <label>
                   Rewritten short introduction
                   <textarea rows="4" readOnly value={rewritePreview.excerpt} />
@@ -1391,6 +1440,22 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
                   Rewritten article
                   <textarea rows="12" readOnly value={rewritePreview.content} />
                 </label>
+                {rewritePreview.researchNotes && (
+                  <div className="rewrite-insight">
+                    <b>Research notes</b>
+                    <p>{rewritePreview.researchNotes}</p>
+                  </div>
+                )}
+                {Boolean(rewritePreview.sources?.length) && (
+                  <div className="research-sources">
+                    <b>Sources checked</b>
+                    {rewritePreview.sources.map((source, index) => (
+                      <a href={source.url} target="_blank" rel="noreferrer" key={`${source.url}-${index}`}>
+                        {source.title || source.url}
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <div className="rewrite-actions">
                   <button
                     type="button"
@@ -1457,10 +1522,24 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
             >
               <Sparkles /> {rewriting ? "Rewriting post…" : "Rewrite text with AI"}
             </button>
+            <label className="rewrite-mode">
+              Rewrite depth
+              <select value={rewriteMode} onChange={(e) => setRewriteMode(e.target.value)} disabled={rewriting}>
+                <option value="deep">Deep research & rewrite</option>
+                <option value="quick">Quick polish</option>
+              </select>
+            </label>
+            {rewriteMode === "deep" && (
+              <label className="checkbox research-toggle">
+                <input type="checkbox" checked={useResearch} onChange={(e) => setUseResearch(e.target.checked)} disabled={rewriting} />
+                Research trusted web sources
+              </label>
+            )}
             <p className="ai-helper">
-              Optional. Review the rewrite before applying it.
+              Optional. Review the rewrite before applying it. AI work continues as a background job, so slow research or image generation will not cause a browser timeout.
               {aiModel && <> Model: <b>{aiModel}</b>{role === "author" ? " · selected by Admin" : ""}.</>}
             </p>
+            {aiProgress && <p className="ai-progress" role="status">{aiProgress}</p>}
             {!form.coverImage && (
               <label className="checkbox">
                 <input
