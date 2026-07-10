@@ -1,1 +1,27 @@
-{"name":"yehmeraindia-fresh","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0 --port 3000","build":"vite build","preview":"vite preview --host 0.0.0.0 --port 3000","server":"node server/index.js","start":"node server/index.js"},"dependencies":{"@vitejs/plugin-react":"^5.1.1","vite":"^7.2.4","typescript":"~5.9.3","react":"^19.2.0","react-dom":"^19.2.0","lucide-react":"^0.562.0","express":"^5.1.0","cors":"^2.8.5","helmet":"^8.1.0","dotenv":"^17.2.3"},"devDependencies":{}}
+{
+  "name": "yehmeraindia-cms",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 3000",
+    "server": "node server/index.js",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.4",
+    "typescript": "~5.9.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "lucide-react": "^0.562.0",
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "helmet": "^8.1.0",
+    "dotenv": "^17.2.3",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {}
+}

@@ -1,66 +1,46 @@
-# Yeh Mera India Fresh Starter
+# Yeh Mera India
 
-Fresh rebuild for **yehmeraindia.com**.
+A full-stack author, playwright and AI exploration platform with a public journal and a protected content studio.
 
-## Positioning
+## Included
 
-Yeh Mera India is designed as a premium digital magazine and author-led storytelling platform for:
+- Heritage Stage responsive public website
+- Journal listing and individual article pages
+- Password-protected admin panel
+- Create, modify, publish, draft and delete posts
+- Upload JPG, PNG, WebP or GIF cover images up to 5 MB
+- Generate an AI cover when a post has no media
+- File-based JSON content store suitable for a single-server deployment
+- Express security headers and signed eight-hour admin sessions
 
-- Indian culture
-- Geography and places
-- Journalism and field notes
-- Books and author profile
-- Theatre and events
-- Gallery and human stories
-- AI-powered visitor engagement
-
-## Current fresh scope
-
-This branch intentionally starts clean. Old code is preserved in backup branches.
-
-Included now:
-
-- React + Vite frontend
-- Clean landing page design
-- Magazine category structure
-- India Atlas concept section
-- Author/founder section
-- AI Guide UI concept
-- Simple Express backend starter
-- Deployment-friendly npm scripts
-
-## Run frontend
+## Local setup
 
 ```bash
 npm install
-npm run dev
-```
-
-## Build frontend
-
-```bash
+cp .env.example .env
 npm run build
+npm start
 ```
 
-## Run backend
+The production server hosts both the API and the built frontend on `PORT` (default `8080`). For separate local frontend development, run `npm run dev` and set `VITE_API_URL=http://localhost:8080`.
 
-```bash
-npm run server
+## Required environment values
+
+```env
+ADMIN_EMAIL=admin@yehmeraindia.com
+ADMIN_PASSWORD=use-a-strong-password
+SESSION_SECRET=use-a-long-random-secret
 ```
 
-## Backup
+To enable AI cover generation:
 
-Old main code was backed up before fresh replacement:
+```env
+OPENAI_API_KEY=your-server-side-key
+OPENAI_IMAGE_MODEL=gpt-image-2
+```
 
-- `backup/main-before-fresh-20260708`
-- `backup/main-before-fresh-20260708-v2`
-- `backup/main-before-fresh-20260708-v3`
-- `backup/main-with-marker-before-fresh-20260708`
+The OpenAI key is only read by the Express backend. Never add the real `.env` file to Git.
 
-## Next build phases
+## Persistent storage
 
-1. Public website pages
-2. Admin CMS
-3. Database schema
-4. AI visitor guide
-5. Visitor analytics and recommendation engine
+Posts are stored in `server/data/posts.json` and uploaded/generated images in `server/uploads`. Mount both paths to persistent storage when deploying with Docker or a cloud service. For multi-server scaling, migrate these two resources to a database and object storage.
