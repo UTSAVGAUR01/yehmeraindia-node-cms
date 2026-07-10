@@ -11,11 +11,15 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut,
+  Mail,
   Menu,
+  MessageCircle,
   PenLine,
   Plus,
   Save,
+  Share2,
   UserPlus,
+  Users,
   Sparkles,
   Theater,
   Trash2,
@@ -36,6 +40,37 @@ const emptyPost = {
   imageAlt: "",
   featured: false,
   generateImage: true,
+};
+
+const defaultHomepage = {
+  heroEyebrow: "Author · Playwright · AI Explorer",
+  heroTitle: "Stories rooted in India.\nIdeas shaped for tomorrow.",
+  heroBody: "A home for stories, stagecraft, and experiments at the meeting point of culture and artificial intelligence.",
+  heroImage: "",
+  aboutEyebrow: "Writer · dramatist · curious technologist",
+  aboutTitle: "One creative life, many forms of expression.",
+  aboutBody: "This platform presents an Indian author and playwright whose work moves between the written page, the living stage and emerging technology. Yeh Mera India is both a personal archive and an open invitation to think, feel and imagine.",
+  aboutImage: "",
+  workEyebrow: "Selected work",
+  workTitle: "Words made to be read, heard and performed.",
+  workBody: "Books, drama and responsible experiments with artificial intelligence.",
+  workImage: "",
+  aiEyebrow: "The AI Lab",
+  aiTitle: "New tools. Human imagination.",
+  aiBody: "Experiments with generative art, multilingual storytelling and research tools, always guided by authorship, attribution and respect for culture.",
+  aiImage: "",
+  journalEyebrow: "From the journal",
+  journalTitle: "Notes from the page, stage and lab.",
+  journalBody: "Recent writing from Yeh Mera India.",
+  journalImage: "",
+  contactTitle: "Stories, stagecraft and ideas for tomorrow.",
+  contactBody: "Start a conversation with Yeh Mera India.",
+  contactImage: "",
+  contactEmail: "hello@yehmeraindia.com",
+  journalPageEyebrow: "Yeh Mera India Journal",
+  journalPageTitle: "Ideas from the page, the stage and the future.",
+  journalPageBody: "Read essays, theatre notes, cultural reflections and responsible AI experiments.",
+  journalPageImage: "",
 };
 
 async function request(path, options = {}) {
@@ -128,7 +163,7 @@ function Header({ dark = true }) {
           {user ? (
             <>
               <b>{user.name}</b>
-              {user.role === "admin" && link("Studio", "/admin")}
+              {["admin", "author"].includes(user.role) && link("Studio", "/admin")}
               <button className="auth-button ghost" onClick={signOut}>
                 <LogOut size={15} /> Sign out
               </button>
@@ -182,10 +217,14 @@ function Cover({ post, className = "" }) {
 
 function Home() {
   const [posts, setPosts] = useState([]);
+  const [homepage, setHomepage] = useState(defaultHomepage);
   useEffect(() => {
     request("/api/posts")
       .then(setPosts)
       .catch(() => setPosts([]));
+    request("/api/homepage")
+      .then((data) => setHomepage({ ...defaultHomepage, ...data }))
+      .catch(() => setHomepage(defaultHomepage));
   }, []);
   const featured = posts.find((post) => post.featured) || posts[0];
 
@@ -194,21 +233,15 @@ function Home() {
       <div className="hero-shell">
         <Header />
         <section className="hero">
-          <div className="hero-art" />
+          <div
+            className="hero-art"
+            style={homepage.heroImage ? { backgroundImage: `url(${homepage.heroImage})` } : undefined}
+          />
           <div className="hero-scrim" />
           <div className="hero-copy reveal">
-            <p className="eyebrow">
-              Author <i /> Playwright <i /> AI Explorer
-            </p>
-            <h1>
-              Stories rooted in India.
-              <br />
-              Ideas shaped for tomorrow.
-            </h1>
-            <p>
-              A home for stories, stagecraft, and experiments at the meeting
-              point of culture and artificial intelligence.
-            </p>
+            <p className="eyebrow">{homepage.heroEyebrow}</p>
+            <h1 className="multiline">{homepage.heroTitle}</h1>
+            <p>{homepage.heroBody}</p>
             <div className="hero-actions">
               <button className="button primary" onClick={() => go("/journal")}>
                 Explore the work <ArrowRight size={18} />
@@ -235,16 +268,12 @@ function Home() {
         </div>
         <div className="author-grid">
           <div>
-            <p className="eyebrow">Writer · dramatist · curious technologist</p>
-            <h2>One creative life, many forms of expression.</h2>
+            {homepage.aboutImage && <img className="section-image about-image" src={homepage.aboutImage} alt={homepage.aboutTitle} />}
+            <p className="eyebrow">{homepage.aboutEyebrow}</p>
+            <h2>{homepage.aboutTitle}</h2>
           </div>
           <div>
-            <p>
-              This platform presents an Indian author and playwright whose work
-              moves between the written page, the living stage and emerging
-              technology. Yeh Mera India is both a personal archive and an open
-              invitation to think, feel and imagine.
-            </p>
+            <p>{homepage.aboutBody}</p>
             <a href="#work" className="text-link">
               Discover the journey <ChevronRight size={18} />
             </a>
@@ -255,13 +284,15 @@ function Home() {
       <section id="work" className="section work-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Selected work</p>
-            <h2>Words made to be read, heard and performed.</h2>
+            <p className="eyebrow">{homepage.workEyebrow}</p>
+            <h2>{homepage.workTitle}</h2>
+            {homepage.workBody && <p>{homepage.workBody}</p>}
           </div>
           <button className="text-link" onClick={() => go("/journal")}>
             View journal <ArrowRight size={18} />
           </button>
         </div>
+        {homepage.workImage && <img className="section-image wide-section-image" src={homepage.workImage} alt={homepage.workTitle} />}
         <div className="work-grid">
           <article className="work-card">
             <BookOpen />
@@ -292,35 +323,28 @@ function Home() {
 
       <section id="ai" className="section ai-section">
         <div>
-          <p className="eyebrow">The AI Lab</p>
-          <h2>
-            New tools.
-            <br />
-            Human imagination.
-          </h2>
-          <p>
-            Experiments with generative art, multilingual storytelling and
-            research tools, always guided by authorship, attribution and respect
-            for culture.
-          </p>
+          <p className="eyebrow">{homepage.aiEyebrow}</p>
+          <h2 className="multiline">{homepage.aiTitle}</h2>
+          <p>{homepage.aiBody}</p>
         </div>
-        <div className="ai-orbit">
-          <Bot />
-          <span className="orbit one" />
-          <span className="orbit two" />
-          <b>
-            Responsible
-            <br />
-            AI
-          </b>
-        </div>
+        {homepage.aiImage ? (
+          <img className="section-image ai-section-image" src={homepage.aiImage} alt={homepage.aiTitle} />
+        ) : (
+          <div className="ai-orbit">
+            <Bot />
+            <span className="orbit one" />
+            <span className="orbit two" />
+            <b>Responsible<br />AI</b>
+          </div>
+        )}
       </section>
 
       <section className="section journal-preview">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">From the journal</p>
-            <h2>Notes from the page, stage and lab.</h2>
+            <p className="eyebrow">{homepage.journalEyebrow}</p>
+            <h2>{homepage.journalTitle}</h2>
+            {homepage.journalBody && <p>{homepage.journalBody}</p>}
           </div>
           <button
             className="button secondary light"
@@ -329,6 +353,7 @@ function Home() {
             All posts
           </button>
         </div>
+        {homepage.journalImage && <img className="section-image wide-section-image" src={homepage.journalImage} alt={homepage.journalTitle} />}
         {posts.length ? (
           <div className="post-grid">
             {posts.slice(0, 3).map((post) => (
@@ -364,12 +389,16 @@ function Home() {
         </section>
       )}
 
-      <footer id="contact">
+      <footer
+        id="contact"
+        style={homepage.contactImage ? { backgroundImage: `linear-gradient(rgba(5,7,22,.88), rgba(5,7,22,.88)), url(${homepage.contactImage})` } : undefined}
+      >
         <Logo />
-        <p>Stories, stagecraft and ideas for tomorrow.</p>
+        <p>{homepage.contactTitle}</p>
+        {homepage.contactBody && <span>{homepage.contactBody}</span>}
         <div>
           <button onClick={() => go("/journal")}>Journal</button>
-          <a href="mailto:hello@yehmeraindia.com">hello@yehmeraindia.com</a>
+          <a href={`mailto:${homepage.contactEmail}`}>{homepage.contactEmail}</a>
         </div>
         <small>© {new Date().getFullYear()} Yeh Mera India</small>
       </footer>
@@ -403,11 +432,15 @@ function PostCard({ post }) {
 
 function Journal() {
   const [posts, setPosts] = useState([]);
+  const [homepage, setHomepage] = useState(defaultHomepage);
   const [category, setCategory] = useState("All");
   useEffect(() => {
     request("/api/posts")
       .then(setPosts)
       .catch(() => setPosts([]));
+    request("/api/homepage")
+      .then((data) => setHomepage({ ...defaultHomepage, ...data }))
+      .catch(() => setHomepage(defaultHomepage));
   }, []);
   const categories = useMemo(
     () => ["All", ...new Set(posts.map((post) => post.category))],
@@ -420,9 +453,13 @@ function Journal() {
   return (
     <main className="paper-page">
       <Header dark={false} />
-      <section className="journal-head">
-        <p className="eyebrow">Yeh Mera India Journal</p>
-        <h1>Ideas from the page, the stage and the future.</h1>
+      <section
+        className="journal-head"
+        style={homepage.journalPageImage ? { backgroundImage: `linear-gradient(rgba(246,242,234,.9), rgba(246,242,234,.9)), url(${homepage.journalPageImage})` } : undefined}
+      >
+        <p className="eyebrow">{homepage.journalPageEyebrow}</p>
+        <h1>{homepage.journalPageTitle}</h1>
+        {homepage.journalPageBody && <p>{homepage.journalPageBody}</p>}
         <div className="filters">
           {categories.map((item) => (
             <button
@@ -452,11 +489,51 @@ function Journal() {
 function Article({ slug }) {
   const [post, setPost] = useState(null);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [sending, setSending] = useState(false);
+  const user = (() => {
+    try { return JSON.parse(localStorage.getItem("ymi_user") || "null"); }
+    catch { return null; }
+  })();
   useEffect(() => {
     request(`/api/posts/${slug}`)
       .then(setPost)
       .catch((e) => setError(e.message));
   }, [slug]);
+  async function shareArticle() {
+    const share = { title: post.title, text: post.excerpt, url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(share);
+      else {
+        await navigator.clipboard.writeText(window.location.href);
+        setFeedback("Article link copied.");
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") setFeedback("Unable to share this article.");
+    }
+  }
+  async function sendMessage(event) {
+    event.preventDefault();
+    setSending(true);
+    setFeedback("");
+    try {
+      const data = await request(`/api/posts/${post.id}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ymi_user_token") || ""}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+      });
+      setMessage("");
+      setFeedback(data.message);
+    } catch (e) {
+      setFeedback(e.message);
+    } finally {
+      setSending(false);
+    }
+  }
   if (error)
     return (
       <main className="paper-page">
@@ -485,6 +562,10 @@ function Article({ slug }) {
               { day: "numeric", month: "long", year: "numeric" },
             )}
           </span>
+          {post.authorName && <span>By {post.authorName}</span>}
+          <button className="button secondary light article-share" onClick={shareArticle}>
+            <Share2 size={17} /> Share article
+          </button>
         </div>
         <Cover post={post} className="article-cover" />
         <div className="article-body">
@@ -492,6 +573,35 @@ function Article({ slug }) {
             <p key={index}>{paragraph}</p>
           ))}
         </div>
+        <section className="author-contact">
+          <MessageCircle />
+          <div>
+            <p className="eyebrow">Contact the author</p>
+            <h2>Send a message about this article.</h2>
+            {!user && (
+              <p>Please <button onClick={() => go("/signin")}>sign in</button> as a viewer to message the author.</p>
+            )}
+            {user?.role === "viewer" && post.authorId && (
+              <form onSubmit={sendMessage}>
+                <textarea
+                  required
+                  minLength="3"
+                  maxLength="2000"
+                  rows="5"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Write your message to the author"
+                />
+                <button className="button primary" disabled={sending}>
+                  <Mail size={17} /> {sending ? "Sending…" : "Send message"}
+                </button>
+              </form>
+            )}
+            {user && user.role !== "viewer" && <p>Viewer accounts can send article messages.</p>}
+            {user?.role === "viewer" && !post.authorId && <p>This article does not have an assigned author.</p>}
+            {feedback && <div className="notice compact">{feedback}</div>}
+          </div>
+        </section>
       </article>
       <footer>
         <Logo />
@@ -524,7 +634,7 @@ function AuthPage({ mode }) {
       );
       localStorage.setItem("ymi_user_token", data.token);
       localStorage.setItem("ymi_user", JSON.stringify(data.user));
-      if (data.user?.role === "admin") {
+      if (["admin", "author"].includes(data.user?.role)) {
         localStorage.setItem("ymi_admin_token", data.token);
         go("/admin");
       } else {
@@ -617,7 +727,9 @@ function AdminLogin({ onLogin }) {
         body: JSON.stringify({ email, password }),
       });
       localStorage.setItem("ymi_admin_token", data.token);
-      onLogin(data.token);
+      localStorage.setItem("ymi_user_token", data.token);
+      localStorage.setItem("ymi_user", JSON.stringify(data.user));
+      onLogin(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -631,7 +743,7 @@ function AdminLogin({ onLogin }) {
       </button>
       <form onSubmit={submit}>
         <Logo />
-        <p className="eyebrow">Private administration</p>
+        <p className="eyebrow">Author and admin studio</p>
         <h1>Welcome backstage.</h1>
         <label>
           Email
@@ -663,22 +775,34 @@ function AdminLogin({ onLogin }) {
 
 function Admin() {
   const [token, setToken] = useState(localStorage.getItem("ymi_admin_token"));
+  const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [managingUsers, setManagingUsers] = useState(false);
+  const [editingHomepage, setEditingHomepage] = useState(false);
+  const [editingAiSettings, setEditingAiSettings] = useState(false);
+  const [viewingMessages, setViewingMessages] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const auth = { Authorization: `Bearer ${token}` };
   function load() {
     if (!token) return;
-    request("/api/admin/posts", { headers: auth })
-      .then(setPosts)
+    Promise.all([
+      request("/api/auth/me", { headers: auth }),
+      request("/api/admin/posts", { headers: auth }),
+    ])
+      .then(([account, loadedPosts]) => {
+        if (!["admin", "author"].includes(account.user?.role)) throw new Error("Studio access required.");
+        setUser(account.user);
+        setPosts(loadedPosts);
+      })
       .catch(() => {
         localStorage.removeItem("ymi_admin_token");
         setToken(null);
       });
   }
   useEffect(load, [token]);
-  if (!token) return <AdminLogin onLogin={setToken} />;
+  if (!token) return <AdminLogin onLogin={(data) => { setUser(data.user); setToken(data.token); }} />;
   async function remove(post) {
     if (!window.confirm(`Delete “${post.title}”? This cannot be undone.`))
       return;
@@ -695,6 +819,8 @@ function Admin() {
   }
   function logout() {
     localStorage.removeItem("ymi_admin_token");
+    localStorage.removeItem("ymi_user_token");
+    localStorage.removeItem("ymi_user");
     setToken(null);
   }
   return (
@@ -707,6 +833,24 @@ function Admin() {
         <button onClick={() => setEditing({ ...emptyPost })}>
           <Plus /> New post
         </button>
+        {user?.role === "admin" && (
+          <button onClick={() => setManagingUsers(true)}>
+            <Users /> Users & roles
+          </button>
+        )}
+        {user?.role === "admin" && (
+          <button onClick={() => setEditingHomepage(true)}>
+            <LayoutDashboard /> Page designer
+          </button>
+        )}
+        {user?.role === "admin" && (
+          <button onClick={() => setEditingAiSettings(true)}>
+            <Sparkles /> AI settings
+          </button>
+        )}
+        <button onClick={() => setViewingMessages(true)}>
+          <Mail /> Messages
+        </button>
         <button onClick={() => go("/")}>
           <BookOpen /> View website
         </button>
@@ -718,8 +862,8 @@ function Admin() {
         <header>
           <div>
             <p className="eyebrow">Content studio</p>
-            <h1>Posts</h1>
-            <p>Create, update and publish stories across Yeh Mera India.</p>
+            <h1>{user?.role === "author" ? "My posts" : "All posts"}</h1>
+            <p>{user?.role === "author" ? "Create and manage your own published work." : "Create, update and publish stories across Yeh Mera India."}</p>
           </div>
           <button
             className="button primary"
@@ -796,6 +940,7 @@ function Admin() {
         <PostEditor
           post={editing}
           token={token}
+          role={user?.role}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -804,19 +949,273 @@ function Admin() {
           }}
         />
       )}
+      {managingUsers && (
+        <UserManager token={token} currentUser={user} onClose={() => setManagingUsers(false)} />
+      )}
+      {editingHomepage && (
+        <HomepageEditor token={token} onClose={() => setEditingHomepage(false)} />
+      )}
+      {editingAiSettings && (
+        <AiSettings token={token} onClose={() => setEditingAiSettings(false)} />
+      )}
+      {viewingMessages && (
+        <MessageManager token={token} onClose={() => setViewingMessages(false)} />
+      )}
     </main>
   );
 }
 
-function PostEditor({ post, token, onClose, onSaved }) {
+function UserManager({ token, currentUser, onClose }) {
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  useEffect(() => {
+    request("/api/admin/users", { headers: auth }).then(setUsers).catch((e) => setError(e.message));
+  }, []);
+  async function updateUser(user, changes) {
+    setError("");
+    try {
+      const updated = await request(`/api/admin/users/${user.id}`, {
+        method: "PUT",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify({ role: changes.role ?? user.role, status: changes.status ?? user.status }),
+      });
+      setUsers((items) => items.map((item) => String(item.id) === String(updated.id) ? updated : item));
+      setNotice(`${updated.name}'s access was updated.`);
+    } catch (e) { setError(e.message); }
+  }
+  return (
+    <div className="editor-overlay">
+      <section className="editor manager-panel">
+        <header><div><p className="eyebrow">Administration</p><h2>Users & roles</h2></div><button onClick={onClose}><X /></button></header>
+        <div className="manager-body">
+          <p>New sign-ups start as viewers. Promote trusted users to author or admin.</p>
+          {notice && <div className="notice compact">{notice}</div>}
+          {error && <div className="form-error">{error}</div>}
+          <div className="user-table">
+            <div className="user-head"><span>User</span><span>Role</span><span>Status</span></div>
+            {users.map((user) => (
+              <div className="user-row" key={user.id}>
+                <span><b>{user.name}</b><small>{user.email}</small></span>
+                <select value={user.role} disabled={String(user.id) === String(currentUser?.id)} onChange={(e) => updateUser(user, { role: e.target.value })}>
+                  <option value="admin">Admin</option><option value="author">Author</option><option value="viewer">Viewer</option>
+                </select>
+                <select value={user.status} disabled={String(user.id) === String(currentUser?.id)} onChange={(e) => updateUser(user, { status: e.target.value })}>
+                  <option value="active">Active</option><option value="inactive">Inactive</option>
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const pageDesignerSections = [
+  { key: "hero", page: "Homepage", label: "Hero banner", eyebrow: "heroEyebrow", title: "heroTitle", body: "heroBody", image: "heroImage" },
+  { key: "about", page: "Homepage", label: "About author", eyebrow: "aboutEyebrow", title: "aboutTitle", body: "aboutBody", image: "aboutImage" },
+  { key: "work", page: "Homepage", label: "Books & plays", eyebrow: "workEyebrow", title: "workTitle", body: "workBody", image: "workImage" },
+  { key: "ai", page: "Homepage", label: "AI Lab", eyebrow: "aiEyebrow", title: "aiTitle", body: "aiBody", image: "aiImage" },
+  { key: "journal", page: "Homepage", label: "Journal block", eyebrow: "journalEyebrow", title: "journalTitle", body: "journalBody", image: "journalImage" },
+  { key: "contact", page: "Homepage", label: "Contact footer", eyebrow: null, title: "contactTitle", body: "contactBody", image: "contactImage" },
+  { key: "journalPage", page: "Journal page", label: "Journal page header", eyebrow: "journalPageEyebrow", title: "journalPageTitle", body: "journalPageBody", image: "journalPageImage" },
+];
+
+function HomepageEditor({ token, onClose }) {
+  const [form, setForm] = useState(defaultHomepage);
+  const [activeKey, setActiveKey] = useState("hero");
+  const [imagePrompts, setImagePrompts] = useState({});
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  const active = pageDesignerSections.find((section) => section.key === activeKey) || pageDesignerSections[0];
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  useEffect(() => {
+    request("/api/homepage")
+      .then((data) => setForm({ ...defaultHomepage, ...data }))
+      .catch((e) => setError(e.message));
+  }, []);
+  async function uploadImage(file) {
+    if (!file) return;
+    setBusy("upload"); setError("");
+    try {
+      const body = new FormData(); body.append("image", file);
+      const data = await request("/api/admin/upload", { method: "POST", headers: auth, body });
+      update(active.image, data.url);
+      setNotice(`${active.label} image uploaded. Save the page to publish it.`);
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  async function rewriteSection() {
+    setBusy("rewrite"); setError(""); setNotice("");
+    try {
+      const data = await request("/api/admin/homepage/rewrite", {
+        method: "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: active.page,
+          section: active.label,
+          eyebrow: active.eyebrow ? form[active.eyebrow] : "",
+          title: form[active.title],
+          body: form[active.body],
+        }),
+      });
+      setForm((old) => ({
+        ...old,
+        ...(active.eyebrow ? { [active.eyebrow]: data.eyebrow } : {}),
+        [active.title]: data.title,
+        [active.body]: data.body,
+      }));
+      setNotice(`AI rewrite prepared for ${active.label}. Review and save it.`);
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  async function generateImage() {
+    setBusy("image"); setError(""); setNotice("");
+    try {
+      const data = await request("/api/admin/homepage/generate-image", {
+        method: "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: active.page,
+          section: active.label,
+          title: form[active.title],
+          body: form[active.body],
+          prompt: imagePrompts[active.key] || form[active.body],
+        }),
+      });
+      update(active.image, data.image);
+      setNotice(`AI image generated for ${active.label}. Review and save it.`);
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  async function save(event) {
+    event.preventDefault(); setBusy("save"); setError("");
+    try {
+      const data = await request("/api/admin/homepage", {
+        method: "PUT", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify(form),
+      });
+      setForm({ ...defaultHomepage, ...data }); setNotice("Page design saved successfully.");
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  return (
+    <div className="editor-overlay">
+      <form className="editor homepage-editor" onSubmit={save}>
+        <header><div><p className="eyebrow">Visual CMS</p><h2>Page designer</h2></div><button type="button" onClick={onClose}><X /></button></header>
+        <div className="page-designer">
+          <aside className="section-tabs">
+            {pageDesignerSections.map((section) => (
+              <button type="button" className={active.key === section.key ? "active" : ""} key={section.key} onClick={() => { setActiveKey(section.key); setError(""); setNotice(""); }}>
+                <small>{section.page}</small>{section.label}
+              </button>
+            ))}
+          </aside>
+          <div className="manager-body homepage-fields">
+            <div className="designer-heading"><p className="eyebrow">{active.page}</p><h3>{active.label}</h3><span>Edit text and image, or ask AI to create either one.</span></div>
+            {notice && <div className="notice compact">{notice}</div>}
+            {error && <div className="form-error">{error}</div>}
+            {active.eyebrow && <label>Eyebrow<input value={form[active.eyebrow]} onChange={(e) => update(active.eyebrow, e.target.value)} /></label>}
+            <label>Title<textarea required rows="3" value={form[active.title]} onChange={(e) => update(active.title, e.target.value)} /></label>
+            <label>Content<textarea rows="5" value={form[active.body]} onChange={(e) => update(active.body, e.target.value)} /></label>
+            {active.key === "contact" && <label>Contact email<input required type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} /></label>}
+            <button type="button" className="ai-button designer-action" onClick={rewriteSection} disabled={Boolean(busy)}><Sparkles /> {busy === "rewrite" ? "Rewriting…" : "Rewrite this block with AI"}</button>
+            <label>AI image instructions<input value={imagePrompts[active.key] || ""} onChange={(e) => setImagePrompts((old) => ({ ...old, [active.key]: e.target.value }))} placeholder={`Describe the image for ${active.label}`} /></label>
+            <div className="designer-image-actions">
+              <label className="upload-button"><Upload /> {busy === "upload" ? "Uploading…" : "Upload image"}<input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => uploadImage(e.target.files?.[0])} /></label>
+              <button type="button" className="ai-button" onClick={generateImage} disabled={Boolean(busy)}><ImagePlus /> {busy === "image" ? "Generating…" : "Generate image with AI"}</button>
+            </div>
+            {form[active.image] && <div className="homepage-image"><img src={form[active.image]} alt={`${active.label} preview`} /><button type="button" onClick={() => update(active.image, "")}><X /> Remove</button></div>}
+          </div>
+        </div>
+        <footer><span>Changes remain private until you save.</span><button className="button primary" disabled={Boolean(busy)}><Save /> {busy === "save" ? "Saving…" : "Save page design"}</button></footer>
+      </form>
+    </div>
+  );
+}
+
+function AiSettings({ token, onClose }) {
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  useEffect(() => {
+    request("/api/admin/ai-settings", { headers: auth }).then(setForm).catch((e) => setError(e.message));
+  }, []);
+  async function save(event) {
+    event.preventDefault(); setBusy(true); setError(""); setNotice("");
+    try {
+      const data = await request("/api/admin/ai-settings", {
+        method: "PUT", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify(form),
+      });
+      setForm(data); setNotice("AI model defaults saved. Authors will use the new default immediately.");
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <div className="editor-overlay">
+      <form className="editor ai-settings-panel" onSubmit={save}>
+        <header><div><p className="eyebrow">Administration</p><h2>AI model settings</h2></div><button type="button" onClick={onClose}><X /></button></header>
+        <div className="manager-body">
+          <p>Choose the models used by the CMS. Authors can see their assigned model but cannot change it.</p>
+          {notice && <div className="notice compact">{notice}</div>}
+          {error && <div className="form-error">{error}</div>}
+          {form && <div className="settings-grid">
+            <label>Admin writing model<select value={form.adminTextModel} onChange={(e) => setForm((old) => ({ ...old, adminTextModel: e.target.value }))}>{form.textModels.map((model) => <option value={model.id} key={model.id}>{model.label}</option>)}</select><small>Used when an Admin rewrites posts or page blocks.</small></label>
+            <label>Default Author writing model<select value={form.authorTextModel} onChange={(e) => setForm((old) => ({ ...old, authorTextModel: e.target.value }))}>{form.textModels.map((model) => <option value={model.id} key={model.id}>{model.label}</option>)}</select><small>Automatically enforced for every Author account.</small></label>
+            <label>Image generation model<select value={form.imageModel} onChange={(e) => setForm((old) => ({ ...old, imageModel: e.target.value }))}>{form.imageModels.map((model) => <option value={model.id} key={model.id}>{model.label}</option>)}</select><small>Used for article covers and every Page Designer block.</small></label>
+          </div>}
+        </div>
+        <footer><button type="button" className="button secondary light" onClick={onClose}>Cancel</button><button className="button primary" disabled={busy || !form}><Save /> {busy ? "Saving…" : "Save AI settings"}</button></footer>
+      </form>
+    </div>
+  );
+}
+
+function MessageManager({ token, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  function load() { request("/api/admin/messages", { headers: auth }).then(setMessages).catch((e) => setError(e.message)); }
+  useEffect(load, []);
+  async function markRead(id) {
+    try { await request(`/api/admin/messages/${id}/read`, { method: "PUT", headers: auth }); load(); }
+    catch (e) { setError(e.message); }
+  }
+  return (
+    <div className="editor-overlay">
+      <section className="editor manager-panel">
+        <header><div><p className="eyebrow">Reader conversations</p><h2>Messages</h2></div><button onClick={onClose}><X /></button></header>
+        <div className="manager-body message-list">
+          {error && <div className="form-error">{error}</div>}
+          {!messages.length && <p>No reader messages yet.</p>}
+          {messages.map((item) => (
+            <article className={item.isRead ? "read" : "unread"} key={item.id}>
+              <div><b>{item.viewerName}</b><a href={`mailto:${item.viewerEmail}`}>{item.viewerEmail}</a><small>{new Date(item.createdAt).toLocaleString("en-IN")}</small></div>
+              <h3>{item.postTitle}</h3><p>{item.message}</p>
+              {!item.isRead && <button className="button secondary light" onClick={() => markRead(item.id)}>Mark as read</button>}
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PostEditor({ post, token, role, onClose, onSaved }) {
   const [form, setForm] = useState(post);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [rewritePreview, setRewritePreview] = useState(null);
+  const [aiModel, setAiModel] = useState("");
   const [error, setError] = useState("");
   const auth = { Authorization: `Bearer ${token}` };
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  useEffect(() => {
+    request("/api/admin/ai-settings", { headers: auth })
+      .then((data) => setAiModel(data.effectiveTextModel))
+      .catch(() => setAiModel(""));
+  }, []);
   async function uploadImage(file) {
     if (!file) return;
     setUploading(true);
@@ -1058,7 +1457,10 @@ function PostEditor({ post, token, onClose, onSaved }) {
             >
               <Sparkles /> {rewriting ? "Rewriting post…" : "Rewrite text with AI"}
             </button>
-            <p className="ai-helper">Optional. Review the rewrite before applying it.</p>
+            <p className="ai-helper">
+              Optional. Review the rewrite before applying it.
+              {aiModel && <> Model: <b>{aiModel}</b>{role === "author" ? " · selected by Admin" : ""}.</>}
+            </p>
             {!form.coverImage && (
               <label className="checkbox">
                 <input
@@ -1101,14 +1503,16 @@ function PostEditor({ post, token, onClose, onSaved }) {
                 <option value="published">Published</option>
               </select>
             </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={form.featured}
-                onChange={(e) => update("featured", e.target.checked)}
-              />
-              Feature on homepage
-            </label>
+            {role === "admin" && (
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(e) => update("featured", e.target.checked)}
+                />
+                Feature on homepage
+              </label>
+            )}
           </aside>
         </div>
         {error && <div className="form-error">{error}</div>}
