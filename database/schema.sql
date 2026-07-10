@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(120) NOT NULL,
   email VARCHAR(160) NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+  role ENUM('admin', 'author', 'viewer') NOT NULL DEFAULT 'viewer',
   status VARCHAR(30) NOT NULL DEFAULT 'active',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -31,4 +31,67 @@ CREATE TABLE IF NOT EXISTS posts (
   KEY idx_posts_status (status),
   KEY idx_posts_author_id (author_id),
   CONSTRAINT fk_posts_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS homepage_content (
+  id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  hero_eyebrow VARCHAR(255) NOT NULL,
+  hero_title VARCHAR(500) NOT NULL,
+  hero_body TEXT NOT NULL,
+  hero_image LONGTEXT NULL,
+  about_eyebrow VARCHAR(255) NOT NULL,
+  about_title VARCHAR(500) NOT NULL,
+  about_body TEXT NOT NULL,
+  about_image LONGTEXT NULL,
+  work_eyebrow VARCHAR(255) NOT NULL DEFAULT 'Selected work',
+  work_title VARCHAR(500) NOT NULL,
+  work_body TEXT NULL,
+  work_image LONGTEXT NULL,
+  ai_eyebrow VARCHAR(255) NOT NULL DEFAULT 'The AI Lab',
+  ai_title VARCHAR(500) NOT NULL,
+  ai_body TEXT NOT NULL,
+  ai_image LONGTEXT NULL,
+  journal_eyebrow VARCHAR(255) NOT NULL DEFAULT 'From the journal',
+  journal_title VARCHAR(500) NOT NULL DEFAULT 'Notes from the page, stage and lab.',
+  journal_body TEXT NULL,
+  journal_image LONGTEXT NULL,
+  contact_title VARCHAR(500) NOT NULL DEFAULT 'Stories, stagecraft and ideas for tomorrow.',
+  contact_body TEXT NULL,
+  contact_image LONGTEXT NULL,
+  contact_email VARCHAR(160) NOT NULL,
+  journal_page_eyebrow VARCHAR(255) NOT NULL DEFAULT 'Yeh Mera India Journal',
+  journal_page_title VARCHAR(500) NOT NULL DEFAULT 'Ideas from the page, the stage and the future.',
+  journal_page_body TEXT NULL,
+  journal_page_image LONGTEXT NULL,
+  updated_by BIGINT UNSIGNED NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_homepage_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_settings (
+  id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  admin_text_model VARCHAR(100) NOT NULL DEFAULT 'gpt-5.5',
+  author_text_model VARCHAR(100) NOT NULL DEFAULT 'gpt-5.5',
+  image_model VARCHAR(100) NOT NULL DEFAULT 'gpt-image-2',
+  updated_by BIGINT UNSIGNED NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_ai_settings_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS author_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  post_id BIGINT UNSIGNED NOT NULL,
+  viewer_id BIGINT UNSIGNED NOT NULL,
+  author_id BIGINT UNSIGNED NOT NULL,
+  message TEXT NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_messages_author (author_id, is_read, created_at),
+  KEY idx_messages_viewer (viewer_id, created_at),
+  CONSTRAINT fk_messages_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages_viewer FOREIGN KEY (viewer_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 );
