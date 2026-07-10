@@ -69,17 +69,26 @@ function signToken(user) {
   );
 }
 
-function requireAdmin(req, res, next) {
+function publicUser(user) {
+  return { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status };
+}
+
+function requireAuth(req, res, next) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!token || !process.env.JWT_SECRET) return res.status(401).json({ message: 'Admin login required.' });
+  if (!token || !process.env.JWT_SECRET) return res.status(401).json({ message: 'Sign in required.' });
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== 'admin') return res.status(403).json({ message: 'Admin access required.' });
-    req.user = user;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch {
     res.status(401).json({ message: 'Session expired. Please sign in again.' });
   }
+}
+
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admin access required.' });
+    next();
+  });
 }
 
 async function createAiCover(post) {
@@ -95,7 +104,8 @@ async function createAiCover(post) {
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-image-2', prompt, size: '1536x1024', quality: 'medium', output_format: 'webp' })
+    body: JSON.stringify({ model: 'gpt-image-2', prompt, size: '1536x1024', quality: 'medium', output_format: 'webp' }),
+    signal: AbortSignal.timeout(45000)
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error?.message || 'AI image generation failed.');
@@ -146,6 +156,47 @@ app.get('/api/posts/:slug', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.post('/api/auth/signup', async (req, res, next) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password are required.' });
+    if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+    const existing = await query('SELECT id FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
+    if (existing.length) return res.status(409).json({ message: 'An account already exists with this email.' });
+    const hashed = await bcrypt.hash(password, 12);
+    const result = await query(
+      "INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, 'user', 'active')",
+      [name, email, hashed]
+    );
+    const user = { id: result.insertId, name, email, role: 'user', status: 'active' };
+    res.status(201).json({ token: signToken(user), user: publicUser(user) });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/auth/signin', async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    const password = String(req.body?.password || '');
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required.' });
+    const rows = await query('SELECT * FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
+    const user = rows[0];
+    if (!user || user.status !== 'active' || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Incorrect email or password.' });
+    }
+    res.json({ token: signToken(user), user: publicUser(user) });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/auth/me', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await query('SELECT id, name, email, role, status FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+    if (!rows.length || rows[0].status !== 'active') return res.status(404).json({ message: 'Account not found.' });
+    res.json({ user: publicUser(rows[0]) });
+  } catch (error) { next(error); }
+});
+
 app.post('/api/admin/login', async (req, res, next) => {
   try {
     const email = String(req.body?.email || '').trim();
@@ -181,8 +232,7 @@ app.post('/api/admin/posts', requireAdmin, async (req, res, next) => {
     const slug = cleanSlug(req.body.slug || title);
     const content = String(req.body.content || '').trim();
     if (!title || !slug || !content) return res.status(400).json({ message: 'Title, slug and content are required.' });
-    let coverImage = String(req.body.coverImage || '');
-    if (!coverImage && req.body.generateImage) coverImage = await createAiCover(req.body);
+    const coverImage = String(req.body.coverImage || '');
     const status = req.body.status === 'published' ? 'published' : 'draft';
     const result = await query(
       `INSERT INTO posts
@@ -192,7 +242,14 @@ app.post('/api/admin/posts', requireAdmin, async (req, res, next) => {
        String(req.body.imageAlt || title), String(req.body.category || 'Journal'), status, req.body.featured ? 1 : 0]
     );
     const rows = await query('SELECT * FROM posts WHERE id = ?', [result.insertId]);
-    res.status(201).json(mapPost(rows[0]));
+    const savedPost = mapPost(rows[0]);
+    res.status(201).json(savedPost);
+    if (!coverImage && req.body.generateImage) {
+      createAiCover(req.body)
+        .then((generated) => query('UPDATE posts SET cover_image = ? WHERE id = ?', [generated, result.insertId]))
+        .then(() => console.log(`AI cover generated for post ${result.insertId}.`))
+        .catch((error) => console.error(`Background AI cover failed for post ${result.insertId}:`, error.message));
+    }
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'That post URL is already in use.' });
     next(error);
@@ -207,8 +264,7 @@ app.put('/api/admin/posts/:id', requireAdmin, async (req, res, next) => {
     const slug = cleanSlug(req.body.slug || title);
     const content = String(req.body.content || '').trim();
     if (!title || !slug || !content) return res.status(400).json({ message: 'Title, slug and content are required.' });
-    let coverImage = String(req.body.coverImage || '');
-    if (!coverImage && req.body.generateImage) coverImage = await createAiCover(req.body);
+    const coverImage = String(req.body.coverImage || '');
     const status = req.body.status === 'published' ? 'published' : 'draft';
     await query(
       `UPDATE posts SET title = ?, slug = ?, excerpt = ?, content = ?, cover_image = ?, image_alt = ?,
@@ -219,6 +275,12 @@ app.put('/api/admin/posts/:id', requireAdmin, async (req, res, next) => {
     );
     const rows = await query('SELECT * FROM posts WHERE id = ?', [req.params.id]);
     res.json(mapPost(rows[0]));
+    if (!coverImage && req.body.generateImage) {
+      createAiCover(req.body)
+        .then((generated) => query('UPDATE posts SET cover_image = ? WHERE id = ?', [generated, req.params.id]))
+        .then(() => console.log(`AI cover generated for post ${req.params.id}.`))
+        .catch((error) => console.error(`Background AI cover failed for post ${req.params.id}:`, error.message));
+    }
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'That post URL is already in use.' });
     next(error);
