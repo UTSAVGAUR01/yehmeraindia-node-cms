@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowRight, BookOpen, Bot, CalendarDays, ChevronRight, FilePenLine,
-  ImagePlus, LayoutDashboard, LogOut, Menu, PenLine, Plus, Save,
+  ImagePlus, LayoutDashboard, LogIn, LogOut, Menu, PenLine, Plus, Save, UserPlus,
   Sparkles, Theater, Trash2, Upload, X
 } from 'lucide-react';
 import './styles.css';
@@ -21,6 +21,17 @@ async function request(path, options = {}) {
 }
 
 function go(path) {
+  if (path.startsWith('/#')) {
+    const id = path.slice(2);
+    if (window.location.pathname !== '/') {
+      window.location.assign(path);
+      return;
+    }
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    return;
+  }
   window.history.pushState({}, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -32,7 +43,17 @@ function Logo() {
 
 function Header({ dark = true }) {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ymi_user') || 'null'); } catch { return null; }
+  });
   const link = (label, path) => <button onClick={() => { go(path); setOpen(false); }}>{label}</button>;
+  const signOut = () => {
+    localStorage.removeItem('ymi_user_token');
+    localStorage.removeItem('ymi_admin_token');
+    localStorage.removeItem('ymi_user');
+    setUser(null);
+    go('/');
+  };
   return (
     <header className={`header ${dark ? 'header-dark' : ''}`}>
       <Logo />
@@ -40,6 +61,9 @@ function Header({ dark = true }) {
       <nav className={open ? 'nav-open' : ''} aria-label="Main navigation">
         {link('Home', '/')}{link('About', '/#about')}{link('Books & Plays', '/#work')}
         {link('AI Lab', '/#ai')}{link('Journal', '/journal')}{link('Contact', '/#contact')}
+        <span className="auth-links">
+          {user ? <><b>{user.name}</b>{user.role === 'admin' && link('Studio', '/admin')}<button className="auth-button ghost" onClick={signOut}><LogOut size={15} /> Sign out</button></> : <><button className="auth-button ghost" onClick={() => { go('/signin'); setOpen(false); }}><LogIn size={15} /> Sign in</button><button className="auth-button" onClick={() => { go('/signup'); setOpen(false); }}><UserPlus size={15} /> Sign up</button></>}
+        </span>
       </nav>
     </header>
   );
@@ -109,7 +133,7 @@ function Home() {
 
       {featured && <section className="featured-story" onClick={() => go(`/journal/${featured.slug}`)}><Cover post={featured} className="featured-cover" /><div><p className="eyebrow">Featured story</p><h2>{featured.title}</h2><p>{featured.excerpt}</p><span>Read story <ArrowRight size={18} /></span></div></section>}
 
-      <footer id="contact"><Logo /><p>Stories, stagecraft and ideas for tomorrow.</p><div><button onClick={() => go('/journal')}>Journal</button><a href="mailto:hello@yehmeraindia.com">hello@yehmeraindia.com</a><button onClick={() => go('/admin')}>Admin</button></div><small>© {new Date().getFullYear()} Yeh Mera India</small></footer>
+      <footer id="contact"><Logo /><p>Stories, stagecraft and ideas for tomorrow.</p><div><button onClick={() => go('/journal')}>Journal</button><a href="mailto:hello@yehmeraindia.com">hello@yehmeraindia.com</a></div><small>© {new Date().getFullYear()} Yeh Mera India</small></footer>
     </main>
   );
 }
@@ -134,6 +158,36 @@ function Article({ slug }) {
   if (error) return <main className="paper-page"><Header dark={false} /><div className="not-found"><h1>Story not found</h1><button className="button primary" onClick={() => go('/journal')}>Back to journal</button></div></main>;
   if (!post) return <div className="loading">Opening the manuscript…</div>;
   return <main className="paper-page"><Header dark={false} /><article className="article"><div className="article-head"><p className="eyebrow">{post.category}</p><h1>{post.title}</h1><p>{post.excerpt}</p><span><CalendarDays size={16} /> {new Date(post.publishedAt || post.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div><Cover post={post} className="article-cover" /><div className="article-body">{post.content.split(/\n\n+/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div></article><footer><Logo /><button onClick={() => go('/journal')}>Back to Journal</button><small>© {new Date().getFullYear()} Yeh Mera India</small></footer></main>;
+}
+
+function AuthPage({ mode }) {
+  const signingUp = mode === 'signup';
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const data = await request(`/api/auth/${signingUp ? 'signup' : 'signin'}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
+      });
+      localStorage.setItem('ymi_user_token', data.token);
+      localStorage.setItem('ymi_user', JSON.stringify(data.user));
+      if (data.user?.role === 'admin') {
+        localStorage.setItem('ymi_admin_token', data.token);
+        go('/admin');
+      } else {
+        go('/');
+      }
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return <main className="auth-page"><Header /><section><form className="auth-card" onSubmit={submit}><p className="eyebrow">{signingUp ? 'Join the community' : 'Welcome back'}</p><h1>{signingUp ? 'Create your account.' : 'Sign in to continue.'}</h1><p>Read, follow and take part in stories from the page, stage and AI lab.</p>{signingUp && <label>Your name<input required value={form.name} onChange={(e) => update('name', e.target.value)} autoComplete="name" /></label>}<label>Email address<input required type="email" value={form.email} onChange={(e) => update('email', e.target.value)} autoComplete="email" /></label><label>Password<input required type="password" minLength={signingUp ? 8 : undefined} value={form.password} onChange={(e) => update('password', e.target.value)} autoComplete={signingUp ? 'new-password' : 'current-password'} /></label>{error && <div className="form-error">{error}</div>}<button className="button primary" disabled={busy}>{busy ? 'Please wait…' : signingUp ? 'Create account' : 'Sign in'}</button><div className="auth-switch">{signingUp ? 'Already have an account?' : 'New to Yeh Mera India?'} <button type="button" onClick={() => go(signingUp ? '/signin' : '/signup')}>{signingUp ? 'Sign in' : 'Create account'}</button></div></form></section></main>;
 }
 
 function AdminLogin({ onLogin }) {
@@ -168,10 +222,11 @@ function App() {
   const [path, setPath] = useState(window.location.pathname);
   useEffect(() => { const handler = () => setPath(window.location.pathname); window.addEventListener('popstate', handler); return () => window.removeEventListener('popstate', handler); }, []);
   if (path === '/admin') return <Admin />;
+  if (path === '/signin') return <AuthPage mode="signin" />;
+  if (path === '/signup') return <AuthPage mode="signup" />;
   if (path.startsWith('/journal/')) return <Article slug={decodeURIComponent(path.split('/')[2])} />;
   if (path === '/journal') return <Journal />;
   return <Home />;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
-
