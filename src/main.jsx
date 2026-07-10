@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  MapPin,
   Menu,
   MessageCircle,
   PenLine,
@@ -21,7 +22,9 @@ import {
   UserPlus,
   Users,
   Sparkles,
+  ShoppingBag,
   Theater,
+  Ticket,
   Trash2,
   Upload,
   X,
@@ -40,6 +43,25 @@ const emptyPost = {
   imageAlt: "",
   featured: false,
   generateImage: true,
+};
+
+const emptyBook = {
+  title: "",
+  description: "",
+  purchaseUrl: "",
+  coverImage: "",
+  imagePrompt: "",
+  status: "draft",
+};
+
+const emptyPlayEvent = {
+  playTitle: "",
+  eventTitle: "",
+  description: "",
+  venue: "",
+  eventAt: "",
+  ticketUrl: "",
+  status: "draft",
 };
 
 const defaultHomepage = {
@@ -239,6 +261,8 @@ function Cover({ post, className = "" }) {
 
 function Home() {
   const [posts, setPosts] = useState([]);
+  const [works, setWorks] = useState({ books: [], events: [] });
+  const [workTab, setWorkTab] = useState("books");
   const [homepage, setHomepage] = useState(defaultHomepage);
   useEffect(() => {
     request("/api/posts")
@@ -247,6 +271,9 @@ function Home() {
     request("/api/homepage")
       .then((data) => setHomepage({ ...defaultHomepage, ...data }))
       .catch(() => setHomepage(defaultHomepage));
+    request("/api/works")
+      .then(setWorks)
+      .catch(() => setWorks({ books: [], events: [] }));
   }, []);
   const featured = posts.find((post) => post.featured) || posts[0];
 
@@ -315,32 +342,50 @@ function Home() {
           </button>
         </div>
         {homepage.workImage && <img className="section-image wide-section-image" src={homepage.workImage} alt={homepage.workTitle} />}
-        <div className="work-grid">
-          <article className="work-card">
-            <BookOpen />
-            <span>Books & essays</span>
-            <h3>
-              Literary work shaped by memory, place and the many voices of
-              India.
-            </h3>
-          </article>
-          <article className="work-card accent">
-            <Theater />
-            <span>Drama & plays</span>
-            <h3>
-              Scripts that come alive through character, conflict and the energy
-              of performance.
-            </h3>
-          </article>
-          <article className="work-card">
-            <Sparkles />
-            <span>AI experiments</span>
-            <h3>
-              Exploring how responsible AI can expand storytelling without
-              replacing its human soul.
-            </h3>
-          </article>
+        <div className="work-tabs" role="tablist" aria-label="Books and plays">
+          <button className={workTab === "books" ? "active" : ""} onClick={() => setWorkTab("books")} role="tab">
+            <BookOpen /> Books
+          </button>
+          <button className={workTab === "plays" ? "active" : ""} onClick={() => setWorkTab("plays")} role="tab">
+            <Theater /> Plays & events
+          </button>
         </div>
+        {workTab === "books" ? (
+          works.books.length ? (
+            <div className="book-grid">
+              {works.books.map((book) => (
+                <article className="book-card" key={book.id}>
+                  {book.coverImage ? <img src={book.coverImage} alt={`Cover artwork for ${book.title}`} /> : <div className="book-cover-fallback"><BookOpen /><span>{book.title}</span></div>}
+                  <div>
+                    <p className="eyebrow">Book {book.authorName && `· ${book.authorName}`}</p>
+                    <h3>{book.title}</h3>
+                    <p>{book.description}</p>
+                    <a className="button primary" href={book.purchaseUrl} target="_blank" rel="noopener noreferrer sponsored">
+                      <ShoppingBag /> Purchase book
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : <div className="work-empty"><BookOpen /><h3>Books will appear here soon.</h3></div>
+        ) : (
+          works.events.length ? (
+            <div className="play-event-grid">
+              {works.events.map((event) => (
+                <article className="play-event-card" key={event.id}>
+                  <p className="eyebrow">{event.playTitle}</p>
+                  <h3>{event.eventTitle}</h3>
+                  <div className="event-meta">
+                    <span><CalendarDays /> {new Date(event.eventAt).toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" })}</span>
+                    <span><MapPin /> {event.venue}</span>
+                  </div>
+                  <p>{event.description}</p>
+                  {event.ticketUrl && <a className="button secondary light" href={event.ticketUrl} target="_blank" rel="noopener noreferrer sponsored"><Ticket /> Event tickets</a>}
+                </article>
+              ))}
+            </div>
+          ) : <div className="work-empty"><Theater /><h3>Upcoming play events will appear here.</h3></div>
+        )}
       </section>
 
       <section id="ai" className="section ai-section">
@@ -803,6 +848,7 @@ function Admin() {
   const [managingUsers, setManagingUsers] = useState(false);
   const [editingHomepage, setEditingHomepage] = useState(false);
   const [editingAiSettings, setEditingAiSettings] = useState(false);
+  const [managingWorks, setManagingWorks] = useState(false);
   const [viewingMessages, setViewingMessages] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -854,6 +900,9 @@ function Admin() {
         </div>
         <button onClick={() => setEditing({ ...emptyPost })}>
           <Plus /> New post
+        </button>
+        <button onClick={() => setManagingWorks(true)}>
+          <Theater /> Books & plays
         </button>
         {user?.role === "admin" && (
           <button onClick={() => setManagingUsers(true)}>
@@ -980,10 +1029,187 @@ function Admin() {
       {editingAiSettings && (
         <AiSettings token={token} onClose={() => setEditingAiSettings(false)} />
       )}
+      {managingWorks && (
+        <WorksManager token={token} role={user?.role} onClose={() => setManagingWorks(false)} />
+      )}
       {viewingMessages && (
         <MessageManager token={token} onClose={() => setViewingMessages(false)} />
       )}
     </main>
+  );
+}
+
+function BookEditor({ book, token, onCancel, onSaved }) {
+  const [form, setForm] = useState(book);
+  const [generateCover, setGenerateCover] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [progress, setProgress] = useState("");
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  async function uploadCover(file) {
+    if (!file) return;
+    setBusy("upload"); setError("");
+    try {
+      const body = new FormData(); body.append("image", file);
+      const data = await request("/api/admin/upload", { method: "POST", headers: auth, body });
+      update("coverImage", data.url);
+      setGenerateCover(false);
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  async function save(event) {
+    event.preventDefault(); setBusy("save"); setError(""); setProgress("");
+    if (generateCover && !String(form.imagePrompt || "").trim()) {
+      setError("Describe the cover image before asking AI to generate it.");
+      setBusy("");
+      return;
+    }
+    try {
+      const saved = await request(form.id ? `/api/admin/books/${form.id}` : "/api/admin/books", {
+        method: form.id ? "PUT" : "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      setForm(saved);
+      if (generateCover) {
+        setBusy("image");
+        setProgress("Starting high-quality portrait cover artwork…");
+        const job = await request(`/api/admin/books/${saved.id}/generate-cover`, {
+          method: "POST",
+          headers: { ...auth, "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const result = await waitForAiJob(job.jobId, token, setProgress);
+        setForm((old) => ({ ...old, coverImage: result.image }));
+      }
+      onSaved(generateCover ? "Book saved and AI cover generated." : "Book saved successfully.");
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  return (
+    <form className="works-form" onSubmit={save}>
+      <div className="manager-heading"><div><p className="eyebrow">Books</p><h3>{form.id ? "Edit book" : "Add book"}</h3></div><button type="button" onClick={onCancel}><X /></button></div>
+      {error && <div className="form-error">{error}</div>}
+      {progress && <p className="ai-progress" role="status">{progress}</p>}
+      <div className="works-form-grid">
+        <div>
+          <label>Book title<input required maxLength="220" value={form.title} onChange={(e) => update("title", e.target.value)} /></label>
+          <label>Book description<textarea required rows="7" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Describe the book, its themes and who it is for." /></label>
+          <label>Purchase link<input required type="url" maxLength="2000" value={form.purchaseUrl} onChange={(e) => update("purchaseUrl", e.target.value)} placeholder="https://amazon.in/... or another bookstore" /></label>
+          <label>Publishing status<select value={form.status} onChange={(e) => update("status", e.target.value)}><option value="draft">Draft</option><option value="published">Published</option></select></label>
+        </div>
+        <div>
+          <div className="book-cover-admin">
+            {form.coverImage ? <img src={form.coverImage} alt="Book cover preview" /> : <div><BookOpen /><span>No cover artwork</span></div>}
+          </div>
+          <label className="upload-button"><Upload /> {busy === "upload" ? "Uploading…" : "Upload book cover"}<input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => uploadCover(e.target.files?.[0])} /></label>
+          <label>AI cover image description<textarea rows="5" value={form.imagePrompt} onChange={(e) => update("imagePrompt", e.target.value)} placeholder="Describe the characters, place, mood, symbols, period and visual style you want." /></label>
+          <label className="checkbox research-toggle"><input type="checkbox" checked={generateCover} onChange={(e) => setGenerateCover(e.target.checked)} />Generate or replace cover with AI after saving</label>
+          <p className="ai-helper">AI creates portrait artwork from your book description and visual direction. The job runs in the background and may take several minutes.</p>
+        </div>
+      </div>
+      <div className="works-form-actions"><button type="button" className="button secondary light" onClick={onCancel}>Cancel</button><button className="button primary" disabled={Boolean(busy)}><Save /> {busy === "image" ? "Generating cover…" : busy ? "Saving…" : "Save book"}</button></div>
+    </form>
+  );
+}
+
+function PlayEventEditor({ event, token, onCancel, onSaved }) {
+  const initial = {
+    ...event,
+    eventAt: event.eventAt ? new Date(event.eventAt).toISOString().slice(0, 16) : "",
+  };
+  const [form, setForm] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  async function save(eventObject) {
+    eventObject.preventDefault(); setBusy(true); setError("");
+    try {
+      await request(form.id ? `/api/admin/play-events/${form.id}` : "/api/admin/play-events", {
+        method: form.id ? "PUT" : "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, eventAt: new Date(form.eventAt).toISOString() }),
+      });
+      onSaved("Play event saved successfully.");
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <form className="works-form" onSubmit={save}>
+      <div className="manager-heading"><div><p className="eyebrow">Plays & events</p><h3>{form.id ? "Edit performance" : "Create performance"}</h3></div><button type="button" onClick={onCancel}><X /></button></div>
+      {error && <div className="form-error">{error}</div>}
+      <div className="works-form-grid event-form-grid">
+        <div>
+          <label>Play title<input required maxLength="220" value={form.playTitle} onChange={(e) => update("playTitle", e.target.value)} placeholder="Name of the play" /></label>
+          <label>Event title<input required maxLength="220" value={form.eventTitle} onChange={(e) => update("eventTitle", e.target.value)} placeholder="Opening night, city performance…" /></label>
+          <label>Play and event description<textarea required rows="8" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Describe the story, performance and what the audience can expect." /></label>
+        </div>
+        <div>
+          <label>Venue<input required maxLength="300" value={form.venue} onChange={(e) => update("venue", e.target.value)} /></label>
+          <label>Event date and time<input required type="datetime-local" value={form.eventAt} onChange={(e) => update("eventAt", e.target.value)} /></label>
+          <label>Ticket or registration link (optional)<input type="url" maxLength="2000" value={form.ticketUrl} onChange={(e) => update("ticketUrl", e.target.value)} placeholder="https://..." /></label>
+          <label>Publishing status<select value={form.status} onChange={(e) => update("status", e.target.value)}><option value="draft">Draft</option><option value="published">Published</option></select></label>
+        </div>
+      </div>
+      <div className="works-form-actions"><button type="button" className="button secondary light" onClick={onCancel}>Cancel</button><button className="button primary" disabled={busy}><Save /> {busy ? "Saving…" : "Save event"}</button></div>
+    </form>
+  );
+}
+
+function WorksManager({ token, role, onClose }) {
+  const [tab, setTab] = useState("books");
+  const [books, setBooks] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [editingBook, setEditingBook] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  function load() {
+    Promise.all([
+      request("/api/admin/books", { headers: auth }),
+      request("/api/admin/play-events", { headers: auth }),
+    ]).then(([loadedBooks, loadedEvents]) => { setBooks(loadedBooks); setEvents(loadedEvents); }).catch((e) => setError(e.message));
+  }
+  useEffect(load, []);
+  async function remove(type, item) {
+    const label = type === "books" ? item.title : item.eventTitle;
+    if (!window.confirm(`Delete “${label}”? This cannot be undone.`)) return;
+    try {
+      await request(type === "books" ? `/api/admin/books/${item.id}` : `/api/admin/play-events/${item.id}`, { method: "DELETE", headers: auth });
+      setNotice(`${type === "books" ? "Book" : "Play event"} deleted.`); load();
+    } catch (e) { setError(e.message); }
+  }
+  const saved = (message) => { setEditingBook(null); setEditingEvent(null); setNotice(message); load(); };
+  return (
+    <div className="editor-overlay">
+      <section className="editor manager-panel works-manager">
+        <header><div><p className="eyebrow">Author catalogue</p><h2>Books & plays</h2></div><button onClick={onClose}><X /></button></header>
+        <div className="manager-body">
+          {notice && <div className="notice compact">{notice}</div>}
+          {error && <div className="form-error">{error}</div>}
+          {editingBook ? <BookEditor book={editingBook} token={token} onCancel={() => setEditingBook(null)} onSaved={saved} /> : editingEvent ? <PlayEventEditor event={editingEvent} token={token} onCancel={() => setEditingEvent(null)} onSaved={saved} /> : (
+            <>
+              <div className="works-manager-toolbar">
+                <div className="work-tabs manager-tabs"><button className={tab === "books" ? "active" : ""} onClick={() => setTab("books")}><BookOpen /> Books</button><button className={tab === "plays" ? "active" : ""} onClick={() => setTab("plays")}><Theater /> Plays & events</button></div>
+                <button className="button primary" onClick={() => tab === "books" ? setEditingBook({ ...emptyBook }) : setEditingEvent({ ...emptyPlayEvent })}><Plus /> {tab === "books" ? "Add book" : "Add event"}</button>
+              </div>
+              <p>{role === "author" ? "You can manage your own books and performances." : "Admin can manage catalogue entries from every author."}</p>
+              <div className="works-list">
+                {(tab === "books" ? books : events).map((item) => (
+                  <article key={item.id}>
+                    <div>{tab === "books" && item.coverImage ? <img src={item.coverImage} alt="" /> : tab === "books" ? <BookOpen /> : <Theater />}</div>
+                    <span><b>{tab === "books" ? item.title : item.eventTitle}</b><small>{tab === "books" ? item.purchaseUrl : `${item.playTitle} · ${new Date(item.eventAt).toLocaleString("en-IN")}`}</small></span>
+                    <em className={`status ${item.status}`}>{item.status}</em>
+                    <div><button title="Edit" onClick={() => tab === "books" ? setEditingBook({ ...item }) : setEditingEvent({ ...item })}><FilePenLine /></button><button title="Delete" onClick={() => remove(tab, item)}><Trash2 /></button></div>
+                  </article>
+                ))}
+                {!(tab === "books" ? books : events).length && <div className="work-empty"><p>No {tab === "books" ? "books" : "play events"} added yet.</p></div>}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
 

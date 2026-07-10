@@ -33,6 +33,43 @@ CREATE TABLE IF NOT EXISTS posts (
   CONSTRAINT fk_posts_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS books (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  author_id BIGINT UNSIGNED NULL,
+  title VARCHAR(220) NOT NULL,
+  description LONGTEXT NOT NULL,
+  purchase_url VARCHAR(2000) NOT NULL,
+  cover_image LONGTEXT NULL,
+  image_prompt TEXT NULL,
+  status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
+  published_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_books_status (status, published_at),
+  KEY idx_books_author (author_id),
+  CONSTRAINT fk_books_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS play_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  author_id BIGINT UNSIGNED NULL,
+  play_title VARCHAR(220) NOT NULL,
+  event_title VARCHAR(220) NOT NULL,
+  description LONGTEXT NOT NULL,
+  venue VARCHAR(300) NOT NULL,
+  event_at DATETIME NOT NULL,
+  ticket_url VARCHAR(2000) NULL,
+  status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
+  published_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_play_events_status (status, event_at),
+  KEY idx_play_events_author (author_id),
+  CONSTRAINT fk_play_events_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS homepage_content (
   id TINYINT UNSIGNED NOT NULL DEFAULT 1,
   hero_eyebrow VARCHAR(255) NOT NULL,
@@ -83,7 +120,7 @@ CREATE TABLE IF NOT EXISTS ai_settings (
 CREATE TABLE IF NOT EXISTS ai_jobs (
   id CHAR(36) NOT NULL,
   user_id BIGINT UNSIGNED NOT NULL,
-  job_type ENUM('rewrite', 'page_rewrite', 'post_image', 'page_image') NOT NULL,
+  job_type ENUM('rewrite', 'page_rewrite', 'post_image', 'page_image', 'book_image') NOT NULL,
   status ENUM('queued', 'in_progress', 'completed', 'failed') NOT NULL DEFAULT 'queued',
   provider_id VARCHAR(160) NULL,
   target_id BIGINT UNSIGNED NULL,
