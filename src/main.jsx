@@ -10,7 +10,7 @@ import './styles.css';
 const API = import.meta.env.VITE_API_URL || '';
 const emptyPost = {
   title: '', slug: '', excerpt: '', content: '', category: 'Journal', status: 'draft',
-  coverImage: '', imageAlt: '', featured: false, generateImage: false
+  coverImage: '', imageAlt: '', featured: false, generateImage: true
 };
 
 async function request(path, options = {}) {
@@ -174,3 +174,4 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+
