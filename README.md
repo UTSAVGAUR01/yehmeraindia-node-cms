@@ -8,10 +8,10 @@ A full-stack author, playwright and AI exploration platform with a public journa
 - Journal listing and individual article pages
 - Password-protected admin panel
 - Create, modify, publish, draft and delete posts
-- Upload JPG, PNG, WebP or GIF cover images up to 5 MB
+- Upload JPG, PNG, WebP or GIF cover images up to 4 MB
 - Generate an AI cover when a post has no media
-- File-based JSON content store suitable for a single-server deployment
-- Express security headers and signed eight-hour admin sessions
+- MySQL-backed users, posts and media for persistent Hostinger deployment
+- Express security headers and JWT admin sessions
 
 ## Local setup
 
@@ -22,27 +22,27 @@ npm run build
 npm start
 ```
 
-The production server hosts both the API and the built frontend on `PORT` (default `8080`). For separate local frontend development, run `npm run dev` and set `VITE_API_URL=http://localhost:8080`.
+The production server hosts both the API and the built frontend on `PORT` (default `3000`). For separate local frontend development, run `npm run dev` and set `VITE_API_URL=http://localhost:3000`.
 
 For managed Node hosting, use `server/index.js` as the entry file. A root-level `index.js` compatibility entry is also included for platforms that require it. `npm install` runs the Vite production build automatically so `dist` exists before Express starts.
 
-## Required environment values
+## Hostinger environment values
 
 ```env
-ADMIN_EMAIL=admin@yehmeraindia.com
-ADMIN_PASSWORD=use-a-strong-password
-SESSION_SECRET=use-a-long-random-secret
+PORT=3000
+DB_HOST=127.0.0.1
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_NAME=your_database_name
+DB_CONNECTION_LIMIT=10
+JWT_SECRET=use-a-long-random-secret
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=https://yehmeraindia.com
+OPENAI_API_KEY=your-rotated-server-side-key
 ```
 
-To enable AI cover generation:
-
-```env
-OPENAI_API_KEY=your-server-side-key
-OPENAI_IMAGE_MODEL=gpt-image-2
-```
-
-The OpenAI key is only read by the Express backend. Never add the real `.env` file to Git.
+The admin login uses an existing active `users` record with `role='admin'` and a bcrypt password. On startup, the application creates missing `users`/`posts` tables and adds the CMS fields to an existing `posts` table. The OpenAI key is only read by the Express backend. Never add a real `.env` file to Git.
 
 ## Persistent storage
 
-Posts are stored in `server/data/posts.json` and uploaded/generated images in `server/uploads`. Mount both paths to persistent storage when deploying with Docker or a cloud service. For multi-server scaling, migrate these two resources to a database and object storage.
+Posts and cover images are stored in MySQL. Uploaded and AI-generated covers are saved in the `cover_image` LONGTEXT column, so they survive Hostinger code redeployments without depending on the application filesystem.
