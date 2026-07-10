@@ -1,5 +1,4 @@
-import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -7,248 +6,271 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { initializeDatabase, query } from './db.js';
 
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
-const dataFile = path.join(__dirname, 'data', 'posts.json');
-const uploadDir = path.join(__dirname, 'uploads');
 const distDir = path.join(rootDir, 'dist');
-const port = Number(process.env.PORT || 8080);
-const adminEmail = process.env.ADMIN_EMAIL || 'admin@yehmeraindia.com';
-const adminPassword = process.env.ADMIN_PASSWORD || '';
-const sessionSecret = process.env.SESSION_SECRET || '';
-
-await fs.mkdir(uploadDir, { recursive: true });
+const indexHtml = path.join(distDir, 'index.html');
+const port = Number(process.env.PORT || 3000);
+let databaseState = { connected: false, message: 'Database initialization pending.' };
 
 const app = express();
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.PUBLIC_SITE_URL || true }));
+app.disable('x-powered-by');
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(cors({ origin: process.env.FRONTEND_URL || true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
-app.use('/uploads', express.static(uploadDir, { maxAge: '7d', immutable: false }));
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadDir,
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.webp';
-      cb(null, `${Date.now()}-${crypto.randomUUID()}${ext}`);
-    }
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.mimetype)) return cb(new Error('Choose a JPG, PNG, WebP or GIF image.'));
+    cb(null, true);
+  }
 });
 
-function base64url(value) {
-  return Buffer.from(value).toString('base64url');
-}
-
-function signToken(payload) {
-  const body = base64url(JSON.stringify(payload));
-  const signature = crypto.createHmac('sha256', sessionSecret).update(body).digest('base64url');
-  return `${body}.${signature}`;
-}
-
-function verifyToken(token) {
-  if (!token || !sessionSecret) return false;
-  const [body, signature] = token.split('.');
-  if (!body || !signature) return false;
-  const expected = crypto.createHmac('sha256', sessionSecret).update(body).digest('base64url');
-  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
-  const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-  return payload.email === adminEmail && payload.exp > Date.now();
-}
-
-function requireAdmin(req, res, next) {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-  if (!verifyToken(token)) return res.status(401).json({ message: 'Admin login required.' });
-  next();
-}
-
-async function readPosts() {
-  try {
-    return JSON.parse(await fs.readFile(dataFile, 'utf8'));
-  } catch (error) {
-    if (error.code === 'ENOENT') return [];
-    throw error;
-  }
-}
-
-async function writePosts(posts) {
-  const temporary = `${dataFile}.tmp`;
-  await fs.writeFile(temporary, JSON.stringify(posts, null, 2));
-  await fs.rename(temporary, dataFile);
+function mapPost(row) {
+  return {
+    id: String(row.id),
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt || '',
+    content: row.content || '',
+    category: row.category || 'Journal',
+    status: row.status,
+    coverImage: row.cover_image || '',
+    imageAlt: row.image_alt || row.title,
+    featured: Boolean(row.featured),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    publishedAt: row.published_at,
+    authorName: row.author_name || ''
+  };
 }
 
 function cleanSlug(value) {
   return String(value || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/[\s-]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 90);
+    .toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[\s-]+/g, '-').replace(/^-|-$/g, '').slice(0, 90);
 }
 
-function normalizePost(body, existing = {}) {
-  const title = String(body.title || existing.title || '').trim();
-  const status = body.status === 'published' ? 'published' : 'draft';
-  return {
-    ...existing,
-    title,
-    slug: cleanSlug(body.slug || title || existing.slug),
-    excerpt: String(body.excerpt || '').trim(),
-    content: String(body.content || '').trim(),
-    category: String(body.category || 'Journal').trim(),
-    status,
-    coverImage: String(body.coverImage || existing.coverImage || ''),
-    imageAlt: String(body.imageAlt || title).trim(),
-    featured: Boolean(body.featured),
-    updatedAt: new Date().toISOString(),
-    publishedAt: status === 'published' ? (existing.publishedAt || new Date().toISOString()) : null
-  };
+function signToken(user) {
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not configured.');
+  return jwt.sign(
+    { id: user.id, name: user.name, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+}
+
+function requireAdmin(req, res, next) {
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token || !process.env.JWT_SECRET) return res.status(401).json({ message: 'Admin login required.' });
+  try {
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    if (user.role !== 'admin') return res.status(403).json({ message: 'Admin access required.' });
+    req.user = user;
+    next();
+  } catch {
+    res.status(401).json({ message: 'Session expired. Please sign in again.' });
+  }
 }
 
 async function createAiCover(post) {
-  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured on the server.');
-
+  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured.');
   const prompt = [
     'Create a wide editorial cover illustration for Yeh Mera India.',
     `Article: ${post.title}.`,
     post.excerpt ? `Context: ${post.excerpt}.` : '',
-    `Theme: ${post.category}.`,
-    'Visual style: cinematic Indian theatre heritage, deep indigo, warm saffron, ivory manuscript texture, culturally respectful, premium literary magazine, atmospheric stage lighting, no text, no logos, no watermark.'
+    `Theme: ${post.category || 'Journal'}.`,
+    'Cinematic Indian theatre heritage, deep indigo, warm saffron, ivory manuscript texture, culturally respectful, premium literary magazine, atmospheric stage lighting, no text, no logo, no watermark.'
   ].filter(Boolean).join(' ');
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2',
-      prompt,
-      size: '1536x1024',
-      quality: 'medium',
-      output_format: 'webp'
-    })
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-image-2', prompt, size: '1536x1024', quality: 'medium', output_format: 'webp' })
   });
-
   const result = await response.json();
   if (!response.ok) throw new Error(result.error?.message || 'AI image generation failed.');
   const encoded = result.data?.[0]?.b64_json;
   if (!encoded) throw new Error('AI image generation returned no image.');
-
-  const filename = `ai-${Date.now()}-${crypto.randomUUID()}.webp`;
-  await fs.writeFile(path.join(uploadDir, filename), Buffer.from(encoded, 'base64'));
-  return `/uploads/${filename}`;
+  return `data:image/webp;base64,${encoded}`;
 }
 
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'Yeh Mera India CMS' }));
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', app: 'Yeh Mera India CMS', database: databaseState.connected ? 'connected' : 'unavailable' });
+});
+
+app.get('/api/health/db', async (_req, res) => {
+  try {
+    const rows = await query('SELECT DATABASE() AS database_name, (SELECT COUNT(*) FROM users) AS total_users, (SELECT COUNT(*) FROM posts) AS total_posts');
+    res.json({ status: 'ok', database: 'connected', ...rows[0] });
+  } catch (error) {
+    res.status(500).json({ status: 'error', database: 'failed', message: error.message });
+  }
+});
 
 app.get('/api/posts', async (req, res, next) => {
   try {
-    const posts = await readPosts();
-    const publicPosts = posts
-      .filter((post) => post.status === 'published')
-      .filter((post) => !req.query.category || post.category === req.query.category)
-      .sort((a, b) => new Date(b.publishedAt || b.updatedAt) - new Date(a.publishedAt || a.updatedAt));
-    res.json(publicPosts);
+    const params = [];
+    let categorySql = '';
+    if (req.query.category) { categorySql = ' AND p.category = ?'; params.push(req.query.category); }
+    const rows = await query(
+      `SELECT p.*, u.name AS author_name FROM posts p
+       LEFT JOIN users u ON u.id = p.author_id
+       WHERE p.status = 'published'${categorySql}
+       ORDER BY COALESCE(p.published_at, p.created_at) DESC`,
+      params
+    );
+    res.json(rows.map(mapPost));
   } catch (error) { next(error); }
 });
 
 app.get('/api/posts/:slug', async (req, res, next) => {
   try {
-    const post = (await readPosts()).find((item) => item.slug === req.params.slug && item.status === 'published');
-    if (!post) return res.status(404).json({ message: 'Post not found.' });
-    res.json(post);
+    const rows = await query(
+      `SELECT p.*, u.name AS author_name FROM posts p
+       LEFT JOIN users u ON u.id = p.author_id
+       WHERE p.slug = ? AND p.status = 'published' LIMIT 1`,
+      [req.params.slug]
+    );
+    if (!rows.length) return res.status(404).json({ message: 'Post not found.' });
+    res.json(mapPost(rows[0]));
   } catch (error) { next(error); }
 });
 
-app.post('/api/admin/login', (req, res) => {
-  if (!adminPassword || !sessionSecret) return res.status(503).json({ message: 'Admin credentials are not configured.' });
-  const email = String(req.body?.email || '').toLowerCase();
-  const password = String(req.body?.password || '');
-  const validEmail = email === adminEmail.toLowerCase();
-  const a = Buffer.from(password);
-  const b = Buffer.from(adminPassword);
-  const validPassword = a.length === b.length && crypto.timingSafeEqual(a, b);
-  if (!validEmail || !validPassword) return res.status(401).json({ message: 'Incorrect email or password.' });
-  res.json({ token: signToken({ email: adminEmail, exp: Date.now() + 8 * 60 * 60 * 1000 }) });
+app.post('/api/admin/login', async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    const password = String(req.body?.password || '');
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required.' });
+    const rows = await query('SELECT * FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
+    const user = rows[0];
+    if (!user || user.status !== 'active' || user.role !== 'admin' || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Incorrect admin email or password.' });
+    }
+    res.json({ token: signToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  } catch (error) { next(error); }
 });
 
 app.get('/api/admin/posts', requireAdmin, async (_req, res, next) => {
-  try { res.json((await readPosts()).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))); }
-  catch (error) { next(error); }
+  try {
+    const rows = await query(
+      `SELECT p.*, u.name AS author_name FROM posts p
+       LEFT JOIN users u ON u.id = p.author_id ORDER BY p.updated_at DESC`
+    );
+    res.json(rows.map(mapPost));
+  } catch (error) { next(error); }
 });
 
 app.post('/api/admin/upload', requireAdmin, upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'Choose a JPG, PNG, WebP or GIF image up to 5 MB.' });
-  res.status(201).json({ url: `/uploads/${req.file.filename}` });
+  if (!req.file) return res.status(400).json({ message: 'Choose an image up to 4 MB.' });
+  res.status(201).json({ url: `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` });
 });
 
 app.post('/api/admin/posts', requireAdmin, async (req, res, next) => {
   try {
-    const posts = await readPosts();
-    const post = normalizePost(req.body);
-    if (!post.title || !post.slug || !post.content) return res.status(400).json({ message: 'Title, slug and content are required.' });
-    if (posts.some((item) => item.slug === post.slug)) return res.status(409).json({ message: 'That post URL is already in use.' });
-    post.id = crypto.randomUUID();
-    post.createdAt = new Date().toISOString();
-    if (!post.coverImage && req.body.generateImage) post.coverImage = await createAiCover(post);
-    posts.push(post);
-    await writePosts(posts);
-    res.status(201).json(post);
-  } catch (error) { next(error); }
+    const title = String(req.body.title || '').trim();
+    const slug = cleanSlug(req.body.slug || title);
+    const content = String(req.body.content || '').trim();
+    if (!title || !slug || !content) return res.status(400).json({ message: 'Title, slug and content are required.' });
+    let coverImage = String(req.body.coverImage || '');
+    if (!coverImage && req.body.generateImage) coverImage = await createAiCover(req.body);
+    const status = req.body.status === 'published' ? 'published' : 'draft';
+    const result = await query(
+      `INSERT INTO posts
+       (author_id, title, slug, excerpt, content, cover_image, image_alt, category, status, featured, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${status === 'published' ? 'NOW()' : 'NULL'})`,
+      [req.user.id, title, slug, String(req.body.excerpt || ''), content, coverImage,
+       String(req.body.imageAlt || title), String(req.body.category || 'Journal'), status, req.body.featured ? 1 : 0]
+    );
+    const rows = await query('SELECT * FROM posts WHERE id = ?', [result.insertId]);
+    res.status(201).json(mapPost(rows[0]));
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'That post URL is already in use.' });
+    next(error);
+  }
 });
 
 app.put('/api/admin/posts/:id', requireAdmin, async (req, res, next) => {
   try {
-    const posts = await readPosts();
-    const index = posts.findIndex((post) => post.id === req.params.id);
-    if (index < 0) return res.status(404).json({ message: 'Post not found.' });
-    const updated = normalizePost(req.body, posts[index]);
-    if (!updated.title || !updated.slug || !updated.content) return res.status(400).json({ message: 'Title, slug and content are required.' });
-    if (posts.some((item, itemIndex) => itemIndex !== index && item.slug === updated.slug)) return res.status(409).json({ message: 'That post URL is already in use.' });
-    if (!updated.coverImage && req.body.generateImage) updated.coverImage = await createAiCover(updated);
-    posts[index] = updated;
-    await writePosts(posts);
-    res.json(updated);
-  } catch (error) { next(error); }
+    const existing = await query('SELECT * FROM posts WHERE id = ? LIMIT 1', [req.params.id]);
+    if (!existing.length) return res.status(404).json({ message: 'Post not found.' });
+    const title = String(req.body.title || '').trim();
+    const slug = cleanSlug(req.body.slug || title);
+    const content = String(req.body.content || '').trim();
+    if (!title || !slug || !content) return res.status(400).json({ message: 'Title, slug and content are required.' });
+    let coverImage = String(req.body.coverImage || '');
+    if (!coverImage && req.body.generateImage) coverImage = await createAiCover(req.body);
+    const status = req.body.status === 'published' ? 'published' : 'draft';
+    await query(
+      `UPDATE posts SET title = ?, slug = ?, excerpt = ?, content = ?, cover_image = ?, image_alt = ?,
+       category = ?, status = ?, featured = ?, published_at = ${status === 'published' ? 'COALESCE(published_at, NOW())' : 'NULL'}
+       WHERE id = ?`,
+      [title, slug, String(req.body.excerpt || ''), content, coverImage, String(req.body.imageAlt || title),
+       String(req.body.category || 'Journal'), status, req.body.featured ? 1 : 0, req.params.id]
+    );
+    const rows = await query('SELECT * FROM posts WHERE id = ?', [req.params.id]);
+    res.json(mapPost(rows[0]));
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'That post URL is already in use.' });
+    next(error);
+  }
 });
 
 app.post('/api/admin/posts/:id/generate-image', requireAdmin, async (req, res, next) => {
   try {
-    const posts = await readPosts();
-    const index = posts.findIndex((post) => post.id === req.params.id);
-    if (index < 0) return res.status(404).json({ message: 'Post not found.' });
-    posts[index].coverImage = await createAiCover({ ...posts[index], excerpt: req.body?.prompt || posts[index].excerpt });
-    posts[index].updatedAt = new Date().toISOString();
-    await writePosts(posts);
-    res.json(posts[index]);
+    const rows = await query('SELECT * FROM posts WHERE id = ? LIMIT 1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ message: 'Post not found.' });
+    const coverImage = await createAiCover({ ...mapPost(rows[0]), excerpt: req.body?.prompt || rows[0].excerpt });
+    await query('UPDATE posts SET cover_image = ? WHERE id = ?', [coverImage, req.params.id]);
+    const updated = await query('SELECT * FROM posts WHERE id = ?', [req.params.id]);
+    res.json(mapPost(updated[0]));
   } catch (error) { next(error); }
 });
 
 app.delete('/api/admin/posts/:id', requireAdmin, async (req, res, next) => {
   try {
-    const posts = await readPosts();
-    const remaining = posts.filter((post) => post.id !== req.params.id);
-    if (remaining.length === posts.length) return res.status(404).json({ message: 'Post not found.' });
-    await writePosts(remaining);
+    const result = await query('DELETE FROM posts WHERE id = ?', [req.params.id]);
+    if (!result.affectedRows) return res.status(404).json({ message: 'Post not found.' });
     res.status(204).end();
   } catch (error) { next(error); }
 });
 
 app.use('/api', (_req, res) => res.status(404).json({ message: 'API route not found.' }));
-app.use(express.static(distDir));
-app.use((_req, res, next) => res.sendFile(path.join(distDir, 'index.html'), (error) => error && next(error)));
+
+if (fs.existsSync(indexHtml)) {
+  app.use(express.static(distDir));
+  app.get(/.*/, (_req, res) => res.sendFile(indexHtml));
+} else {
+  app.get('/', (_req, res) => res.status(200).send('Yeh Mera India API is running. Frontend build is missing.'));
+}
 
 app.use((error, _req, res, _next) => {
-  console.error(error);
+  console.error('Request error:', error.message);
   if (error instanceof multer.MulterError) return res.status(400).json({ message: error.message });
-  res.status(500).json({ message: error.message || 'Something went wrong.' });
+  const databaseError = String(error.code || '').startsWith('ER_') || ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND'].includes(error.code);
+  res.status(databaseError ? 503 : 500).json({ message: databaseError ? 'Database is temporarily unavailable.' : (error.message || 'Something went wrong.') });
 });
 
-app.listen(port, () => console.log(`Yeh Mera India running on port ${port}`));
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Yeh Mera India server listening on 0.0.0.0:${port}`);
+  console.log(`Frontend build present: ${fs.existsSync(indexHtml)}`);
+});
+
+initializeDatabase()
+  .then(() => {
+    databaseState = { connected: true, message: 'Database connected.' };
+    console.log('MySQL database connected and schema ready.');
+  })
+  .catch((error) => {
+    databaseState = { connected: false, message: error.message };
+    console.error('MySQL initialization failed:', error.message);
+  });
