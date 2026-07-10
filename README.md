@@ -24,6 +24,8 @@ npm start
 
 The production server hosts both the API and the built frontend on `PORT` (default `8080`). For separate local frontend development, run `npm run dev` and set `VITE_API_URL=http://localhost:8080`.
 
+For managed Node hosting, use `server/index.js` as the entry file. A root-level `index.js` compatibility entry is also included for platforms that require it. `npm install` runs the Vite production build automatically so `dist` exists before Express starts.
+
 ## Required environment values
 
 ```env
