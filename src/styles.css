@@ -165,14 +165,61 @@
   border-left: 1px solid rgba(239, 180, 56, 0.22);
   background: #d9cda9;
 }
+.map-mode-switch {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 700;
+  padding: 4px;
+  display: flex;
+  gap: 3px;
+  border: 1px solid rgba(239, 180, 56, 0.55);
+  border-radius: 8px;
+  background: rgba(5, 7, 20, 0.9);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(12px);
+}
+.map-mode-switch button {
+  min-height: 38px;
+  padding: 7px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #bcb8ad;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.map-mode-switch button:hover,
+.map-mode-switch button:focus-visible {
+  color: #ffe7a2;
+  outline: none;
+}
+.map-mode-switch button.active {
+  border-color: rgba(255, 225, 145, 0.35);
+  background: linear-gradient(135deg, #d99b27, #805207);
+  color: #fff5d0;
+}
+.map-mode-switch svg {
+  width: 16px;
+  height: 16px;
+}
 .india-map {
   width: 100%;
   height: 100%;
   min-height: calc(100vh - 78px);
   background: #050714;
 }
-.india-map .leaflet-tile-pane {
+.india-map.normal-map .leaflet-tile-pane {
   filter: sepia(0.42) saturate(0.75) contrast(1.05);
+}
+.india-map.satellite-map .leaflet-tile-pane {
+  filter: saturate(0.9) contrast(1.05) brightness(0.9);
 }
 .india-map .leaflet-control-attribution {
   background: rgba(255, 250, 235, 0.82);
@@ -848,6 +895,14 @@
   .india-map-shell,
   .india-map {
     min-height: 58vh;
+  }
+  .map-mode-switch {
+    top: 10px;
+    right: 10px;
+  }
+  .map-mode-switch button {
+    min-height: 42px;
+    padding: 8px 10px;
   }
   .golden-card-page {
     padding: 32px 14px 60px;
