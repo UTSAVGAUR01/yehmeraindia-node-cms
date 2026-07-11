@@ -6,7 +6,7 @@ A full-stack author, playwright and AI exploration platform with a public journa
 
 - Heritage Stage responsive public website
 - **Know My India** interactive map with state, district, city and village search
-- Seven sourced 3D golden knowledge cards covering place identity, history, facts, culture, landmarks, present scenario and current news
+- Seven sourced golden knowledge cards covering place identity, history, facts, culture, landmarks, present scenario and current news
 - Journal listing and individual article pages
 - Admin, author and viewer roles with server-enforced permissions
 - Admin user/role management and visual page designer
@@ -56,6 +56,7 @@ OPENAI_API_KEY=your-rotated-server-side-key
 OPENAI_TEXT_MODEL=gpt-5.5
 OPENAI_AUTHOR_TEXT_MODEL=gpt-5.5
 OPENAI_IMAGE_MODEL=gpt-image-2
+OPENAI_PLACE_MODEL=gpt-5-mini
 AI_TEXT_TIMEOUT_MS=180000
 AI_IMAGE_TIMEOUT_MS=180000
 ```
@@ -64,7 +65,9 @@ The studio accepts active users with `role='admin'` or `role='author'`. New publ
 
 The OpenAI key is only read by the Express backend. Environment model values seed the database on first startup. After that, an Admin can select separate Admin and Author writing models plus the shared image model from **Studio → AI settings**. Authors can see their assigned model but cannot change it. `gpt-5.5` replaces the unavailable `gpt-5.6-luna` preview default shown in the earlier runtime error.
 
-Know My India uses OpenStreetMap tiles and Nominatim for India-only place search and reverse geocoding. Lookups are throttled and cached in MySQL. New AI research is limited per visitor and cached for 12 hours; cached results do not consume another AI request.
+Know My India uses OpenStreetMap tiles and Nominatim for India-only place search and reverse geocoding. Lookups are throttled and cached in MySQL. Category cards appear immediately; focused AI research starts only when a visitor opens a card. The top-hinged golden flap reveals the live result panel immediately without rotating or mirroring the text. Public place research defaults to the faster `gpt-5-mini` model through `OPENAI_PLACE_MODEL`. Each completed category is cached for 12 hours, so reopening it is instant and does not consume another AI request.
+
+The **Places to know** card can include safely validated, source-attributed destination photographs and a practical nearby-area visit plan. Routes, distances and travel times are presented as approximate guidance; visitors are reminded to confirm current access, opening times and local travel conditions before travelling.
 
 OpenAI API usage is billed separately from ChatGPT and is subject to provider quota and rate limits. The website does not advertise or bypass those limits. Never add a real `.env` file to Git.
 
