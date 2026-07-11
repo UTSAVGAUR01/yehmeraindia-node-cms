@@ -909,9 +909,9 @@ async function savePlaceProviderResult(researchId, response) {
 
 const PLACE_RESEARCH_CATEGORIES = {
   overview: "Place identity, geography, administration and why the place matters",
-  history: "Origins, chronology, historical turning points and legacy",
-  amazingFacts: "Verified surprising facts, records, local legends clearly labelled as legends, and distinctive features",
-  culture: "Languages, communities, traditions, food, dress, festivals, arts and everyday culture",
+  history: "Origins, chronology and historical turning points, with meaningful coverage of Hindu, Buddhist, Jain, Sikh, tribal, folk and other Indian civilisational heritage where relevant",
+  amazingFacts: "Verified surprising facts, records, sacred geography, archaeology, local legends clearly labelled as legends, and distinctive Indian heritage",
+  culture: "Languages, communities, Hindu, Buddhist, Jain, Sikh, tribal, folk and other local traditions, food, dress, festivals, arts and everyday culture",
   places: "Important landmarks, natural landscapes, heritage sites and meaningful destinations",
   presentScenario: "Current administration, population context, economy, infrastructure, education, environment and quality of life",
   currentNews: "Material recent news and developments with exact event dates and publication sources",
@@ -933,16 +933,22 @@ async function startPlaceResearch(place, categoryKey, req) {
   if (!PLACE_RESEARCH_CATEGORIES[category])
     throw Object.assign(new Error("Choose a valid knowledge-card category."), { statusCode: 400 });
   const basePlaceKey = String(place?.placeId || "");
-  // Version the richer places result so an older cached card without photos
-  // or visit-planning data is not served after this schema is deployed.
-  const researchVersion = category === "places" ? ":v2" : "";
+  // Version category prompts so older cached cards are not served after a
+  // material research/editorial schema update.
+  const researchVersion = {
+    places: ":v2",
+    history: ":v3",
+    amazingFacts: ":v3",
+    culture: ":v3",
+  }[category] || "";
   const placeKey = `${basePlaceKey.slice(0, 254 - category.length - researchVersion.length)}:${category}${researchVersion}`;
   const placeName = String(place?.name || "").trim().slice(0, 500);
   const level = ["state", "district", "city", "village"].includes(place?.level) ? place.level : "place";
   const lat = Number(place?.lat);
   const lon = Number(place?.lon);
   const hierarchy = place?.hierarchy && typeof place.hierarchy === "object" ? place.hierarchy : {};
-  if (!placeKey || !placeName || !Number.isFinite(lat) || !Number.isFinite(lon))
+  const countryName = String(hierarchy.country || "India").trim().toLowerCase();
+  if (!placeKey || !placeName || !Number.isFinite(lat) || !Number.isFinite(lon) || countryName !== "india")
     throw Object.assign(new Error("Choose a valid place from the India map or search results."), { statusCode: 400 });
   const existing = await query("SELECT * FROM place_insights WHERE place_key = ? LIMIT 1", [placeKey]);
   if (existing.length && ["queued", "in_progress", "completed"].includes(existing[0].status) && new Date(existing[0].expires_at).getTime() > Date.now())
@@ -1014,7 +1020,14 @@ async function startPlaceResearch(place, categoryKey, req) {
       instructions: [
         "You are the Know My India research editor for Yeh Mera India.",
         "Research only the requested knowledge-card category so the response is focused and fast.",
+        "Keep the answer about the selected place in India. Mention a neighbouring country only when essential to explain verified border geography or history; do not recommend or profile non-Indian destinations.",
         "Use trustworthy sources and distinguish verified facts from local legends.",
+        ["history", "amazingFacts", "culture"].includes(category)
+          ? "Actively research Indian civilisational heritage, including Hindu, Buddhist, Jain, Sikh, tribal, folk, linguistic, archaeological and indigenous traditions where relevant. Give these traditions meaningful detail, while retaining other well-sourced history needed for an accurate and complete account. Never generalise about or disparage any religious community."
+          : "",
+        ["overview", "history", "presentScenario"].includes(category)
+          ? "For borders and administration, prioritise Survey of India, Ministry of Home Affairs, Archaeological Survey of India and official Union Territory, state, divisional and district portals. Clearly distinguish a Union Territory, administrative division, district, cultural region and disputed boundary context."
+          : "",
         category === "currentNews"
           ? "Prioritize recent reporting, include exact event dates, and state clearly when no material recent news is found."
           : "Prefer authoritative government, institutional, reference and established reporting sources relevant to this category.",
@@ -1144,7 +1157,10 @@ app.get("/api/places/search", async (req, res, next) => {
       dedupe: "1",
     });
     const data = await nominatimRequest("search", text.toLowerCase(), `https://nominatim.openstreetmap.org/search?${params}`);
-    res.json(data.map(mapIndiaPlace).filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lon)));
+    res.json(data
+      .filter((item) => String(item.address?.country_code || "").toLowerCase() === "in")
+      .map(mapIndiaPlace)
+      .filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lon)));
   } catch (error) {
     next(error);
   }
@@ -1175,6 +1191,68 @@ app.get("/api/places/india-boundary", async (_req, res, next) => {
       boundingBox: Array.isArray(country.boundingbox) ? country.boundingbox.map(Number) : [],
       source: "OpenStreetMap Nominatim",
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/places/northern-regions", async (_req, res, next) => {
+  try {
+    const definitions = [
+      {
+        key: "jammu",
+        name: "Jammu Division",
+        kind: "Administrative division of Jammu & Kashmir UT",
+        queryText: "Jammu Division, Jammu and Kashmir, India",
+        referenceUrl: "https://divcomjammu.gov.in/",
+      },
+      {
+        key: "kashmir",
+        name: "Kashmir Division",
+        kind: "Administrative division of Jammu & Kashmir UT",
+        queryText: "Kashmir Division, Jammu and Kashmir, India",
+        referenceUrl: "https://divcomkashmir.jk.gov.in/",
+      },
+      {
+        key: "ladakh",
+        name: "Ladakh",
+        kind: "Union Territory of India",
+        queryText: "Ladakh, India",
+        referenceUrl: "https://ladakh.gov.in/",
+      },
+    ];
+    const regions = await Promise.all(definitions.map(async (definition) => {
+      const params = new URLSearchParams({
+        q: definition.queryText,
+        format: "jsonv2",
+        addressdetails: "1",
+        countrycodes: "in",
+        polygon_geojson: "1",
+        polygon_threshold: "0.005",
+        limit: "5",
+      });
+      try {
+        const data = await nominatimRequest(
+          "search",
+          `india-northern-region-v1:${definition.key}`,
+          `https://nominatim.openstreetmap.org/search?${params}`,
+        );
+        const match = Array.isArray(data) ? data.find((item) => item?.geojson) : null;
+        if (!match?.geojson) return null;
+        return {
+          key: definition.key,
+          name: definition.name,
+          kind: definition.kind,
+          geometry: match.geojson,
+          boundingBox: Array.isArray(match.boundingbox) ? match.boundingbox.map(Number) : [],
+          referenceUrl: definition.referenceUrl,
+        };
+      } catch {
+        return null;
+      }
+    }));
+    res.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=2592000");
+    res.json(regions.filter(Boolean));
   } catch (error) {
     next(error);
   }
