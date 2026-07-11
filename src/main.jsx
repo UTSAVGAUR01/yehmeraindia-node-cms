@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CircleMarker, GeoJSON, MapContainer, Polygon, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import {
   ArrowLeft,
   ArrowRight,
@@ -48,7 +48,11 @@ import "./styles.css";
 
 const API = import.meta.env.VITE_API_URL || "";
 const INDIA_VIEW_BOUNDS = [[5.7, 67.2], [39.2, 99.6]];
-const INDIA_MASK_OUTER_RING = [[-5, 50], [-5, 115], [50, 115], [50, 50], [-5, 50]];
+const NORTHERN_REGION_STYLES = {
+  jammu: { color: "#f08a32", fillColor: "#f08a32" },
+  kashmir: { color: "#e8c659", fillColor: "#e8c659" },
+  ladakh: { color: "#70b7d6", fillColor: "#70b7d6" },
+};
 const emptyPost = {
   title: "",
   slug: "",
@@ -393,14 +397,15 @@ function IndiaMapViewport({ place }) {
   return null;
 }
 
-function indiaBoundaryRings(geometry) {
-  if (!geometry?.coordinates) return [];
-  const polygons = geometry.type === "Polygon"
-    ? [geometry.coordinates]
-    : geometry.type === "MultiPolygon" ? geometry.coordinates : [];
-  return polygons
-    .map((polygon) => polygon?.[0]?.map(([longitude, latitude]) => [latitude, longitude]))
-    .filter((ring) => Array.isArray(ring) && ring.length > 3);
+function IndiaRegionFocus({ request: focusRequest }) {
+  const map = useMap();
+  useEffect(() => {
+    const box = focusRequest?.boundingBox;
+    if (!Array.isArray(box) || box.length !== 4) return;
+    const [south, north, west, east] = box;
+    map.fitBounds([[south, west], [north, east]], { padding: [30, 30], maxZoom: 8 });
+  }, [map, focusRequest?.token]);
+  return null;
 }
 
 function KnowMyIndia() {
@@ -409,6 +414,8 @@ function KnowMyIndia() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [indiaBoundary, setIndiaBoundary] = useState(null);
+  const [northernRegions, setNorthernRegions] = useState([]);
+  const [regionFocus, setRegionFocus] = useState(null);
   const [mapMode, setMapMode] = useState("normal");
   const selectedPlaceRef = useRef(null);
   const [categoryResearch, setCategoryResearch] = useState({});
@@ -437,6 +444,9 @@ function KnowMyIndia() {
     request("/api/places/india-boundary")
       .then((data) => setIndiaBoundary(data?.geometry || null))
       .catch(() => setIndiaBoundary(null));
+    request("/api/places/northern-regions")
+      .then((data) => setNorthernRegions(Array.isArray(data) ? data : []))
+      .catch(() => setNorthernRegions([]));
   }, []);
 
   function selectPlace(place) {
@@ -532,7 +542,6 @@ function KnowMyIndia() {
     .slice(0, 4);
   const nearbyAreas = active?.key === "places" && Array.isArray(active.nearbyAreas) ? active.nearbyAreas : [];
   const visitPlan = active?.key === "places" ? active.visitPlan : null;
-  const indiaMaskRings = useMemo(() => indiaBoundaryRings(indiaBoundary), [indiaBoundary]);
   const ActiveIcon = activeVisual?.icon || MapPin;
 
   return (
@@ -555,23 +564,31 @@ function KnowMyIndia() {
                 <MapPin /><span><b>{place.name}</b><small>{place.displayName}</small></span><em>{place.level}</em>
               </button>
             ))}</div>}
-            <div className="map-instructions"><Compass /><span><b>Choose your depth</b>Start with a state, then zoom or search deeper for a district, city or village.</span></div>
-            <div className="india-map-reference"><MapPin /><span><b>Complete India view</b>Jammu & Kashmir and Ladakh remain available in the northern Himalayan map extent. <a href="https://surveyofindia.gov.in/pages/political-map-of-india" target="_blank" rel="noopener noreferrer">Official political map reference</a></span></div>
+            <div className="map-instructions"><Compass /><span><b>Choose your depth</b>Start with a state or Union Territory, then zoom or search deeper for a division, district, city or village. Research results remain restricted to Indian places.</span></div>
+            <div className="india-map-reference"><MapPin /><span><b>Northern administrative view</b>Jammu Division and Kashmir Division are shown separately within Jammu & Kashmir Union Territory; Ladakh is shown as a separate Union Territory. <a href="https://surveyofindia.gov.in/pages/political-map-of-india" target="_blank" rel="noopener noreferrer">Survey of India map</a> · <a href="https://divcomjammu.gov.in/" target="_blank" rel="noopener noreferrer">Jammu administration</a> · <a href="https://divcomkashmir.jk.gov.in/" target="_blank" rel="noopener noreferrer">Kashmir administration</a></span></div>
           </div>
           <div className="india-map-shell">
             <div className="map-mode-switch" role="group" aria-label="Map display mode">
               <button type="button" className={mapMode === "normal" ? "active" : ""} aria-pressed={mapMode === "normal"} onClick={() => setMapMode("normal")}><MapIcon /> Normal</button>
               <button type="button" className={mapMode === "satellite" ? "active" : ""} aria-pressed={mapMode === "satellite"} onClick={() => setMapMode("satellite")}><Satellite /> Satellite</button>
             </div>
+            {northernRegions.length > 0 && <div className="northern-region-legend" aria-label="Northern administrative regions">
+              <b>Northern regions</b>
+              {northernRegions.map((region) => <button type="button" key={region.key} onClick={() => setRegionFocus({ ...region, token: Date.now() })}><i style={{ background: NORTHERN_REGION_STYLES[region.key]?.color }} /><span>{region.name}<small>{region.kind}</small></span></button>)}
+            </div>}
             <MapContainer bounds={INDIA_VIEW_BOUNDS} boundsOptions={{ padding: [12, 12] }} minZoom={3} maxZoom={16} zoomSnap={0.25} maxBounds={INDIA_VIEW_BOUNDS} maxBoundsViscosity={1} scrollWheelZoom className={`india-map ${mapMode}-map`}>
               {mapMode === "normal" ? <TileLayer key="normal-map" bounds={INDIA_VIEW_BOUNDS} noWrap attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /> : <>
                 <TileLayer key="satellite-map" bounds={INDIA_VIEW_BOUNDS} noWrap maxZoom={18} attribution='Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics and the GIS User Community' url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
                 <TileLayer key="satellite-labels" bounds={INDIA_VIEW_BOUNDS} noWrap maxZoom={18} attribution='Boundaries and places &copy; Esri' url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" />
               </>}
-              {indiaMaskRings.length > 0 && <Polygon positions={[INDIA_MASK_OUTER_RING, ...indiaMaskRings]} interactive={false} pathOptions={{ stroke: false, fill: true, fillColor: "#050714", fillOpacity: 0.92, fillRule: "evenodd" }} />}
               {indiaBoundary && <GeoJSON data={{ type: "Feature", properties: {}, geometry: indiaBoundary }} interactive={false} style={{ color: "#c8922e", weight: 1.4, opacity: 0.9, fillOpacity: 0 }} />}
+              {northernRegions.map((region) => <GeoJSON key={region.key} data={{ type: "Feature", properties: { name: region.name }, geometry: region.geometry }} style={{ ...NORTHERN_REGION_STYLES[region.key], weight: 2, opacity: 1, fillOpacity: mapMode === "satellite" ? 0.1 : 0.16, bubblingMouseEvents: false }} onEachFeature={(_feature, layer) => {
+                layer.bindTooltip(region.name, { permanent: true, direction: "center", className: `india-region-label ${region.key}` });
+                layer.on("click", () => setRegionFocus({ ...region, token: Date.now() }));
+              }} />)}
               <IndiaMapEvents onChoose={chooseMapPoint} />
               <IndiaMapViewport place={selectedPlace} />
+              <IndiaRegionFocus request={regionFocus} />
               <IndiaMapFocus place={selectedPlace} />
               {selectedPlace && <CircleMarker center={[selectedPlace.lat, selectedPlace.lon]} radius={10} pathOptions={{ color: "#8f5b08", fillColor: "#f4c34f", fillOpacity: 0.9 }} />}
             </MapContainer>
