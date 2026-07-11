@@ -1150,6 +1150,36 @@ app.get("/api/places/search", async (req, res, next) => {
   }
 });
 
+app.get("/api/places/india-boundary", async (_req, res, next) => {
+  try {
+    const params = new URLSearchParams({
+      q: "India",
+      format: "jsonv2",
+      addressdetails: "1",
+      countrycodes: "in",
+      featuretype: "country",
+      polygon_geojson: "1",
+      polygon_threshold: "0.01",
+      limit: "1",
+    });
+    const data = await nominatimRequest(
+      "search",
+      "india-national-boundary-v1",
+      `https://nominatim.openstreetmap.org/search?${params}`,
+    );
+    const country = Array.isArray(data) ? data.find((item) => item?.geojson) : null;
+    if (!country?.geojson) throw new Error("India boundary data is temporarily unavailable.");
+    res.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=2592000");
+    res.json({
+      geometry: country.geojson,
+      boundingBox: Array.isArray(country.boundingbox) ? country.boundingbox.map(Number) : [],
+      source: "OpenStreetMap Nominatim",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/places/reverse", async (req, res, next) => {
   try {
     const lat = Number(req.query.lat);
