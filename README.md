@@ -67,6 +67,8 @@ The OpenAI key is only read by the Express backend. Environment model values see
 
 Know My India uses OpenStreetMap tiles and Nominatim for India-only place search and reverse geocoding. Lookups are throttled and cached in MySQL. Category cards appear immediately; focused AI research starts only when a visitor opens a card. The top-hinged golden flap reveals the live result panel immediately without rotating or mirroring the text. Public place research defaults to the faster `gpt-5-mini` model through `OPENAI_PLACE_MODEL`. Each completed category is cached for 12 hours, so reopening it is instant and does not consume another AI request.
 
+The map opens in a locked India-only national extent covering the Himalayas, Jammu & Kashmir, Ladakh, mainland India and the island territories. A cached India boundary masks surrounding countries, while an official Survey of India political-map reference is available beside the explorer.
+
 The **Places to know** card can include safely validated, source-attributed destination photographs and a practical nearby-area visit plan. Routes, distances and travel times are presented as approximate guidance; visitors are reminded to confirm current access, opening times and local travel conditions before travelling.
 
 OpenAI API usage is billed separately from ChatGPT and is subject to provider quota and rate limits. The website does not advertise or bypass those limits. Never add a real `.env` file to Git.
