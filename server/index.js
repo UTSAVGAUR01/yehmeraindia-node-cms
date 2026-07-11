@@ -788,6 +788,55 @@ async function nominatimRequest(type, queryText, url) {
   return result;
 }
 
+function plainMediaText(value = "") {
+  return String(value)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function wikimediaPlacePhotos(searchText) {
+  const params = new URLSearchParams({
+    action: "query",
+    generator: "search",
+    gsrsearch: `${searchText} India filetype:bitmap`,
+    gsrnamespace: "6",
+    gsrlimit: "8",
+    prop: "imageinfo",
+    iiprop: "url|mime|extmetadata",
+    iiurlwidth: "1200",
+    format: "json",
+    formatversion: "2",
+    redirects: "1",
+  });
+  const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+    headers: {
+      "User-Agent": `YehMeraIndia/2.0 (${process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://yehmeraindia.com"})`,
+      Accept: "application/json",
+    },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) throw new Error(`Wikimedia returned ${response.status}.`);
+  const data = await response.json();
+  return (data?.query?.pages || []).flatMap((page) => {
+    const info = page?.imageinfo?.[0];
+    if (!info?.thumburl || !info?.descriptionurl || !String(info.mime || "").startsWith("image/")) return [];
+    const creator = plainMediaText(info.extmetadata?.Artist?.value || info.extmetadata?.Credit?.value || "Wikimedia Commons contributor");
+    const license = plainMediaText(info.extmetadata?.LicenseShortName?.value || info.extmetadata?.UsageTerms?.value || "See source for licence");
+    const title = String(page.title || "").replace(/^File:/i, "").replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim().slice(0, 180);
+    return [{
+      placeName: title || searchText,
+      imageUrl: info.thumburl,
+      sourcePageUrl: info.descriptionurl,
+      attribution: `${creator} · ${license}`.slice(0, 500),
+      alt: (plainMediaText(info.extmetadata?.ImageDescription?.value) || `${searchText}, India`).slice(0, 500),
+    }];
+  }).slice(0, 4);
+}
+
 function mapPlaceResearch(row) {
   let result = null;
   let hierarchy = {};
@@ -818,6 +867,31 @@ async function savePlaceProviderResult(researchId, response) {
     let result;
     try { result = JSON.parse(text); }
     catch { throw new Error("Place research returned an invalid response. Please try again."); }
+    // Keep only photo records that are safe to render directly. The research
+    // prompt requires source-backed URLs, and this final guard prevents an
+    // arbitrary or non-HTTPS value from reaching the public page.
+    if (result?.category?.key === "places" && Array.isArray(result.category.photos)) {
+      result.category.photos = result.category.photos.filter((photo) => {
+        try {
+          const imageUrl = new URL(photo?.imageUrl);
+          const sourcePageUrl = new URL(photo?.sourcePageUrl);
+          const host = imageUrl.hostname.toLowerCase();
+          const trustedImageHost = [
+            "upload.wikimedia.org",
+            "commons.wikimedia.org",
+            "images.unsplash.com",
+            "images.pexels.com",
+          ].includes(host) || host.endsWith(".gov.in") || host.endsWith(".nic.in");
+          return imageUrl.protocol === "https:"
+            && sourcePageUrl.protocol === "https:"
+            && trustedImageHost
+            && String(photo.placeName || "").trim()
+            && String(photo.attribution || "").trim();
+        } catch {
+          return false;
+        }
+      }).slice(0, 4);
+    }
     await query(
       `UPDATE place_insights SET status = 'completed', result = ?, error = NULL,
        researched_at = NOW(), expires_at = DATE_ADD(NOW(), INTERVAL 12 HOUR) WHERE id = ?`,
@@ -833,19 +907,36 @@ async function savePlaceProviderResult(researchId, response) {
   await query("UPDATE place_insights SET status = ? WHERE id = ?", [status, researchId]);
 }
 
+const PLACE_RESEARCH_CATEGORIES = {
+  overview: "Place identity, geography, administration and why the place matters",
+  history: "Origins, chronology, historical turning points and legacy",
+  amazingFacts: "Verified surprising facts, records, local legends clearly labelled as legends, and distinctive features",
+  culture: "Languages, communities, traditions, food, dress, festivals, arts and everyday culture",
+  places: "Important landmarks, natural landscapes, heritage sites and meaningful destinations",
+  presentScenario: "Current administration, population context, economy, infrastructure, education, environment and quality of life",
+  currentNews: "Material recent news and developments with exact event dates and publication sources",
+};
+
 function enforceResearchLimit(req) {
   const now = Date.now();
   const key = req.ip || req.socket.remoteAddress || "anonymous";
   const recent = (researchLimits.get(key) || []).filter((time) => now - time < 60 * 60 * 1000);
-  if (recent.length >= 6)
+  if (recent.length >= 10)
     throw Object.assign(new Error("Research limit reached. Try another cached place or return in one hour."), { statusCode: 429 });
   recent.push(now);
   researchLimits.set(key, recent);
 }
 
-async function startPlaceResearch(place, req) {
+async function startPlaceResearch(place, categoryKey, req) {
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
-  const placeKey = String(place?.placeId || "").slice(0, 255);
+  const category = String(categoryKey || "");
+  if (!PLACE_RESEARCH_CATEGORIES[category])
+    throw Object.assign(new Error("Choose a valid knowledge-card category."), { statusCode: 400 });
+  const basePlaceKey = String(place?.placeId || "");
+  // Version the richer places result so an older cached card without photos
+  // or visit-planning data is not served after this schema is deployed.
+  const researchVersion = category === "places" ? ":v2" : "";
+  const placeKey = `${basePlaceKey.slice(0, 254 - category.length - researchVersion.length)}:${category}${researchVersion}`;
   const placeName = String(place?.name || "").trim().slice(0, 500);
   const level = ["state", "district", "city", "village"].includes(place?.level) ? place.level : "place";
   const lat = Number(place?.lat);
@@ -857,8 +948,60 @@ async function startPlaceResearch(place, req) {
   if (existing.length && ["queued", "in_progress", "completed"].includes(existing[0].status) && new Date(existing[0].expires_at).getTime() > Date.now())
     return { ...mapPlaceResearch(existing[0]), cached: existing[0].status === "completed" };
   enforceResearchLimit(req);
-  const settings = await getAiSettings();
-  const model = settings.adminTextModel;
+  const configuredPlaceModel = String(process.env.OPENAI_PLACE_MODEL || "gpt-5-mini");
+  const model = TEXT_MODELS.some((item) => item.id === configuredPlaceModel)
+    ? configuredPlaceModel
+    : "gpt-5-mini";
+  const isPlacesCategory = category === "places";
+  const placesProperties = isPlacesCategory
+    ? {
+        photos: {
+          type: "array",
+          maxItems: 4,
+          items: {
+            type: "object",
+            properties: {
+              placeName: { type: "string" },
+              imageUrl: { type: "string" },
+              sourcePageUrl: { type: "string" },
+              attribution: { type: "string" },
+              alt: { type: "string" },
+            },
+            required: ["placeName", "imageUrl", "sourcePageUrl", "attribution", "alt"],
+            additionalProperties: false,
+          },
+        },
+        nearbyAreas: {
+          type: "array",
+          maxItems: 6,
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              type: { type: "string" },
+              whyVisit: { type: "string" },
+              distanceGuidance: { type: "string" },
+              travelTimeGuidance: { type: "string" },
+            },
+            required: ["name", "type", "whyVisit", "distanceGuidance", "travelTimeGuidance"],
+            additionalProperties: false,
+          },
+        },
+        visitPlan: {
+          type: "object",
+          properties: {
+            startingPoint: { type: "string" },
+            suggestedOrder: { type: "array", maxItems: 8, items: { type: "string" } },
+            totalTimeGuidance: { type: "string" },
+            transportGuidance: { type: "string" },
+            practicalNotes: { type: "array", minItems: 1, maxItems: 6, items: { type: "string" } },
+          },
+          required: ["startingPoint", "suggestedOrder", "totalTimeGuidance", "transportGuidance", "practicalNotes"],
+          additionalProperties: false,
+        },
+      }
+    : {};
+  const placesRequired = isPlacesCategory ? ["photos", "nearbyAreas", "visitPlan"] : [];
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
@@ -866,55 +1009,66 @@ async function startPlaceResearch(place, req) {
       model,
       ...(model.startsWith("gpt-5") ? { reasoning: { effort: "low" } } : {}),
       background: true,
-      tools: [{ type: "web_search", search_context_size: "medium" }],
+      tools: [{ type: "web_search", search_context_size: "low" }],
       tool_choice: "auto",
       instructions: [
         "You are the Know My India research editor for Yeh Mera India.",
-        "Research the selected Indian place using trustworthy, current sources. Distinguish verified facts from local legends.",
-        "Explain history with dates and context, present-day administration/economy/infrastructure, culture and language, notable places, and genuinely interesting facts.",
-        "For currentNews, prioritize recent reporting, include event dates in the summary, and state clearly when no material recent news is found.",
+        "Research only the requested knowledge-card category so the response is focused and fast.",
+        "Use trustworthy sources and distinguish verified facts from local legends.",
+        category === "currentNews"
+          ? "Prioritize recent reporting, include exact event dates, and state clearly when no material recent news is found."
+          : "Prefer authoritative government, institutional, reference and established reporting sources relevant to this category.",
+        isPlacesCategory
+          ? "For Places to Know, also make a practical nearby-area visit plan. Give approximate distance and travel-time guidance from the selected place, a sensible visit order, transport guidance and concise practical notes; label estimates as approximate and never invent live opening hours, fares or road conditions."
+          : "",
+        isPlacesCategory
+          ? "Include up to four directly renderable related photos only when web research finds the exact HTTPS image URL and its attribution/source page. Prefer Wikimedia Commons or official Indian government/tourism media. Never construct, guess or fabricate an image URL; return an empty photos array when no reliable direct image is available."
+          : "",
         "Do not invent statistics, quotations, people, legends, developments or news. Avoid political persuasion and promotional exaggeration.",
-        "Every category must contain useful source links. Write accessible English suitable for Indian and international readers.",
+        isPlacesCategory
+          ? "Return a concise summary, at most four strong highlights, at most four useful source links, and no more than six nearby areas. Write accessible English."
+          : "Return a concise summary, at most four strong highlights and at most four useful source links. Write accessible English.",
       ].join(" "),
-      input: JSON.stringify({ selectedPlace: { name: placeName, level, hierarchy, latitude: lat, longitude: lon } }),
+      input: JSON.stringify({
+        selectedPlace: { name: placeName, level, hierarchy, latitude: lat, longitude: lon },
+        requestedCategory: { key: category, scope: PLACE_RESEARCH_CATEGORIES[category] },
+      }),
       text: {
         format: {
           type: "json_schema",
-          name: "know_my_india_place",
+          name: "know_my_india_category",
           strict: true,
           schema: {
             type: "object",
             properties: {
               placeTitle: { type: "string" },
               subtitle: { type: "string" },
-              categories: {
-                type: "array",
-                minItems: 7,
-                maxItems: 7,
-                items: {
-                  type: "object",
-                  properties: {
-                    key: { type: "string", enum: ["overview", "history", "amazingFacts", "culture", "places", "presentScenario", "currentNews"] },
-                    title: { type: "string" },
-                    summary: { type: "string" },
-                    highlights: { type: "array", items: { type: "string" } },
-                    sources: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: { title: { type: "string" }, url: { type: "string" } },
-                        required: ["title", "url"],
-                        additionalProperties: false,
-                      },
+              category: {
+                type: "object",
+                properties: {
+                  key: { type: "string", enum: ["overview", "history", "amazingFacts", "culture", "places", "presentScenario", "currentNews"] },
+                  title: { type: "string" },
+                  summary: { type: "string" },
+                  highlights: { type: "array", minItems: 2, maxItems: 4, items: { type: "string" } },
+                  ...placesProperties,
+                  sources: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 4,
+                    items: {
+                      type: "object",
+                      properties: { title: { type: "string" }, url: { type: "string" } },
+                      required: ["title", "url"],
+                      additionalProperties: false,
                     },
                   },
-                  required: ["key", "title", "summary", "highlights", "sources"],
-                  additionalProperties: false,
                 },
+                required: ["key", "title", "summary", "highlights", ...placesRequired, "sources"],
+                additionalProperties: false,
               },
               researchNote: { type: "string" },
             },
-            required: ["placeTitle", "subtitle", "categories", "researchNote"],
+            required: ["placeTitle", "subtitle", "category", "researchNote"],
             additionalProperties: false,
           },
         },
@@ -1020,9 +1174,21 @@ app.get("/api/places/reverse", async (req, res, next) => {
   }
 });
 
+app.get("/api/places/photos", async (req, res, next) => {
+  try {
+    const text = String(req.query.q || "").trim();
+    if (text.length < 2 || text.length > 180)
+      return res.status(400).json({ message: "Choose a valid Indian place for photographs." });
+    res.set("Cache-Control", "public, max-age=21600, stale-while-revalidate=86400");
+    res.json(await wikimediaPlacePhotos(text));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/places/research", async (req, res, next) => {
   try {
-    res.status(202).json(await startPlaceResearch(req.body?.place || {}, req));
+    res.status(202).json(await startPlaceResearch(req.body?.place || {}, req.body?.category, req));
   } catch (error) {
     next(error);
   }

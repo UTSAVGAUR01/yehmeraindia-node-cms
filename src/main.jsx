@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import {
@@ -380,16 +380,18 @@ function KnowMyIndia() {
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
-  const [research, setResearch] = useState(null);
+  const selectedPlaceRef = useRef(null);
+  const [categoryResearch, setCategoryResearch] = useState({});
+  const [verifiedPhotos, setVerifiedPhotos] = useState([]);
+  const [photoStatus, setPhotoStatus] = useState("idle");
   const [activeCard, setActiveCard] = useState(null);
   const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
-  const result = research?.result || null;
-  const categories = result?.categories || [];
+  const categories = Object.entries(insightCategories).map(([key, visual]) => ({ key, title: visual.label }));
   usePageMeta(
-    result ? `${result.placeTitle} | Know My India` : "Know My India | Explore Every Place",
-    result?.subtitle || "Explore Indian states, districts, cities and villages through researched history, facts, culture, present-day information and current news.",
+    selectedPlace ? `${selectedPlace.name} | Know My India` : "Know My India | Explore Every Place",
+    selectedPlace?.displayName || "Explore Indian states, districts, cities and villages through researched history, facts, culture, present-day information and current news.",
     [selectedPlace?.name, selectedPlace?.hierarchy?.state, "India history", "Indian places"].filter(Boolean),
   );
   useEffect(() => {
@@ -402,19 +404,60 @@ function KnowMyIndia() {
     return () => { document.body.style.overflow = ""; };
   }, [activeCard]);
 
-  async function researchPlace(place) {
-    setSelectedPlace(place); setSearchResults([]); setStage("loading"); setBusy("research"); setError("");
-    setProgress(`Preparing the golden knowledge cards for ${place.name}…`);
+  function selectPlace(place) {
+    selectedPlaceRef.current = place.placeId;
+    setSelectedPlace(place);
+    setSearchResults([]);
+    setCategoryResearch({});
+    setVerifiedPhotos([]);
+    setPhotoStatus("idle");
+    setActiveCard(null);
+    setStage("cards");
+    setBusy("");
+    setError("");
+    setProgress("");
+  }
+
+  async function loadVerifiedPhotos() {
+    if (!selectedPlace || photoStatus === "loading" || photoStatus === "completed") return;
+    const requestedPlaceId = selectedPlace.placeId;
+    setPhotoStatus("loading");
+    try {
+      const photoQuery = [selectedPlace.name, selectedPlace.hierarchy?.state].filter(Boolean).join(", ");
+      const photos = await request(`/api/places/photos?q=${encodeURIComponent(photoQuery)}`);
+      if (selectedPlaceRef.current !== requestedPlaceId) return;
+      setVerifiedPhotos(Array.isArray(photos) ? photos : []);
+      setPhotoStatus("completed");
+    } catch {
+      if (selectedPlaceRef.current !== requestedPlaceId) return;
+      setVerifiedPhotos([]);
+      setPhotoStatus("failed");
+    }
+  }
+
+  async function openCategory(categoryKey) {
+    setActiveCard(categoryKey);
+    if (categoryKey === "places") void loadVerifiedPhotos();
+    if (categoryResearch[categoryKey]?.status === "completed") return;
+    if (categoryResearch[categoryKey]?.status === "in_progress") return;
+    setCategoryResearch((old) => ({ ...old, [categoryKey]: { status: "in_progress" } }));
+    setBusy(`category:${categoryKey}`); setError("");
+    setProgress(`Researching ${insightCategories[categoryKey]?.label || "this category"}…`);
+    const requestedPlaceId = selectedPlace?.placeId;
     try {
       let data = await request("/api/places/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ place }),
+        body: JSON.stringify({ place: selectedPlace, category: categoryKey }),
       });
       if (data.status !== "completed") data = await waitForPlaceResearch(data.researchId, setProgress);
-      setResearch(data); setStage("cards"); setProgress("");
+      if (selectedPlaceRef.current !== requestedPlaceId) return;
+      setCategoryResearch((old) => ({ ...old, [categoryKey]: data }));
+      setProgress("");
     } catch (e) {
-      setError(e.message); setStage("map"); setProgress("");
+      if (selectedPlaceRef.current !== requestedPlaceId) return;
+      setCategoryResearch((old) => ({ ...old, [categoryKey]: { status: "failed", error: e.message } }));
+      setProgress("");
     } finally { setBusy(""); }
   }
 
@@ -431,7 +474,7 @@ function KnowMyIndia() {
     setBusy("map"); setError("");
     try {
       const place = await request(`/api/places/reverse?lat=${lat}&lon=${lon}&zoom=${Math.round(zoom)}`);
-      await researchPlace(place);
+      selectPlace(place);
     } catch (e) { setError(e.message); }
     finally { setBusy(""); }
   }
@@ -444,8 +487,16 @@ function KnowMyIndia() {
         ["Village", selectedPlace.hierarchy?.village],
       ].filter(([, value]) => value)
     : [];
-  const active = categories.find((category) => category.key === activeCard);
-  const activeVisual = active ? insightCategories[active.key] || insightCategories.overview : null;
+  const activeVisual = activeCard ? insightCategories[activeCard] || insightCategories.overview : null;
+  const activeResearch = activeCard ? categoryResearch[activeCard] : null;
+  const activeResult = activeResearch?.result || null;
+  const active = activeResult?.category || null;
+  const researchedPhotos = active?.key === "places" && Array.isArray(active.photos) ? active.photos : [];
+  const placePhotos = [...researchedPhotos, ...verifiedPhotos]
+    .filter((photo, index, photos) => photo?.imageUrl && photos.findIndex((item) => item?.imageUrl === photo.imageUrl) === index)
+    .slice(0, 4);
+  const nearbyAreas = active?.key === "places" && Array.isArray(active.nearbyAreas) ? active.nearbyAreas : [];
+  const visitPlan = active?.key === "places" ? active.visitPlan : null;
   const ActiveIcon = activeVisual?.icon || MapPin;
 
   return (
@@ -464,7 +515,7 @@ function KnowMyIndia() {
             </form>
             {error && <div className="form-error">{error}</div>}
             {searchResults.length > 0 && <div className="place-results">{searchResults.map((place) => (
-              <button key={place.placeId} onClick={() => researchPlace(place)}>
+              <button key={place.placeId} onClick={() => selectPlace(place)}>
                 <MapPin /><span><b>{place.name}</b><small>{place.displayName}</small></span><em>{place.level}</em>
               </button>
             ))}</div>}
@@ -482,53 +533,75 @@ function KnowMyIndia() {
         </section>
       )}
 
-      {stage === "loading" && (
-        <section className="india-research-loading">
-          <div className="gold-orbit"><span /><Compass /><i /></div>
-          <p className="eyebrow">Researching {selectedPlace?.level}</p>
-          <h1>{selectedPlace?.name}</h1>
-          <p>{progress}</p>
-          <div className="research-steps"><span>Trusted sources</span><span>History</span><span>Present scenario</span><span>Recent news</span></div>
-        </section>
-      )}
-
-      {stage === "cards" && result && (
+      {stage === "cards" && selectedPlace && (
         <section className="golden-card-page">
           <header className="golden-card-head">
             <button className="back-gold" onClick={() => setStage("map")}><ArrowLeft /> Back to India map</button>
             <p className="eyebrow">{selectedPlace?.level} · Know My India</p>
-            <h1>{result.placeTitle}</h1>
-            <p>{result.subtitle}</p>
+            <h1>{selectedPlace.name}</h1>
+            <p>{selectedPlace.displayName}</p>
             {hierarchy.length > 0 && <div className="place-breadcrumbs">{hierarchy.map(([label, value]) => <span key={`${label}-${value}`}><small>{label}</small>{value}</span>)}</div>}
           </header>
           <div className="gold-card-grid">
             {categories.map((category, index) => {
               const visual = insightCategories[category.key] || insightCategories.overview;
               const Icon = visual.icon;
-              return <button className="gold-category-card" style={{ "--card-delay": `${index * 70}ms` }} key={category.key} onClick={() => setActiveCard(category.key)}>
-                <span className="gold-card-number">{String(index + 1).padStart(2, "0")}</span><Icon /><div><small>{visual.label}</small><h2>{category.title}</h2><p>{visual.prompt}</p></div><b>Open card <ArrowRight /></b>
+              const loaded = categoryResearch[category.key]?.status === "completed";
+              return <button className="gold-category-card" style={{ "--card-delay": `${index * 70}ms` }} key={category.key} onClick={() => openCategory(category.key)}>
+                <span className="gold-card-number">{String(index + 1).padStart(2, "0")}</span><Icon /><div><small>{loaded ? "Ready · cached" : visual.label}</small><h2>{category.title}</h2><p>{visual.prompt}</p></div><b>{loaded ? "Open instantly" : "Research & open"} <ArrowRight /></b>
               </button>;
             })}
           </div>
-          <div className="research-note"><Sparkles /><p>{result.researchNote}</p></div>
+          <div className="research-note"><Sparkles /><p>Cards appear immediately. Research starts only when you open a category, and completed cards are cached for faster repeat visits.</p></div>
           <button className="button secondary gold-outline" onClick={() => { setStage("map"); setSearchText(""); }}>Go deeper: district, city or village</button>
         </section>
       )}
 
-      {active && (
-        <div className="gold-card-overlay" role="dialog" aria-modal="true" aria-label={`${active.title} information`}>
+      {activeCard && (
+        <div className="gold-card-overlay" role="dialog" aria-modal="true" aria-label={`${active?.title || activeVisual?.label} information`}>
           <button className="gold-overlay-back" onClick={() => setActiveCard(null)}><ArrowLeft /> Back to categories</button>
-          <div className="gold-flip-stage">
-            <article className="gold-flip-card">
-              <div className="gold-flip-front"><ActiveIcon /><p>{activeVisual.label}</p><h2>{active.title}</h2><span>Discover</span></div>
-              <div className="gold-flip-back">
-                <div className="gold-data-head"><ActiveIcon /><div><p className="eyebrow">{result.placeTitle}</p><h2>{active.title}</h2></div></div>
-                <p className="gold-summary">{active.summary}</p>
-                <ul>{active.highlights.map((highlight, index) => <li key={index}><span>{String(index + 1).padStart(2, "0")}</span>{highlight}</li>)}</ul>
-                {active.sources?.length > 0 && <div className="gold-sources"><b>Sources used by the research agent</b>{active.sources.map((source, index) => {
-                  const href = safeExternalLink(source.url);
-                  return href ? <a key={`${href}-${index}`} href={href} target="_blank" rel="noopener noreferrer">{source.title || href}<ArrowRight /></a> : null;
-                })}</div>}
+          <div className="gold-flap-stage">
+            <article className="gold-flap-card">
+              <div className="gold-flap-lid"><ActiveIcon /><p>{activeVisual.label}</p><h2>{active?.title || activeVisual.label}</h2><span>Open</span></div>
+              <div className="gold-flap-content" aria-live="polite">
+                {busy === `category:${activeCard}` && <div className="category-research-loading"><div className="gold-orbit"><Compass /></div><p className="eyebrow">Fast category research</p><h2>{activeVisual.label}</h2><p>{progress}</p></div>}
+                {activeResearch?.status === "failed" && <div className="category-research-loading"><Lightbulb /><h2>Research needs another try</h2><p>{activeResearch.error}</p><button className="button primary" onClick={() => openCategory(activeCard)}>Try again</button></div>}
+                {active && <>
+                  <div className="gold-data-head"><ActiveIcon /><div><p className="eyebrow">{activeResult.placeTitle || selectedPlace.name}</p><h2>{active.title}</h2></div></div>
+                  <p className="gold-summary">{active.summary}</p>
+                  <ul className="gold-highlights">{active.highlights.map((highlight, index) => <li key={index}><span>{String(index + 1).padStart(2, "0")}</span>{highlight}</li>)}</ul>
+                  {placePhotos.length > 0 && <section className="place-photo-section">
+                    <div className="gold-section-title"><Compass /><div><p className="eyebrow">See the destination</p><h3>Related photographs</h3></div></div>
+                    <div className="place-photo-grid">{placePhotos.map((photo, index) => {
+                      const imageUrl = safeExternalLink(photo.imageUrl);
+                      const sourceUrl = safeExternalLink(photo.sourcePageUrl);
+                      if (!imageUrl || !sourceUrl) return null;
+                      return <figure className="place-photo" key={`${imageUrl}-${index}`}>
+                        <img src={imageUrl} alt={photo.alt || photo.placeName || selectedPlace.name} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.closest(".place-photo")?.classList.add("image-unavailable"); }} />
+                        <figcaption><b>{photo.placeName}</b><span>{photo.attribution}</span><a href={sourceUrl} target="_blank" rel="noopener noreferrer">View image source <ArrowRight /></a></figcaption>
+                      </figure>;
+                    })}</div>
+                  </section>}
+                  {active?.key === "places" && photoStatus === "loading" && placePhotos.length === 0 && <p className="photo-loading">Loading verified destination photographs…</p>}
+                  {(nearbyAreas.length > 0 || visitPlan) && <section className="visit-planner">
+                    <div className="gold-section-title"><MapPin /><div><p className="eyebrow">Plan your visit</p><h3>Nearby places and suggested route</h3></div></div>
+                    {visitPlan && <div className="visit-plan-summary">
+                      <span><small>Start from</small><b>{visitPlan.startingPoint}</b></span>
+                      <span><small>Suggested duration</small><b>{visitPlan.totalTimeGuidance}</b></span>
+                      <span><small>Getting around</small><b>{visitPlan.transportGuidance}</b></span>
+                    </div>}
+                    {Array.isArray(visitPlan?.suggestedOrder) && visitPlan.suggestedOrder.length > 0 && <ol className="visit-route">{visitPlan.suggestedOrder.map((stop, index) => <li key={`${stop}-${index}`}><span>{index + 1}</span>{stop}</li>)}</ol>}
+                    {nearbyAreas.length > 0 && <div className="nearby-area-grid">{nearbyAreas.map((area, index) => <article key={`${area.name}-${index}`}>
+                      <small>{area.type}</small><h4>{area.name}</h4><p>{area.whyVisit}</p><div><span>{area.distanceGuidance}</span><span>{area.travelTimeGuidance}</span></div>
+                    </article>)}</div>}
+                    {Array.isArray(visitPlan?.practicalNotes) && visitPlan.practicalNotes.length > 0 && <div className="visit-notes"><b>Before you go</b><ul>{visitPlan.practicalNotes.map((note, index) => <li key={index}>{note}</li>)}</ul></div>}
+                    <p className="visit-disclaimer">Distances and travel times are approximate planning guidance. Confirm current routes, access, opening times and local conditions before travelling.</p>
+                  </section>}
+                  {active.sources?.length > 0 && <div className="gold-sources"><b>Sources used by the research agent</b>{active.sources.map((source, index) => {
+                    const href = safeExternalLink(source.url);
+                    return href ? <a key={`${href}-${index}`} href={href} target="_blank" rel="noopener noreferrer">{source.title || href}<ArrowRight /></a> : null;
+                  })}</div>}
+                </>}
               </div>
             </article>
           </div>
