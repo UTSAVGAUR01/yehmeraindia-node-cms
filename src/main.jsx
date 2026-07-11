@@ -8,10 +8,12 @@ import {
   ChevronRight,
   FilePenLine,
   ImagePlus,
+  Instagram,
   LayoutDashboard,
   LogIn,
   LogOut,
   Mail,
+  MapPin,
   Menu,
   MessageCircle,
   PenLine,
@@ -21,10 +23,14 @@ import {
   UserPlus,
   Users,
   Sparkles,
+  ShoppingBag,
   Theater,
+  Ticket,
   Trash2,
   Upload,
+  Video,
   X,
+  Youtube,
 } from "lucide-react";
 import "./styles.css";
 
@@ -40,6 +46,38 @@ const emptyPost = {
   imageAlt: "",
   featured: false,
   generateImage: true,
+  keywords: "",
+};
+
+const emptyBook = {
+  title: "",
+  description: "",
+  purchaseUrl: "",
+  coverImage: "",
+  imagePrompt: "",
+  keywords: "",
+  status: "draft",
+};
+
+const emptyPlayEvent = {
+  playTitle: "",
+  eventTitle: "",
+  description: "",
+  venue: "",
+  eventAt: "",
+  ticketUrl: "",
+  keywords: "",
+  status: "draft",
+};
+
+const emptyVideo = {
+  title: "",
+  description: "",
+  videoUrl: "",
+  keywords: "Rajasthani proverb, Rajasthani language, Rajasthan culture",
+  relatedType: "none",
+  relatedId: "",
+  status: "draft",
 };
 
 const defaultHomepage = {
@@ -101,6 +139,35 @@ async function waitForAiJob(jobId, token, onProgress) {
     );
     await wait(2500);
   }
+}
+
+function usePageMeta(title, description, keywords = []) {
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = title;
+    const values = { description, keywords: Array.isArray(keywords) ? keywords.join(", ") : keywords };
+    const previous = {};
+    Object.entries(values).forEach(([name, content]) => {
+      let tag = document.querySelector(`meta[name="${name}"]`);
+      previous[name] = tag?.getAttribute("content") ?? null;
+      if (!tag) {
+        tag = document.createElement("meta"); tag.setAttribute("name", name); document.head.appendChild(tag);
+      }
+      tag.setAttribute("content", content || "");
+    });
+    return () => {
+      document.title = previousTitle;
+      Object.entries(previous).forEach(([name, content]) => {
+        const tag = document.querySelector(`meta[name="${name}"]`);
+        if (tag && content !== null) tag.setAttribute("content", content);
+      });
+    };
+  }, [title, description, JSON.stringify(keywords)]);
+}
+
+function KeywordChips({ keywords }) {
+  if (!keywords?.length) return null;
+  return <div className="keyword-chips" aria-label="Related topics">{keywords.map((keyword) => <span key={keyword}>#{keyword.replace(/\s+/g, "")}</span>)}</div>;
 }
 
 function go(path) {
@@ -180,6 +247,7 @@ function Header({ dark = true }) {
         {link("Books & Plays", "/#work")}
         {link("AI Lab", "/#ai")}
         {link("Journal", "/journal")}
+        {link("Videos", "/videos")}
         {link("Contact", "/#contact")}
         <span className="auth-links">
           {user ? (
@@ -239,6 +307,8 @@ function Cover({ post, className = "" }) {
 
 function Home() {
   const [posts, setPosts] = useState([]);
+  const [works, setWorks] = useState({ books: [], events: [] });
+  const [workTab, setWorkTab] = useState("books");
   const [homepage, setHomepage] = useState(defaultHomepage);
   useEffect(() => {
     request("/api/posts")
@@ -247,6 +317,9 @@ function Home() {
     request("/api/homepage")
       .then((data) => setHomepage({ ...defaultHomepage, ...data }))
       .catch(() => setHomepage(defaultHomepage));
+    request("/api/works")
+      .then(setWorks)
+      .catch(() => setWorks({ books: [], events: [] }));
   }, []);
   const featured = posts.find((post) => post.featured) || posts[0];
 
@@ -315,32 +388,52 @@ function Home() {
           </button>
         </div>
         {homepage.workImage && <img className="section-image wide-section-image" src={homepage.workImage} alt={homepage.workTitle} />}
-        <div className="work-grid">
-          <article className="work-card">
-            <BookOpen />
-            <span>Books & essays</span>
-            <h3>
-              Literary work shaped by memory, place and the many voices of
-              India.
-            </h3>
-          </article>
-          <article className="work-card accent">
-            <Theater />
-            <span>Drama & plays</span>
-            <h3>
-              Scripts that come alive through character, conflict and the energy
-              of performance.
-            </h3>
-          </article>
-          <article className="work-card">
-            <Sparkles />
-            <span>AI experiments</span>
-            <h3>
-              Exploring how responsible AI can expand storytelling without
-              replacing its human soul.
-            </h3>
-          </article>
+        <div className="work-tabs" role="tablist" aria-label="Books and plays">
+          <button className={workTab === "books" ? "active" : ""} onClick={() => setWorkTab("books")} role="tab">
+            <BookOpen /> Books
+          </button>
+          <button className={workTab === "plays" ? "active" : ""} onClick={() => setWorkTab("plays")} role="tab">
+            <Theater /> Plays & events
+          </button>
         </div>
+        {workTab === "books" ? (
+          works.books.length ? (
+            <div className="book-grid">
+              {works.books.map((book) => (
+                <article className="book-card" key={book.id}>
+                  {book.coverImage ? <img src={book.coverImage} alt={`Cover artwork for ${book.title}`} /> : <div className="book-cover-fallback"><BookOpen /><span>{book.title}</span></div>}
+                  <div>
+                    <p className="eyebrow">Book {book.authorName && `· ${book.authorName}`}</p>
+                    <h3>{book.title}</h3>
+                    <p>{book.description}</p>
+                    <KeywordChips keywords={book.keywords} />
+                    <a className="button primary" href={book.purchaseUrl} target="_blank" rel="noopener noreferrer sponsored">
+                      <ShoppingBag /> Purchase book
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : <div className="work-empty"><BookOpen /><h3>Books will appear here soon.</h3></div>
+        ) : (
+          works.events.length ? (
+            <div className="play-event-grid">
+              {works.events.map((event) => (
+                <article className="play-event-card" key={event.id}>
+                  <p className="eyebrow">{event.playTitle}</p>
+                  <h3>{event.eventTitle}</h3>
+                  <div className="event-meta">
+                    <span><CalendarDays /> {new Date(event.eventAt).toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" })}</span>
+                    <span><MapPin /> {event.venue}</span>
+                  </div>
+                  <p>{event.description}</p>
+                  <KeywordChips keywords={event.keywords} />
+                  {event.ticketUrl && <a className="button secondary light" href={event.ticketUrl} target="_blank" rel="noopener noreferrer sponsored"><Ticket /> Event tickets</a>}
+                </article>
+              ))}
+            </div>
+          ) : <div className="work-empty"><Theater /><h3>Upcoming play events will appear here.</h3></div>
+        )}
       </section>
 
       <section id="ai" className="section ai-section">
@@ -420,6 +513,7 @@ function Home() {
         {homepage.contactBody && <span>{homepage.contactBody}</span>}
         <div>
           <button onClick={() => go("/journal")}>Journal</button>
+          <button onClick={() => go("/videos")}>Videos</button>
           <a href={`mailto:${homepage.contactEmail}`}>{homepage.contactEmail}</a>
         </div>
         <small>© {new Date().getFullYear()} Yeh Mera India</small>
@@ -449,6 +543,64 @@ function PostCard({ post }) {
         </small>
       </div>
     </article>
+  );
+}
+
+function VideosPage() {
+  const [videos, setVideos] = useState([]);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    request("/api/videos").then(setVideos).catch((e) => setError(e.message));
+  }, []);
+  const keywords = [...new Set(videos.flatMap((video) => video.keywords || []))];
+  usePageMeta(
+    "Rajasthani Proverbs & Videos | Yeh Mera India",
+    "Watch Rajasthani language proverbs, author videos and cultural stories, then discover related books, plays and articles.",
+    keywords.length ? keywords : ["Rajasthani proverb", "Rajasthani language", "Rajasthan culture"],
+  );
+  return (
+    <main className="paper-page videos-page">
+      <Header dark={false} />
+      <section className="videos-head">
+        <p className="eyebrow">Rajasthani language · proverbs · performance</p>
+        <h1>Watch the words come alive.</h1>
+        <p>Instagram and YouTube videos from the author, with related books, play information and articles available to every visitor.</p>
+      </section>
+      <section className="video-feed">
+        {error && <div className="form-error">{error}</div>}
+        {!error && !videos.length && <div className="work-empty"><Video /><h3>The first Rajasthani proverb video is coming soon.</h3></div>}
+        {videos.map((video) => (
+          <article className="social-video-card" key={video.id}>
+            <div className={`video-embed ${video.platform}`}>
+              {video.embedUrl ? (
+                <iframe
+                  src={video.embedUrl}
+                  title={video.title}
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              ) : <a href={video.videoUrl} target="_blank" rel="noopener noreferrer">Open video</a>}
+            </div>
+            <div className="video-copy">
+              <p className="eyebrow">{video.platform === "youtube" ? <><Youtube /> YouTube</> : <><Instagram /> Instagram</>} {video.authorName && `· ${video.authorName}`}</p>
+              <h2>{video.title}</h2>
+              <p>{video.description}</p>
+              <KeywordChips keywords={video.keywords} />
+              {video.relatedContent && (
+                video.relatedContent.url.startsWith("/") ? (
+                  <button className="button primary" onClick={() => go(video.relatedContent.url)}>{video.relatedContent.action} <ArrowRight /></button>
+                ) : (
+                  <a className="button primary" href={video.relatedContent.url} target="_blank" rel="noopener noreferrer sponsored">{video.relatedContent.action} <ArrowRight /></a>
+                )
+              )}
+            </div>
+          </article>
+        ))}
+      </section>
+      <footer><Logo /><p>Rajasthani words, stories and stages for the world.</p><button onClick={() => go("/#work")}>Books & plays</button><small>© {new Date().getFullYear()} Yeh Mera India</small></footer>
+    </main>
   );
 }
 
@@ -523,6 +675,11 @@ function Article({ slug }) {
       .then(setPost)
       .catch((e) => setError(e.message));
   }, [slug]);
+  usePageMeta(
+    post ? `${post.title} | Yeh Mera India` : "Yeh Mera India Journal",
+    post?.excerpt || "Indian stories, theatre, culture and Rajasthani language writing.",
+    post?.keywords || [],
+  );
   async function shareArticle() {
     const share = { title: post.title, text: post.excerpt, url: window.location.href };
     try {
@@ -595,6 +752,7 @@ function Article({ slug }) {
             <p key={index}>{paragraph}</p>
           ))}
         </div>
+        <KeywordChips keywords={post.keywords} />
         <section className="author-contact">
           <MessageCircle />
           <div>
@@ -803,6 +961,8 @@ function Admin() {
   const [managingUsers, setManagingUsers] = useState(false);
   const [editingHomepage, setEditingHomepage] = useState(false);
   const [editingAiSettings, setEditingAiSettings] = useState(false);
+  const [managingWorks, setManagingWorks] = useState(false);
+  const [managingVideos, setManagingVideos] = useState(false);
   const [viewingMessages, setViewingMessages] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -854,6 +1014,12 @@ function Admin() {
         </div>
         <button onClick={() => setEditing({ ...emptyPost })}>
           <Plus /> New post
+        </button>
+        <button onClick={() => setManagingWorks(true)}>
+          <Theater /> Books & plays
+        </button>
+        <button onClick={() => setManagingVideos(true)}>
+          <Video /> Social videos
         </button>
         {user?.role === "admin" && (
           <button onClick={() => setManagingUsers(true)}>
@@ -980,10 +1146,279 @@ function Admin() {
       {editingAiSettings && (
         <AiSettings token={token} onClose={() => setEditingAiSettings(false)} />
       )}
+      {managingWorks && (
+        <WorksManager token={token} role={user?.role} onClose={() => setManagingWorks(false)} />
+      )}
+      {managingVideos && (
+        <VideoManager token={token} role={user?.role} onClose={() => setManagingVideos(false)} />
+      )}
       {viewingMessages && (
         <MessageManager token={token} onClose={() => setViewingMessages(false)} />
       )}
     </main>
+  );
+}
+
+function BookEditor({ book, token, onCancel, onSaved }) {
+  const [form, setForm] = useState({ ...book, keywords: Array.isArray(book.keywords) ? book.keywords.join(", ") : book.keywords || "" });
+  const [generateCover, setGenerateCover] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [progress, setProgress] = useState("");
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  async function uploadCover(file) {
+    if (!file) return;
+    setBusy("upload"); setError("");
+    try {
+      const body = new FormData(); body.append("image", file);
+      const data = await request("/api/admin/upload", { method: "POST", headers: auth, body });
+      update("coverImage", data.url);
+      setGenerateCover(false);
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  async function save(event) {
+    event.preventDefault(); setBusy("save"); setError(""); setProgress("");
+    if (generateCover && !String(form.imagePrompt || "").trim()) {
+      setError("Describe the cover image before asking AI to generate it.");
+      setBusy("");
+      return;
+    }
+    try {
+      const saved = await request(form.id ? `/api/admin/books/${form.id}` : "/api/admin/books", {
+        method: form.id ? "PUT" : "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      setForm(saved);
+      if (generateCover) {
+        setBusy("image");
+        setProgress("Starting high-quality portrait cover artwork…");
+        const job = await request(`/api/admin/books/${saved.id}/generate-cover`, {
+          method: "POST",
+          headers: { ...auth, "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const result = await waitForAiJob(job.jobId, token, setProgress);
+        setForm((old) => ({ ...old, coverImage: result.image }));
+      }
+      onSaved(generateCover ? "Book saved and AI cover generated." : "Book saved successfully.");
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
+  }
+  return (
+    <form className="works-form" onSubmit={save}>
+      <div className="manager-heading"><div><p className="eyebrow">Books</p><h3>{form.id ? "Edit book" : "Add book"}</h3></div><button type="button" onClick={onCancel}><X /></button></div>
+      {error && <div className="form-error">{error}</div>}
+      {progress && <p className="ai-progress" role="status">{progress}</p>}
+      <div className="works-form-grid">
+        <div>
+          <label>Book title<input required maxLength="220" value={form.title} onChange={(e) => update("title", e.target.value)} /></label>
+          <label>Book description<textarea required rows="7" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Describe the book, its themes and who it is for." /></label>
+          <label>Purchase link<input required type="url" maxLength="2000" value={form.purchaseUrl} onChange={(e) => update("purchaseUrl", e.target.value)} placeholder="https://amazon.in/... or another bookstore" /></label>
+          <label>Related search keywords<textarea rows="3" value={form.keywords} onChange={(e) => update("keywords", e.target.value)} placeholder="Rajasthani literature, Rajasthan author, Indian books" /></label>
+          <label>Publishing status<select value={form.status} onChange={(e) => update("status", e.target.value)}><option value="draft">Draft</option><option value="published">Published</option></select></label>
+        </div>
+        <div>
+          <div className="book-cover-admin">
+            {form.coverImage ? <img src={form.coverImage} alt="Book cover preview" /> : <div><BookOpen /><span>No cover artwork</span></div>}
+          </div>
+          <label className="upload-button"><Upload /> {busy === "upload" ? "Uploading…" : "Upload book cover"}<input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => uploadCover(e.target.files?.[0])} /></label>
+          <label>AI cover image description<textarea rows="5" value={form.imagePrompt} onChange={(e) => update("imagePrompt", e.target.value)} placeholder="Describe the characters, place, mood, symbols, period and visual style you want." /></label>
+          <label className="checkbox research-toggle"><input type="checkbox" checked={generateCover} onChange={(e) => setGenerateCover(e.target.checked)} />Generate or replace cover with AI after saving</label>
+          <p className="ai-helper">AI creates portrait artwork from your book description and visual direction. The job runs in the background and may take several minutes.</p>
+        </div>
+      </div>
+      <div className="works-form-actions"><button type="button" className="button secondary light" onClick={onCancel}>Cancel</button><button className="button primary" disabled={Boolean(busy)}><Save /> {busy === "image" ? "Generating cover…" : busy ? "Saving…" : "Save book"}</button></div>
+    </form>
+  );
+}
+
+function PlayEventEditor({ event, token, onCancel, onSaved }) {
+  const initial = {
+    ...event,
+    eventAt: event.eventAt ? new Date(event.eventAt).toISOString().slice(0, 16) : "",
+    keywords: Array.isArray(event.keywords) ? event.keywords.join(", ") : event.keywords || "",
+  };
+  const [form, setForm] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  async function save(eventObject) {
+    eventObject.preventDefault(); setBusy(true); setError("");
+    try {
+      await request(form.id ? `/api/admin/play-events/${form.id}` : "/api/admin/play-events", {
+        method: form.id ? "PUT" : "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, eventAt: new Date(form.eventAt).toISOString() }),
+      });
+      onSaved("Play event saved successfully.");
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <form className="works-form" onSubmit={save}>
+      <div className="manager-heading"><div><p className="eyebrow">Plays & events</p><h3>{form.id ? "Edit performance" : "Create performance"}</h3></div><button type="button" onClick={onCancel}><X /></button></div>
+      {error && <div className="form-error">{error}</div>}
+      <div className="works-form-grid event-form-grid">
+        <div>
+          <label>Play title<input required maxLength="220" value={form.playTitle} onChange={(e) => update("playTitle", e.target.value)} placeholder="Name of the play" /></label>
+          <label>Event title<input required maxLength="220" value={form.eventTitle} onChange={(e) => update("eventTitle", e.target.value)} placeholder="Opening night, city performance…" /></label>
+          <label>Play and event description<textarea required rows="8" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Describe the story, performance and what the audience can expect." /></label>
+        </div>
+        <div>
+          <label>Venue<input required maxLength="300" value={form.venue} onChange={(e) => update("venue", e.target.value)} /></label>
+          <label>Event date and time<input required type="datetime-local" value={form.eventAt} onChange={(e) => update("eventAt", e.target.value)} /></label>
+          <label>Ticket or registration link (optional)<input type="url" maxLength="2000" value={form.ticketUrl} onChange={(e) => update("ticketUrl", e.target.value)} placeholder="https://..." /></label>
+          <label>Related search keywords<textarea rows="3" value={form.keywords} onChange={(e) => update("keywords", e.target.value)} placeholder="Rajasthani theatre, Rajasthan plays, live performance" /></label>
+          <label>Publishing status<select value={form.status} onChange={(e) => update("status", e.target.value)}><option value="draft">Draft</option><option value="published">Published</option></select></label>
+        </div>
+      </div>
+      <div className="works-form-actions"><button type="button" className="button secondary light" onClick={onCancel}>Cancel</button><button className="button primary" disabled={busy}><Save /> {busy ? "Saving…" : "Save event"}</button></div>
+    </form>
+  );
+}
+
+function WorksManager({ token, role, onClose }) {
+  const [tab, setTab] = useState("books");
+  const [books, setBooks] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [editingBook, setEditingBook] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  function load() {
+    Promise.all([
+      request("/api/admin/books", { headers: auth }),
+      request("/api/admin/play-events", { headers: auth }),
+    ]).then(([loadedBooks, loadedEvents]) => { setBooks(loadedBooks); setEvents(loadedEvents); }).catch((e) => setError(e.message));
+  }
+  useEffect(load, []);
+  async function remove(type, item) {
+    const label = type === "books" ? item.title : item.eventTitle;
+    if (!window.confirm(`Delete “${label}”? This cannot be undone.`)) return;
+    try {
+      await request(type === "books" ? `/api/admin/books/${item.id}` : `/api/admin/play-events/${item.id}`, { method: "DELETE", headers: auth });
+      setNotice(`${type === "books" ? "Book" : "Play event"} deleted.`); load();
+    } catch (e) { setError(e.message); }
+  }
+  const saved = (message) => { setEditingBook(null); setEditingEvent(null); setNotice(message); load(); };
+  return (
+    <div className="editor-overlay">
+      <section className="editor manager-panel works-manager">
+        <header><div><p className="eyebrow">Author catalogue</p><h2>Books & plays</h2></div><button onClick={onClose}><X /></button></header>
+        <div className="manager-body">
+          {notice && <div className="notice compact">{notice}</div>}
+          {error && <div className="form-error">{error}</div>}
+          {editingBook ? <BookEditor book={editingBook} token={token} onCancel={() => setEditingBook(null)} onSaved={saved} /> : editingEvent ? <PlayEventEditor event={editingEvent} token={token} onCancel={() => setEditingEvent(null)} onSaved={saved} /> : (
+            <>
+              <div className="works-manager-toolbar">
+                <div className="work-tabs manager-tabs"><button className={tab === "books" ? "active" : ""} onClick={() => setTab("books")}><BookOpen /> Books</button><button className={tab === "plays" ? "active" : ""} onClick={() => setTab("plays")}><Theater /> Plays & events</button></div>
+                <button className="button primary" onClick={() => tab === "books" ? setEditingBook({ ...emptyBook }) : setEditingEvent({ ...emptyPlayEvent })}><Plus /> {tab === "books" ? "Add book" : "Add event"}</button>
+              </div>
+              <p>{role === "author" ? "You can manage your own books and performances." : "Admin can manage catalogue entries from every author."}</p>
+              <div className="works-list">
+                {(tab === "books" ? books : events).map((item) => (
+                  <article key={item.id}>
+                    <div>{tab === "books" && item.coverImage ? <img src={item.coverImage} alt="" /> : tab === "books" ? <BookOpen /> : <Theater />}</div>
+                    <span><b>{tab === "books" ? item.title : item.eventTitle}</b><small>{tab === "books" ? item.purchaseUrl : `${item.playTitle} · ${new Date(item.eventAt).toLocaleString("en-IN")}`}</small></span>
+                    <em className={`status ${item.status}`}>{item.status}</em>
+                    <div><button title="Edit" onClick={() => tab === "books" ? setEditingBook({ ...item }) : setEditingEvent({ ...item })}><FilePenLine /></button><button title="Delete" onClick={() => remove(tab, item)}><Trash2 /></button></div>
+                  </article>
+                ))}
+                {!(tab === "books" ? books : events).length && <div className="work-empty"><p>No {tab === "books" ? "books" : "play events"} added yet.</p></div>}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function VideoEditor({ video, references, token, onCancel, onSaved }) {
+  const [form, setForm] = useState({
+    ...video,
+    keywords: Array.isArray(video.keywords) ? video.keywords.join(", ") : video.keywords || "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
+  const choices = form.relatedType === "book" ? references.books : form.relatedType === "play" ? references.events : form.relatedType === "post" ? references.posts : [];
+  async function save(event) {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      await request(form.id ? `/api/admin/videos/${form.id}` : "/api/admin/videos", {
+        method: form.id ? "PUT" : "POST",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      onSaved("Social video saved successfully.");
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <form className="works-form video-form" onSubmit={save}>
+      <div className="manager-heading"><div><p className="eyebrow">Instagram & YouTube</p><h3>{form.id ? "Edit video" : "Share video"}</h3></div><button type="button" onClick={onCancel}><X /></button></div>
+      {error && <div className="form-error">{error}</div>}
+      <div className="works-form-grid">
+        <div>
+          <label>Video title<input required maxLength="220" value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="A Rajasthani proverb about courage" /></label>
+          <label>Instagram or YouTube link<input required type="url" maxLength="2000" value={form.videoUrl} onChange={(e) => update("videoUrl", e.target.value)} placeholder="https://youtube.com/shorts/... or https://instagram.com/reel/..." /></label>
+          <label>Description<textarea required rows="7" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Explain the proverb, translation, cultural meaning and context." /></label>
+          <label>Related search keywords<textarea rows="4" value={form.keywords} onChange={(e) => update("keywords", e.target.value)} placeholder="Rajasthani proverb, Marwari language, Rajasthan culture" /><small>Use accurate comma-separated phrases. They appear as topics and page metadata.</small></label>
+        </div>
+        <div>
+          <label>Connect this video to<select value={form.relatedType} onChange={(e) => setForm((old) => ({ ...old, relatedType: e.target.value, relatedId: "" }))}><option value="none">No related content</option><option value="book">Book purchase</option><option value="play">Play information</option><option value="post">Article</option></select></label>
+          {form.relatedType !== "none" && <label>Related item<select required value={form.relatedId} onChange={(e) => update("relatedId", e.target.value)}><option value="">Choose an item</option>{choices.map((item) => <option value={item.id} key={item.id}>{form.relatedType === "book" ? item.title : form.relatedType === "play" ? `${item.playTitle} · ${item.eventTitle}` : item.title}</option>)}</select></label>}
+          <label>Publishing status<select value={form.status} onChange={(e) => update("status", e.target.value)}><option value="draft">Draft</option><option value="published">Published</option></select></label>
+          <div className="video-guidance"><Video /><b>Supported links</b><p>Public YouTube videos, YouTube Shorts, Instagram posts and Instagram Reels. Private or restricted posts may not play for anonymous visitors.</p></div>
+        </div>
+      </div>
+      <div className="works-form-actions"><button type="button" className="button secondary light" onClick={onCancel}>Cancel</button><button className="button primary" disabled={busy}><Save /> {busy ? "Saving…" : "Save video"}</button></div>
+    </form>
+  );
+}
+
+function VideoManager({ token, role, onClose }) {
+  const [videos, setVideos] = useState([]);
+  const [references, setReferences] = useState({ books: [], events: [], posts: [] });
+  const [editing, setEditing] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const auth = { Authorization: `Bearer ${token}` };
+  function load() {
+    Promise.all([
+      request("/api/admin/videos", { headers: auth }),
+      request("/api/admin/books", { headers: auth }),
+      request("/api/admin/play-events", { headers: auth }),
+      request("/api/admin/posts", { headers: auth }),
+    ]).then(([loadedVideos, books, events, posts]) => { setVideos(loadedVideos); setReferences({ books, events, posts }); }).catch((e) => setError(e.message));
+  }
+  useEffect(load, []);
+  async function remove(video) {
+    if (!window.confirm(`Delete “${video.title}”? This cannot be undone.`)) return;
+    try { await request(`/api/admin/videos/${video.id}`, { method: "DELETE", headers: auth }); setNotice("Video deleted."); load(); }
+    catch (e) { setError(e.message); }
+  }
+  const saved = (message) => { setEditing(null); setNotice(message); load(); };
+  return (
+    <div className="editor-overlay">
+      <section className="editor manager-panel works-manager">
+        <header><div><p className="eyebrow">Rajasthani language channel</p><h2>Social videos</h2></div><button onClick={onClose}><X /></button></header>
+        <div className="manager-body">
+          {notice && <div className="notice compact">{notice}</div>}
+          {error && <div className="form-error">{error}</div>}
+          {editing ? <VideoEditor video={editing} references={references} token={token} onCancel={() => setEditing(null)} onSaved={saved} /> : <>
+            <div className="works-manager-toolbar"><p>{role === "author" ? "Share and manage your own public videos." : "Manage social videos from every author."}</p><button className="button primary" onClick={() => setEditing({ ...emptyVideo })}><Plus /> Share video</button></div>
+            <div className="works-list video-admin-list">
+              {videos.map((video) => <article key={video.id}><div>{video.platform === "youtube" ? <Youtube /> : <Instagram />}</div><span><b>{video.title}</b><small>{video.videoUrl}</small></span><em className={`status ${video.status}`}>{video.status}</em><div><button title="Edit" onClick={() => setEditing({ ...video })}><FilePenLine /></button><button title="Delete" onClick={() => remove(video)}><Trash2 /></button></div></article>)}
+              {!videos.length && <div className="work-empty"><Video /><p>No social videos added yet.</p></div>}
+            </div>
+          </>}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -1228,7 +1663,7 @@ function MessageManager({ token, onClose }) {
 }
 
 function PostEditor({ post, token, role, onClose, onSaved }) {
-  const [form, setForm] = useState(post);
+  const [form, setForm] = useState({ ...post, keywords: Array.isArray(post.keywords) ? post.keywords.join(", ") : post.keywords || "" });
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [rewriting, setRewriting] = useState(false);
@@ -1573,6 +2008,10 @@ function PostEditor({ post, token, role, onClose, onSaved }) {
               </select>
             </label>
             <label>
+              Related search keywords
+              <textarea rows="3" value={form.keywords} onChange={(e) => update("keywords", e.target.value)} placeholder="Rajasthani proverb, Marwari culture, Rajasthan literature" />
+            </label>
+            <label>
               Status
               <select
                 value={form.status}
@@ -1625,6 +2064,7 @@ function App() {
   if (path.startsWith("/journal/"))
     return <Article slug={decodeURIComponent(path.split("/")[2])} />;
   if (path === "/journal") return <Journal />;
+  if (path === "/videos") return <VideosPage />;
   return <Home />;
 }
 
