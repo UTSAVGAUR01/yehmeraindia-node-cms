@@ -152,6 +152,38 @@ export async function initializeDatabase() {
     CONSTRAINT fk_social_videos_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
   )`);
 
+  await query(`CREATE TABLE IF NOT EXISTS place_geocode_cache (
+    cache_key CHAR(64) NOT NULL,
+    request_type ENUM('search', 'reverse') NOT NULL,
+    query_text VARCHAR(1000) NOT NULL,
+    result LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (cache_key),
+    KEY idx_geocode_expiry (expires_at)
+  )`);
+
+  await query(`CREATE TABLE IF NOT EXISTS place_insights (
+    id CHAR(36) NOT NULL,
+    place_key VARCHAR(255) NOT NULL,
+    place_name VARCHAR(500) NOT NULL,
+    place_level ENUM('state', 'district', 'city', 'village', 'place') NOT NULL DEFAULT 'place',
+    hierarchy_json TEXT NULL,
+    latitude DECIMAL(10, 7) NULL,
+    longitude DECIMAL(10, 7) NULL,
+    status ENUM('queued', 'in_progress', 'completed', 'failed') NOT NULL DEFAULT 'queued',
+    provider_id VARCHAR(160) NULL,
+    result LONGTEXT NULL,
+    error TEXT NULL,
+    researched_at DATETIME NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_place_insights_key (place_key),
+    KEY idx_place_insights_expiry (expires_at)
+  )`);
+
   await query(`CREATE TABLE IF NOT EXISTS homepage_content (
     id TINYINT UNSIGNED NOT NULL DEFAULT 1,
     hero_eyebrow VARCHAR(255) NOT NULL,
@@ -290,6 +322,8 @@ export async function initializeDatabase() {
     "ALTER TABLE ai_jobs MODIFY COLUMN job_type ENUM('rewrite', 'page_rewrite', 'post_image', 'page_image', 'book_image') NOT NULL",
   );
   await query("DELETE FROM ai_jobs WHERE expires_at < NOW()");
+  await query("DELETE FROM place_geocode_cache WHERE expires_at < NOW()");
+  await query("DELETE FROM place_insights WHERE expires_at < DATE_SUB(NOW(), INTERVAL 7 DAY)");
 
   const counts = await query('SELECT COUNT(*) AS total FROM posts');
   if (!Number(counts[0]?.total)) {

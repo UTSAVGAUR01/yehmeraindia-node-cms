@@ -1,14 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import {
+  ArrowLeft,
   ArrowRight,
+  Building2,
   BookOpen,
   Bot,
   CalendarDays,
   ChevronRight,
+  Compass,
   FilePenLine,
   ImagePlus,
   Instagram,
+  Landmark,
+  Languages,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -18,20 +24,24 @@ import {
   MessageCircle,
   PenLine,
   Plus,
+  Search,
   Save,
   Share2,
   UserPlus,
   Users,
   Sparkles,
+  Lightbulb,
   ShoppingBag,
   Theater,
   Ticket,
   Trash2,
   Upload,
   Video,
+  Newspaper,
   X,
   Youtube,
 } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 import "./styles.css";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -141,6 +151,23 @@ async function waitForAiJob(jobId, token, onProgress) {
   }
 }
 
+async function waitForPlaceResearch(researchId, onProgress) {
+  let attempts = 0;
+  while (true) {
+    const research = await request(`/api/places/research/${researchId}`);
+    if (research.status === "completed") return research;
+    if (research.status === "failed")
+      throw new Error(research.error || "Place research could not be completed.");
+    attempts += 1;
+    onProgress?.(
+      attempts < 4
+        ? "The research agent is checking trusted sources…"
+        : "Still researching history, facts, the present scenario and recent news. This may take a few minutes.",
+    );
+    await wait(2500);
+  }
+}
+
 function usePageMeta(title, description, keywords = []) {
   useEffect(() => {
     const previousTitle = document.title;
@@ -168,6 +195,15 @@ function usePageMeta(title, description, keywords = []) {
 function KeywordChips({ keywords }) {
   if (!keywords?.length) return null;
   return <div className="keyword-chips" aria-label="Related topics">{keywords.map((keyword) => <span key={keyword}>#{keyword.replace(/\s+/g, "")}</span>)}</div>;
+}
+
+function safeExternalLink(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 function go(path) {
@@ -243,6 +279,7 @@ function Header({ dark = true }) {
       </button>
       <nav className={open ? "nav-open" : ""} aria-label="Main navigation">
         {link("Home", "/")}
+        {link("Know My India", "/know-india")}
         {link("About", "/#about")}
         {link("Books & Plays", "/#work")}
         {link("AI Lab", "/#ai")}
@@ -305,6 +342,202 @@ function Cover({ post, className = "" }) {
   );
 }
 
+const insightCategories = {
+  overview: { icon: MapPin, label: "Place & identity", prompt: "Where it is, what defines it and why it matters" },
+  history: { icon: Landmark, label: "History", prompt: "Origins, turning points and historical context" },
+  amazingFacts: { icon: Lightbulb, label: "Amazing facts", prompt: "Verified details that surprise and delight" },
+  culture: { icon: Languages, label: "Culture & language", prompt: "People, traditions, food, arts and local speech" },
+  places: { icon: Compass, label: "Places to know", prompt: "Landmarks, landscapes and meaningful destinations" },
+  presentScenario: { icon: Building2, label: "Present scenario", prompt: "Administration, economy, infrastructure and life today" },
+  currentNews: { icon: Newspaper, label: "Current news", prompt: "Recent verified developments with dates and sources" },
+};
+
+function IndiaMapEvents({ onChoose }) {
+  const map = useMapEvents({
+    click(event) {
+      onChoose(event.latlng.lat, event.latlng.lng, Math.max(5, map.getZoom()));
+    },
+  });
+  return null;
+}
+
+function IndiaMapFocus({ place }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!place) return;
+    if (place.boundingBox?.length === 4) {
+      const [south, north, west, east] = place.boundingBox;
+      map.fitBounds([[south, west], [north, east]], { padding: [35, 35], maxZoom: 12 });
+    } else if (Number.isFinite(place.lat) && Number.isFinite(place.lon)) {
+      map.flyTo([place.lat, place.lon], place.level === "state" ? 6 : place.level === "district" ? 8 : 12);
+    }
+  }, [map, place?.placeId]);
+  return null;
+}
+
+function KnowMyIndia() {
+  const [stage, setStage] = useState("map");
+  const [searchText, setSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [research, setResearch] = useState(null);
+  const [activeCard, setActiveCard] = useState(null);
+  const [busy, setBusy] = useState("");
+  const [progress, setProgress] = useState("");
+  const [error, setError] = useState("");
+  const result = research?.result || null;
+  const categories = result?.categories || [];
+  usePageMeta(
+    result ? `${result.placeTitle} | Know My India` : "Know My India | Explore Every Place",
+    result?.subtitle || "Explore Indian states, districts, cities and villages through researched history, facts, culture, present-day information and current news.",
+    [selectedPlace?.name, selectedPlace?.hierarchy?.state, "India history", "Indian places"].filter(Boolean),
+  );
+  useEffect(() => {
+    const close = (event) => event.key === "Escape" && setActiveCard(null);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+  useEffect(() => {
+    document.body.style.overflow = activeCard ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [activeCard]);
+
+  async function researchPlace(place) {
+    setSelectedPlace(place); setSearchResults([]); setStage("loading"); setBusy("research"); setError("");
+    setProgress(`Preparing the golden knowledge cards for ${place.name}…`);
+    try {
+      let data = await request("/api/places/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ place }),
+      });
+      if (data.status !== "completed") data = await waitForPlaceResearch(data.researchId, setProgress);
+      setResearch(data); setStage("cards"); setProgress("");
+    } catch (e) {
+      setError(e.message); setStage("map"); setProgress("");
+    } finally { setBusy(""); }
+  }
+
+  async function searchPlaces(event) {
+    event?.preventDefault();
+    if (searchText.trim().length < 2) return;
+    setBusy("search"); setError("");
+    try { setSearchResults(await request(`/api/places/search?q=${encodeURIComponent(searchText.trim())}`)); }
+    catch (e) { setError(e.message); setSearchResults([]); }
+    finally { setBusy(""); }
+  }
+
+  async function chooseMapPoint(lat, lon, zoom) {
+    setBusy("map"); setError("");
+    try {
+      const place = await request(`/api/places/reverse?lat=${lat}&lon=${lon}&zoom=${Math.round(zoom)}`);
+      await researchPlace(place);
+    } catch (e) { setError(e.message); }
+    finally { setBusy(""); }
+  }
+
+  const hierarchy = selectedPlace
+    ? [
+        ["State", selectedPlace.hierarchy?.state],
+        ["District", selectedPlace.hierarchy?.district],
+        ["City", selectedPlace.hierarchy?.city],
+        ["Village", selectedPlace.hierarchy?.village],
+      ].filter(([, value]) => value)
+    : [];
+  const active = categories.find((category) => category.key === activeCard);
+  const activeVisual = active ? insightCategories[active.key] || insightCategories.overview : null;
+  const ActiveIcon = activeVisual?.icon || MapPin;
+
+  return (
+    <main className="know-india-page">
+      <Header />
+      {stage === "map" && (
+        <section className="india-explorer">
+          <div className="india-map-copy">
+            <p className="eyebrow">The Golden Bird · researched place by place</p>
+            <h1>Know My India</h1>
+            <p>Tap the map or search any Indian state, district, city or village. Our research agent gathers history, remarkable facts, culture, today’s scenario and recent news into golden knowledge cards.</p>
+            <form className="place-search" onSubmit={searchPlaces}>
+              <Search />
+              <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search Rajasthan, Rajsamand, Deogarh or a village" aria-label="Search a place in India" />
+              <button className="button primary" disabled={busy === "search"}>{busy === "search" ? "Searching…" : "Search"}</button>
+            </form>
+            {error && <div className="form-error">{error}</div>}
+            {searchResults.length > 0 && <div className="place-results">{searchResults.map((place) => (
+              <button key={place.placeId} onClick={() => researchPlace(place)}>
+                <MapPin /><span><b>{place.name}</b><small>{place.displayName}</small></span><em>{place.level}</em>
+              </button>
+            ))}</div>}
+            <div className="map-instructions"><Compass /><span><b>Choose your depth</b>Start with a state, then zoom or search deeper for a district, city or village.</span></div>
+          </div>
+          <div className="india-map-shell">
+            <MapContainer center={[22.7, 79.2]} zoom={4} minZoom={4} maxZoom={16} maxBounds={[[5.5, 66.5], [38.5, 99.5]]} scrollWheelZoom className="india-map">
+              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <IndiaMapEvents onChoose={chooseMapPoint} />
+              <IndiaMapFocus place={selectedPlace} />
+              {selectedPlace && <CircleMarker center={[selectedPlace.lat, selectedPlace.lon]} radius={10} pathOptions={{ color: "#8f5b08", fillColor: "#f4c34f", fillOpacity: 0.9 }} />}
+            </MapContainer>
+            {busy === "map" && <div className="map-busy"><span />Identifying this place…</div>}
+          </div>
+        </section>
+      )}
+
+      {stage === "loading" && (
+        <section className="india-research-loading">
+          <div className="gold-orbit"><span /><Compass /><i /></div>
+          <p className="eyebrow">Researching {selectedPlace?.level}</p>
+          <h1>{selectedPlace?.name}</h1>
+          <p>{progress}</p>
+          <div className="research-steps"><span>Trusted sources</span><span>History</span><span>Present scenario</span><span>Recent news</span></div>
+        </section>
+      )}
+
+      {stage === "cards" && result && (
+        <section className="golden-card-page">
+          <header className="golden-card-head">
+            <button className="back-gold" onClick={() => setStage("map")}><ArrowLeft /> Back to India map</button>
+            <p className="eyebrow">{selectedPlace?.level} · Know My India</p>
+            <h1>{result.placeTitle}</h1>
+            <p>{result.subtitle}</p>
+            {hierarchy.length > 0 && <div className="place-breadcrumbs">{hierarchy.map(([label, value]) => <span key={`${label}-${value}`}><small>{label}</small>{value}</span>)}</div>}
+          </header>
+          <div className="gold-card-grid">
+            {categories.map((category, index) => {
+              const visual = insightCategories[category.key] || insightCategories.overview;
+              const Icon = visual.icon;
+              return <button className="gold-category-card" style={{ "--card-delay": `${index * 70}ms` }} key={category.key} onClick={() => setActiveCard(category.key)}>
+                <span className="gold-card-number">{String(index + 1).padStart(2, "0")}</span><Icon /><div><small>{visual.label}</small><h2>{category.title}</h2><p>{visual.prompt}</p></div><b>Open card <ArrowRight /></b>
+              </button>;
+            })}
+          </div>
+          <div className="research-note"><Sparkles /><p>{result.researchNote}</p></div>
+          <button className="button secondary gold-outline" onClick={() => { setStage("map"); setSearchText(""); }}>Go deeper: district, city or village</button>
+        </section>
+      )}
+
+      {active && (
+        <div className="gold-card-overlay" role="dialog" aria-modal="true" aria-label={`${active.title} information`}>
+          <button className="gold-overlay-back" onClick={() => setActiveCard(null)}><ArrowLeft /> Back to categories</button>
+          <div className="gold-flip-stage">
+            <article className="gold-flip-card">
+              <div className="gold-flip-front"><ActiveIcon /><p>{activeVisual.label}</p><h2>{active.title}</h2><span>Discover</span></div>
+              <div className="gold-flip-back">
+                <div className="gold-data-head"><ActiveIcon /><div><p className="eyebrow">{result.placeTitle}</p><h2>{active.title}</h2></div></div>
+                <p className="gold-summary">{active.summary}</p>
+                <ul>{active.highlights.map((highlight, index) => <li key={index}><span>{String(index + 1).padStart(2, "0")}</span>{highlight}</li>)}</ul>
+                {active.sources?.length > 0 && <div className="gold-sources"><b>Sources used by the research agent</b>{active.sources.map((source, index) => {
+                  const href = safeExternalLink(source.url);
+                  return href ? <a key={`${href}-${index}`} href={href} target="_blank" rel="noopener noreferrer">{source.title || href}<ArrowRight /></a> : null;
+                })}</div>}
+              </div>
+            </article>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
 function Home() {
   const [posts, setPosts] = useState([]);
   const [works, setWorks] = useState({ books: [], events: [] });
@@ -338,6 +571,9 @@ function Home() {
             <h1 className="multiline">{homepage.heroTitle}</h1>
             <p>{homepage.heroBody}</p>
             <div className="hero-actions">
+              <button className="button primary know-india-cta" onClick={() => go("/know-india")}>
+                <Compass size={18} /> Know My India
+              </button>
               <button className="button primary" onClick={() => go("/journal")}>
                 Explore the work <ArrowRight size={18} />
               </button>
@@ -2065,6 +2301,7 @@ function App() {
     return <Article slug={decodeURIComponent(path.split("/")[2])} />;
   if (path === "/journal") return <Journal />;
   if (path === "/videos") return <VideosPage />;
+  if (path === "/know-india") return <KnowMyIndia />;
   return <Home />;
 }
 

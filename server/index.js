@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
@@ -46,6 +46,7 @@ const IMAGE_MODELS = [
 
 const app = express();
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -715,6 +716,245 @@ function mapAiJob(job) {
   };
 }
 
+const researchLimits = new Map();
+let lastNominatimRequestAt = 0;
+let nominatimQueue = Promise.resolve();
+
+function cacheKey(type, value) {
+  return createHash("sha256").update(`${type}:${value}`).digest("hex");
+}
+
+function mapIndiaPlace(item = {}) {
+  const address = item.address || {};
+  const addresstype = String(item.addresstype || item.type || "place");
+  let level = "place";
+  if (["state", "union_territory"].includes(addresstype)) level = "state";
+  else if (["state_district", "district", "county"].includes(addresstype)) level = "district";
+  else if (["city", "town", "municipality"].includes(addresstype)) level = "city";
+  else if (["village", "hamlet", "locality", "suburb"].includes(addresstype)) level = "village";
+  else if (address.village || address.hamlet) level = "village";
+  else if (address.city || address.town || address.municipality) level = "city";
+  else if (address.state_district || address.district || address.county) level = "district";
+  else if (address.state) level = "state";
+  const hierarchy = {
+    country: address.country || "India",
+    state: address.state || "",
+    district: address.state_district || address.district || address.county || "",
+    city: address.city || address.town || address.municipality || "",
+    village: address.village || address.hamlet || address.locality || address.suburb || "",
+  };
+  const levelName = hierarchy[level] || item.name || String(item.display_name || "").split(",")[0];
+  return {
+    placeId: `${item.osm_type || "place"}:${item.osm_id || item.place_id || cacheKey("place", item.display_name || levelName).slice(0, 16)}:${level}`,
+    name: levelName || "Selected place",
+    displayName: item.display_name || [levelName, hierarchy.district, hierarchy.state, "India"].filter(Boolean).join(", "),
+    level,
+    hierarchy,
+    lat: Number(item.lat),
+    lon: Number(item.lon),
+    boundingBox: Array.isArray(item.boundingbox) ? item.boundingbox.map(Number) : [],
+  };
+}
+
+async function nominatimRequest(type, queryText, url) {
+  const key = cacheKey(type, queryText);
+  const cached = await query(
+    "SELECT result FROM place_geocode_cache WHERE cache_key = ? AND expires_at > NOW() LIMIT 1",
+    [key],
+  );
+  if (cached.length) return JSON.parse(cached[0].result);
+  const run = nominatimQueue.then(async () => {
+    const delay = Math.max(0, 1100 - (Date.now() - lastNominatimRequestAt));
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    lastNominatimRequestAt = Date.now();
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": `YehMeraIndia/2.0 (${process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://yehmeraindia.com"})`,
+        "Accept-Language": "en-IN,en;q=0.9,hi;q=0.7",
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`Place service returned ${response.status}.`);
+    return response.json();
+  });
+  nominatimQueue = run.catch(() => {});
+  const result = await run;
+  await query(
+    `INSERT INTO place_geocode_cache (cache_key, request_type, query_text, result, expires_at)
+     VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))
+     ON DUPLICATE KEY UPDATE result = VALUES(result), expires_at = VALUES(expires_at)`,
+    [key, type, queryText.slice(0, 1000), JSON.stringify(result)],
+  );
+  return result;
+}
+
+function mapPlaceResearch(row) {
+  let result = null;
+  let hierarchy = {};
+  try { result = row.result ? JSON.parse(row.result) : null; } catch { result = null; }
+  try { hierarchy = row.hierarchy_json ? JSON.parse(row.hierarchy_json) : {}; } catch { hierarchy = {}; }
+  return {
+    researchId: row.id,
+    status: row.status,
+    error: row.error || "",
+    place: {
+      placeId: row.place_key,
+      name: row.place_name,
+      level: row.place_level,
+      hierarchy,
+      lat: Number(row.latitude),
+      lon: Number(row.longitude),
+    },
+    result,
+    researchedAt: row.researched_at,
+  };
+}
+
+async function savePlaceProviderResult(researchId, response) {
+  const status = jobStatus(response.status);
+  if (status === "completed") {
+    const text = responseText(response);
+    if (!text) throw new Error("Place research returned no information.");
+    let result;
+    try { result = JSON.parse(text); }
+    catch { throw new Error("Place research returned an invalid response. Please try again."); }
+    await query(
+      `UPDATE place_insights SET status = 'completed', result = ?, error = NULL,
+       researched_at = NOW(), expires_at = DATE_ADD(NOW(), INTERVAL 12 HOUR) WHERE id = ?`,
+      [JSON.stringify(result), researchId],
+    );
+    return;
+  }
+  if (status === "failed") {
+    const message = response.error?.message || response.incomplete_details?.reason || "Place research could not be completed.";
+    await query("UPDATE place_insights SET status = 'failed', error = ?, expires_at = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE id = ?", [message, researchId]);
+    return;
+  }
+  await query("UPDATE place_insights SET status = ? WHERE id = ?", [status, researchId]);
+}
+
+function enforceResearchLimit(req) {
+  const now = Date.now();
+  const key = req.ip || req.socket.remoteAddress || "anonymous";
+  const recent = (researchLimits.get(key) || []).filter((time) => now - time < 60 * 60 * 1000);
+  if (recent.length >= 6)
+    throw Object.assign(new Error("Research limit reached. Try another cached place or return in one hour."), { statusCode: 429 });
+  recent.push(now);
+  researchLimits.set(key, recent);
+}
+
+async function startPlaceResearch(place, req) {
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
+  const placeKey = String(place?.placeId || "").slice(0, 255);
+  const placeName = String(place?.name || "").trim().slice(0, 500);
+  const level = ["state", "district", "city", "village"].includes(place?.level) ? place.level : "place";
+  const lat = Number(place?.lat);
+  const lon = Number(place?.lon);
+  const hierarchy = place?.hierarchy && typeof place.hierarchy === "object" ? place.hierarchy : {};
+  if (!placeKey || !placeName || !Number.isFinite(lat) || !Number.isFinite(lon))
+    throw Object.assign(new Error("Choose a valid place from the India map or search results."), { statusCode: 400 });
+  const existing = await query("SELECT * FROM place_insights WHERE place_key = ? LIMIT 1", [placeKey]);
+  if (existing.length && ["queued", "in_progress", "completed"].includes(existing[0].status) && new Date(existing[0].expires_at).getTime() > Date.now())
+    return { ...mapPlaceResearch(existing[0]), cached: existing[0].status === "completed" };
+  enforceResearchLimit(req);
+  const settings = await getAiSettings();
+  const model = settings.adminTextModel;
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      ...(model.startsWith("gpt-5") ? { reasoning: { effort: "low" } } : {}),
+      background: true,
+      tools: [{ type: "web_search", search_context_size: "medium" }],
+      tool_choice: "auto",
+      instructions: [
+        "You are the Know My India research editor for Yeh Mera India.",
+        "Research the selected Indian place using trustworthy, current sources. Distinguish verified facts from local legends.",
+        "Explain history with dates and context, present-day administration/economy/infrastructure, culture and language, notable places, and genuinely interesting facts.",
+        "For currentNews, prioritize recent reporting, include event dates in the summary, and state clearly when no material recent news is found.",
+        "Do not invent statistics, quotations, people, legends, developments or news. Avoid political persuasion and promotional exaggeration.",
+        "Every category must contain useful source links. Write accessible English suitable for Indian and international readers.",
+      ].join(" "),
+      input: JSON.stringify({ selectedPlace: { name: placeName, level, hierarchy, latitude: lat, longitude: lon } }),
+      text: {
+        format: {
+          type: "json_schema",
+          name: "know_my_india_place",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              placeTitle: { type: "string" },
+              subtitle: { type: "string" },
+              categories: {
+                type: "array",
+                minItems: 7,
+                maxItems: 7,
+                items: {
+                  type: "object",
+                  properties: {
+                    key: { type: "string", enum: ["overview", "history", "amazingFacts", "culture", "places", "presentScenario", "currentNews"] },
+                    title: { type: "string" },
+                    summary: { type: "string" },
+                    highlights: { type: "array", items: { type: "string" } },
+                    sources: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: { title: { type: "string" }, url: { type: "string" } },
+                        required: ["title", "url"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["key", "title", "summary", "highlights", "sources"],
+                  additionalProperties: false,
+                },
+              },
+              researchNote: { type: "string" },
+            },
+            required: ["placeTitle", "subtitle", "categories", "researchNote"],
+            additionalProperties: false,
+          },
+        },
+      },
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  const providerResponse = await response.json();
+  if (!response.ok) throw new Error(aiError(providerResponse.error, response.status));
+  if (!providerResponse.id) throw new Error("Place research job was not created.");
+  const researchId = randomUUID();
+  await query(
+    `INSERT INTO place_insights
+     (id, place_key, place_name, place_level, hierarchy_json, latitude, longitude, status, provider_id, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))
+     ON DUPLICATE KEY UPDATE id = VALUES(id), place_name = VALUES(place_name), place_level = VALUES(place_level),
+     hierarchy_json = VALUES(hierarchy_json), latitude = VALUES(latitude), longitude = VALUES(longitude),
+     status = VALUES(status), provider_id = VALUES(provider_id), result = NULL, error = NULL, expires_at = VALUES(expires_at)`,
+    [researchId, placeKey, placeName, level, JSON.stringify(hierarchy), lat, lon, jobStatus(providerResponse.status), providerResponse.id],
+  );
+  await savePlaceProviderResult(researchId, providerResponse);
+  const rows = await query("SELECT * FROM place_insights WHERE id = ? LIMIT 1", [researchId]);
+  return mapPlaceResearch(rows[0]);
+}
+
+async function pollPlaceResearch(row) {
+  if (["queued", "in_progress"].includes(row.status) && row.provider_id) {
+    const response = await fetch(`https://api.openai.com/v1/responses/${encodeURIComponent(row.provider_id)}`, {
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      signal: AbortSignal.timeout(Math.min(aiTextTimeoutMs, 30000)),
+    });
+    const providerResponse = await response.json();
+    if (!response.ok) throw new Error(aiError(providerResponse.error, response.status));
+    await savePlaceProviderResult(row.id, providerResponse);
+    const refreshed = await query("SELECT * FROM place_insights WHERE id = ? LIMIT 1", [row.id]);
+    return refreshed[0];
+  }
+  return row;
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -733,6 +973,68 @@ app.get("/api/health/db", async (_req, res) => {
     res
       .status(500)
       .json({ status: "error", database: "failed", message: error.message });
+  }
+});
+
+app.get("/api/places/search", async (req, res, next) => {
+  try {
+    const text = String(req.query.q || "").trim();
+    if (text.length < 2 || text.length > 160)
+      return res.status(400).json({ message: "Enter between 2 and 160 characters to search India." });
+    const params = new URLSearchParams({
+      q: text,
+      format: "jsonv2",
+      addressdetails: "1",
+      countrycodes: "in",
+      limit: "8",
+      dedupe: "1",
+    });
+    const data = await nominatimRequest("search", text.toLowerCase(), `https://nominatim.openstreetmap.org/search?${params}`);
+    res.json(data.map(mapIndiaPlace).filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lon)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/places/reverse", async (req, res, next) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lon = Number(req.query.lon);
+    const zoom = Math.min(Math.max(Number(req.query.zoom || 5), 3), 18);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 6 || lat > 38 || lon < 67 || lon > 98)
+      return res.status(400).json({ message: "Tap a location within India." });
+    const normalized = `${lat.toFixed(5)},${lon.toFixed(5)},${Math.round(zoom)}`;
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+      zoom: String(Math.round(zoom)),
+      format: "jsonv2",
+      addressdetails: "1",
+    });
+    const data = await nominatimRequest("reverse", normalized, `https://nominatim.openstreetmap.org/reverse?${params}`);
+    if (String(data.address?.country_code || "").toLowerCase() !== "in")
+      return res.status(400).json({ message: "That point is outside India. Please choose another location." });
+    res.json(mapIndiaPlace(data));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/places/research", async (req, res, next) => {
+  try {
+    res.status(202).json(await startPlaceResearch(req.body?.place || {}, req));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/places/research/:id", async (req, res, next) => {
+  try {
+    const rows = await query("SELECT * FROM place_insights WHERE id = ? AND expires_at > NOW() LIMIT 1", [req.params.id]);
+    if (!rows.length) return res.status(404).json({ message: "Place research not found or expired." });
+    res.json(mapPlaceResearch(await pollPlaceResearch(rows[0])));
+  } catch (error) {
+    next(error);
   }
 });
 
