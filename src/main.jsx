@@ -19,6 +19,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  Map as MapIcon,
   MapPin,
   Menu,
   MessageCircle,
@@ -26,6 +27,7 @@ import {
   Plus,
   Search,
   Save,
+  Satellite,
   Share2,
   UserPlus,
   Users,
@@ -407,6 +409,7 @@ function KnowMyIndia() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [indiaBoundary, setIndiaBoundary] = useState(null);
+  const [mapMode, setMapMode] = useState("normal");
   const selectedPlaceRef = useRef(null);
   const [categoryResearch, setCategoryResearch] = useState({});
   const [verifiedPhotos, setVerifiedPhotos] = useState([]);
@@ -556,8 +559,15 @@ function KnowMyIndia() {
             <div className="india-map-reference"><MapPin /><span><b>Complete India view</b>Jammu & Kashmir and Ladakh remain available in the northern Himalayan map extent. <a href="https://surveyofindia.gov.in/pages/political-map-of-india" target="_blank" rel="noopener noreferrer">Official political map reference</a></span></div>
           </div>
           <div className="india-map-shell">
-            <MapContainer bounds={INDIA_VIEW_BOUNDS} boundsOptions={{ padding: [12, 12] }} minZoom={3} maxZoom={16} zoomSnap={0.25} maxBounds={INDIA_VIEW_BOUNDS} maxBoundsViscosity={1} scrollWheelZoom className="india-map">
-              <TileLayer bounds={INDIA_VIEW_BOUNDS} noWrap attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <div className="map-mode-switch" role="group" aria-label="Map display mode">
+              <button type="button" className={mapMode === "normal" ? "active" : ""} aria-pressed={mapMode === "normal"} onClick={() => setMapMode("normal")}><MapIcon /> Normal</button>
+              <button type="button" className={mapMode === "satellite" ? "active" : ""} aria-pressed={mapMode === "satellite"} onClick={() => setMapMode("satellite")}><Satellite /> Satellite</button>
+            </div>
+            <MapContainer bounds={INDIA_VIEW_BOUNDS} boundsOptions={{ padding: [12, 12] }} minZoom={3} maxZoom={16} zoomSnap={0.25} maxBounds={INDIA_VIEW_BOUNDS} maxBoundsViscosity={1} scrollWheelZoom className={`india-map ${mapMode}-map`}>
+              {mapMode === "normal" ? <TileLayer key="normal-map" bounds={INDIA_VIEW_BOUNDS} noWrap attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /> : <>
+                <TileLayer key="satellite-map" bounds={INDIA_VIEW_BOUNDS} noWrap maxZoom={18} attribution='Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics and the GIS User Community' url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
+                <TileLayer key="satellite-labels" bounds={INDIA_VIEW_BOUNDS} noWrap maxZoom={18} attribution='Boundaries and places &copy; Esri' url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" />
+              </>}
               {indiaMaskRings.length > 0 && <Polygon positions={[INDIA_MASK_OUTER_RING, ...indiaMaskRings]} interactive={false} pathOptions={{ stroke: false, fill: true, fillColor: "#050714", fillOpacity: 0.92, fillRule: "evenodd" }} />}
               {indiaBoundary && <GeoJSON data={{ type: "Feature", properties: {}, geometry: indiaBoundary }} interactive={false} style={{ color: "#c8922e", weight: 1.4, opacity: 0.9, fillOpacity: 0 }} />}
               <IndiaMapEvents onChoose={chooseMapPoint} />
