@@ -70,6 +70,7 @@ export async function initializeDatabase() {
     content LONGTEXT NOT NULL,
     cover_image LONGTEXT NULL,
     image_alt VARCHAR(255) NULL,
+    keywords TEXT NULL,
     category VARCHAR(100) NOT NULL DEFAULT 'Journal',
     status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
     featured TINYINT(1) NOT NULL DEFAULT 0,
@@ -86,6 +87,7 @@ export async function initializeDatabase() {
   await ensureColumn('posts', 'image_alt', 'VARCHAR(255) NULL');
   await ensureColumn('posts', 'featured', 'TINYINT(1) NOT NULL DEFAULT 0');
   await ensureColumn('posts', 'published_at', 'DATETIME NULL');
+  await ensureColumn('posts', 'keywords', 'TEXT NULL');
   await query('ALTER TABLE posts MODIFY COLUMN cover_image LONGTEXT NULL');
   await query("UPDATE posts SET published_at = COALESCE(published_at, created_at) WHERE status = 'published'");
 
@@ -97,6 +99,7 @@ export async function initializeDatabase() {
     purchase_url VARCHAR(2000) NOT NULL,
     cover_image LONGTEXT NULL,
     image_prompt TEXT NULL,
+    keywords TEXT NULL,
     status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
     published_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -106,6 +109,7 @@ export async function initializeDatabase() {
     KEY idx_books_author (author_id),
     CONSTRAINT fk_books_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
   )`);
+  await ensureColumn('books', 'keywords', 'TEXT NULL');
 
   await query(`CREATE TABLE IF NOT EXISTS play_events (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -116,6 +120,7 @@ export async function initializeDatabase() {
     venue VARCHAR(300) NOT NULL,
     event_at DATETIME NOT NULL,
     ticket_url VARCHAR(2000) NULL,
+    keywords TEXT NULL,
     status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
     published_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -124,6 +129,27 @@ export async function initializeDatabase() {
     KEY idx_play_events_status (status, event_at),
     KEY idx_play_events_author (author_id),
     CONSTRAINT fk_play_events_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+  await ensureColumn('play_events', 'keywords', 'TEXT NULL');
+
+  await query(`CREATE TABLE IF NOT EXISTS social_videos (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    author_id BIGINT UNSIGNED NULL,
+    title VARCHAR(220) NOT NULL,
+    description LONGTEXT NOT NULL,
+    video_url VARCHAR(2000) NOT NULL,
+    platform ENUM('youtube', 'instagram') NOT NULL,
+    keywords TEXT NULL,
+    related_type ENUM('none', 'book', 'play', 'post') NOT NULL DEFAULT 'none',
+    related_id BIGINT UNSIGNED NULL,
+    status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
+    published_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_social_videos_status (status, published_at),
+    KEY idx_social_videos_author (author_id),
+    CONSTRAINT fk_social_videos_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
   )`);
 
   await query(`CREATE TABLE IF NOT EXISTS homepage_content (

@@ -79,6 +79,7 @@ function mapPost(row) {
     status: row.status,
     coverImage: row.cover_image || "",
     imageAlt: row.image_alt || row.title,
+    keywords: parseKeywords(row.keywords),
     featured: Boolean(row.featured),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -96,6 +97,7 @@ function mapBook(row) {
     purchaseUrl: row.purchase_url || "",
     coverImage: row.cover_image || "",
     imagePrompt: row.image_prompt || "",
+    keywords: parseKeywords(row.keywords),
     status: row.status,
     publishedAt: row.published_at,
     createdAt: row.created_at,
@@ -114,6 +116,70 @@ function mapPlayEvent(row) {
     venue: row.venue || "",
     eventAt: row.event_at,
     ticketUrl: row.ticket_url || "",
+    keywords: parseKeywords(row.keywords),
+    status: row.status,
+    publishedAt: row.published_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    authorId: row.author_id ? String(row.author_id) : null,
+    authorName: row.author_name || "",
+  };
+}
+
+function parseKeywords(value) {
+  const source = Array.isArray(value) ? value : String(value || "").split(/[,\n]+/);
+  return [...new Set(source.map((item) => String(item).trim().replace(/^#+/, "")).filter(Boolean))]
+    .slice(0, 30)
+    .map((item) => item.slice(0, 60));
+}
+
+function keywordsText(value) {
+  return parseKeywords(value).join(", ");
+}
+
+function socialVideoUrl(value) {
+  const original = externalUrl(value, "Video link");
+  const url = new URL(original);
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  let videoId = "";
+  if (host === "youtu.be") videoId = url.pathname.split("/").filter(Boolean)[0] || "";
+  if (["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)) {
+    if (url.pathname === "/watch") videoId = url.searchParams.get("v") || "";
+    else videoId = url.pathname.match(/^\/(?:shorts|embed)\/([A-Za-z0-9_-]+)/)?.[1] || "";
+  }
+  if (/^[A-Za-z0-9_-]{6,20}$/.test(videoId)) {
+    return {
+      platform: "youtube",
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
+    };
+  }
+  if (["instagram.com", "m.instagram.com"].includes(host)) {
+    const match = url.pathname.match(/^\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+    if (match) {
+      const canonical = `https://www.instagram.com/${match[1]}/${match[2]}/`;
+      return { platform: "instagram", url: canonical, embedUrl: `${canonical}embed/` };
+    }
+  }
+  throw Object.assign(
+    new Error("Paste a public YouTube video, YouTube Short, Instagram post or Instagram Reel link."),
+    { statusCode: 400 },
+  );
+}
+
+function mapSocialVideo(row) {
+  let social = { platform: row.platform, url: row.video_url, embedUrl: "" };
+  try { social = socialVideoUrl(row.video_url); } catch { /* preserve record with no unsafe embed */ }
+  return {
+    id: String(row.id),
+    title: row.title,
+    description: row.description || "",
+    videoUrl: social.url,
+    embedUrl: social.embedUrl,
+    platform: social.platform,
+    keywords: parseKeywords(row.keywords),
+    relatedType: row.related_type || "none",
+    relatedId: row.related_id ? String(row.related_id) : "",
     status: row.status,
     publishedAt: row.published_at,
     createdAt: row.created_at,
@@ -701,6 +767,41 @@ app.get("/api/works", async (_req, res, next) => {
   }
 });
 
+async function relatedContent(type, id) {
+  if (!id || type === "none") return null;
+  if (type === "book") {
+    const rows = await query("SELECT id, title, purchase_url FROM books WHERE id = ? AND status = 'published' LIMIT 1", [id]);
+    return rows[0] ? { type, title: rows[0].title, url: rows[0].purchase_url, action: "Purchase book" } : null;
+  }
+  if (type === "play") {
+    const rows = await query("SELECT id, play_title, event_title FROM play_events WHERE id = ? AND status = 'published' LIMIT 1", [id]);
+    return rows[0] ? { type, title: `${rows[0].play_title} · ${rows[0].event_title}`, url: "/#work", action: "View play information" } : null;
+  }
+  if (type === "post") {
+    const rows = await query("SELECT title, slug FROM posts WHERE id = ? AND status = 'published' LIMIT 1", [id]);
+    return rows[0] ? { type, title: rows[0].title, url: `/journal/${rows[0].slug}`, action: "Read related article" } : null;
+  }
+  return null;
+}
+
+app.get("/api/videos", async (_req, res, next) => {
+  try {
+    const rows = await query(
+      `SELECT v.*, u.name AS author_name FROM social_videos v
+       LEFT JOIN users u ON u.id = v.author_id
+       WHERE v.status = 'published'
+       ORDER BY COALESCE(v.published_at, v.created_at) DESC`,
+    );
+    const videos = await Promise.all(rows.map(async (row) => ({
+      ...mapSocialVideo(row),
+      relatedContent: await relatedContent(row.related_type, row.related_id),
+    })));
+    res.json(videos);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/posts", async (req, res, next) => {
   try {
     const params = [];
@@ -948,8 +1049,8 @@ app.post("/api/admin/posts", requireStaff, async (req, res, next) => {
     const status = req.body.status === "published" ? "published" : "draft";
     const result = await query(
       `INSERT INTO posts
-       (author_id, title, slug, excerpt, content, cover_image, image_alt, category, status, featured, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${status === "published" ? "NOW()" : "NULL"})`,
+       (author_id, title, slug, excerpt, content, cover_image, image_alt, category, keywords, status, featured, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${status === "published" ? "NOW()" : "NULL"})`,
       [
         req.user.id,
         title,
@@ -959,6 +1060,7 @@ app.post("/api/admin/posts", requireStaff, async (req, res, next) => {
         coverImage,
         String(req.body.imageAlt || title),
         String(req.body.category || "Journal"),
+        keywordsText(req.body.keywords),
         status,
         req.user.role === "admin" && req.body.featured ? 1 : 0,
       ],
@@ -1015,7 +1117,7 @@ app.put("/api/admin/posts/:id", requireStaff, async (req, res, next) => {
     const status = req.body.status === "published" ? "published" : "draft";
     await query(
       `UPDATE posts SET title = ?, slug = ?, excerpt = ?, content = ?, cover_image = ?, image_alt = ?,
-       category = ?, status = ?, featured = ?, published_at = ${status === "published" ? "COALESCE(published_at, NOW())" : "NULL"}
+       category = ?, keywords = ?, status = ?, featured = ?, published_at = ${status === "published" ? "COALESCE(published_at, NOW())" : "NULL"}
        WHERE id = ?`,
       [
         title,
@@ -1025,6 +1127,7 @@ app.put("/api/admin/posts/:id", requireStaff, async (req, res, next) => {
         coverImage,
         String(req.body.imageAlt || title),
         String(req.body.category || "Journal"),
+        keywordsText(req.body.keywords),
         status,
         req.user.role === "admin" ? (req.body.featured ? 1 : 0) : existing[0].featured,
         req.params.id,
@@ -1120,8 +1223,8 @@ app.post("/api/admin/books", requireStaff, async (req, res, next) => {
     const status = req.body?.status === "published" ? "published" : "draft";
     const result = await query(
       `INSERT INTO books
-       (author_id, title, description, purchase_url, cover_image, image_prompt, status, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ${status === "published" ? "NOW()" : "NULL"})`,
+       (author_id, title, description, purchase_url, cover_image, image_prompt, keywords, status, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${status === "published" ? "NOW()" : "NULL"})`,
       [
         req.user.id,
         title,
@@ -1129,6 +1232,7 @@ app.post("/api/admin/books", requireStaff, async (req, res, next) => {
         purchaseUrl,
         String(req.body?.coverImage || ""),
         String(req.body?.imagePrompt || ""),
+        keywordsText(req.body?.keywords),
         status,
       ],
     );
@@ -1155,7 +1259,7 @@ app.put("/api/admin/books/:id", requireStaff, async (req, res, next) => {
     const status = req.body?.status === "published" ? "published" : "draft";
     await query(
       `UPDATE books SET title = ?, description = ?, purchase_url = ?, cover_image = ?,
-       image_prompt = ?, status = ?, published_at = CASE WHEN ? = 'published'
+       image_prompt = ?, keywords = ?, status = ?, published_at = CASE WHEN ? = 'published'
        THEN COALESCE(published_at, NOW()) ELSE NULL END WHERE id = ?`,
       [
         title,
@@ -1163,6 +1267,7 @@ app.put("/api/admin/books/:id", requireStaff, async (req, res, next) => {
         purchaseUrl,
         String(req.body?.coverImage || ""),
         String(req.body?.imagePrompt || ""),
+        keywordsText(req.body?.keywords),
         status,
         status,
         req.params.id,
@@ -1239,9 +1344,9 @@ app.post("/api/admin/play-events", requireStaff, async (req, res, next) => {
     const status = req.body?.status === "published" ? "published" : "draft";
     const result = await query(
       `INSERT INTO play_events
-       (author_id, play_title, event_title, description, venue, event_at, ticket_url, status, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${status === "published" ? "NOW()" : "NULL"})`,
-      [req.user.id, playTitle, eventTitle, description, venue, eventAt, ticketUrl, status],
+       (author_id, play_title, event_title, description, venue, event_at, ticket_url, keywords, status, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${status === "published" ? "NOW()" : "NULL"})`,
+      [req.user.id, playTitle, eventTitle, description, venue, eventAt, ticketUrl, keywordsText(req.body?.keywords), status],
     );
     const rows = await query("SELECT * FROM play_events WHERE id = ? LIMIT 1", [result.insertId]);
     res.status(201).json(mapPlayEvent(rows[0]));
@@ -1269,9 +1374,9 @@ app.put("/api/admin/play-events/:id", requireStaff, async (req, res, next) => {
     const status = req.body?.status === "published" ? "published" : "draft";
     await query(
       `UPDATE play_events SET play_title = ?, event_title = ?, description = ?, venue = ?,
-       event_at = ?, ticket_url = ?, status = ?, published_at = CASE WHEN ? = 'published'
+       event_at = ?, ticket_url = ?, keywords = ?, status = ?, published_at = CASE WHEN ? = 'published'
        THEN COALESCE(published_at, NOW()) ELSE NULL END WHERE id = ?`,
-      [playTitle, eventTitle, description, venue, eventAt, ticketUrl, status, status, req.params.id],
+      [playTitle, eventTitle, description, venue, eventAt, ticketUrl, keywordsText(req.body?.keywords), status, status, req.params.id],
     );
     const rows = await query("SELECT * FROM play_events WHERE id = ? LIMIT 1", [req.params.id]);
     res.json(mapPlayEvent(rows[0]));
@@ -1287,6 +1392,95 @@ app.delete("/api/admin/play-events/:id", requireStaff, async (req, res, next) =>
     if (!canManagePost(req.user, rows[0]))
       return res.status(403).json({ message: "You can only delete your own play events." });
     await query("DELETE FROM play_events WHERE id = ?", [req.params.id]);
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+function videoPayload(body) {
+  const title = String(body?.title || "").trim();
+  const description = String(body?.description || "").trim();
+  if (!title || !description)
+    throw Object.assign(new Error("Video title and description are required."), { statusCode: 400 });
+  if (title.length > 220)
+    throw Object.assign(new Error("Video title must be 220 characters or fewer."), { statusCode: 400 });
+  const social = socialVideoUrl(body?.videoUrl);
+  const relatedType = ["book", "play", "post"].includes(body?.relatedType)
+    ? body.relatedType
+    : "none";
+  const relatedId = relatedType === "none" ? null : Number(body?.relatedId);
+  if (relatedType !== "none" && (!Number.isInteger(relatedId) || relatedId < 1))
+    throw Object.assign(new Error("Choose valid related content or select none."), { statusCode: 400 });
+  return {
+    title,
+    description,
+    ...social,
+    keywords: keywordsText(body?.keywords),
+    relatedType,
+    relatedId,
+    status: body?.status === "published" ? "published" : "draft",
+  };
+}
+
+app.get("/api/admin/videos", requireStaff, async (req, res, next) => {
+  try {
+    const rows = await query(
+      `SELECT v.*, u.name AS author_name FROM social_videos v
+       LEFT JOIN users u ON u.id = v.author_id
+       ${req.user.role === "author" ? "WHERE v.author_id = ?" : ""}
+       ORDER BY v.updated_at DESC`,
+      req.user.role === "author" ? [req.user.id] : [],
+    );
+    res.json(rows.map(mapSocialVideo));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/videos", requireStaff, async (req, res, next) => {
+  try {
+    const data = videoPayload(req.body);
+    const result = await query(
+      `INSERT INTO social_videos
+       (author_id, title, description, video_url, platform, keywords, related_type, related_id, status, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${data.status === "published" ? "NOW()" : "NULL"})`,
+      [req.user.id, data.title, data.description, data.url, data.platform, data.keywords, data.relatedType, data.relatedId, data.status],
+    );
+    const rows = await query("SELECT * FROM social_videos WHERE id = ? LIMIT 1", [result.insertId]);
+    res.status(201).json(mapSocialVideo(rows[0]));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/admin/videos/:id", requireStaff, async (req, res, next) => {
+  try {
+    const existing = await query("SELECT * FROM social_videos WHERE id = ? LIMIT 1", [req.params.id]);
+    if (!existing.length) return res.status(404).json({ message: "Video not found." });
+    if (!canManagePost(req.user, existing[0]))
+      return res.status(403).json({ message: "You can only update your own videos." });
+    const data = videoPayload(req.body);
+    await query(
+      `UPDATE social_videos SET title = ?, description = ?, video_url = ?, platform = ?, keywords = ?,
+       related_type = ?, related_id = ?, status = ?, published_at = CASE WHEN ? = 'published'
+       THEN COALESCE(published_at, NOW()) ELSE NULL END WHERE id = ?`,
+      [data.title, data.description, data.url, data.platform, data.keywords, data.relatedType, data.relatedId, data.status, data.status, req.params.id],
+    );
+    const rows = await query("SELECT * FROM social_videos WHERE id = ? LIMIT 1", [req.params.id]);
+    res.json(mapSocialVideo(rows[0]));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/admin/videos/:id", requireStaff, async (req, res, next) => {
+  try {
+    const rows = await query("SELECT * FROM social_videos WHERE id = ? LIMIT 1", [req.params.id]);
+    if (!rows.length) return res.status(404).json({ message: "Video not found." });
+    if (!canManagePost(req.user, rows[0]))
+      return res.status(403).json({ message: "You can only delete your own videos." });
+    await query("DELETE FROM social_videos WHERE id = ?", [req.params.id]);
     res.status(204).end();
   } catch (error) {
     next(error);

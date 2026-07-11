@@ -13,6 +13,9 @@ A full-stack author, playwright and AI exploration platform with a public journa
 - Authors can create, modify, publish, draft and delete their own posts
 - Books catalogue with descriptions, validated external purchase links, uploaded covers and AI-generated portrait cover artwork
 - Play-event publishing with play name, event title, description, venue, date/time and optional ticket link
+- Public Rajasthani proverb video page with safe YouTube/Shorts and Instagram post/Reel embeds
+- Social videos can promote a related book purchase, play event or journal article
+- Visible topic keywords and page metadata for posts, books, plays and videos
 - Viewers can share articles and send messages to the assigned author
 - Upload JPG, PNG, WebP or GIF cover images up to 4 MB
 - Generate an AI cover when a post has no media
@@ -68,4 +71,4 @@ The responsive CMS also switches to its mobile layout for coarse-pointer touchsc
 
 ## Persistent storage
 
-Posts, books, play events and cover images are stored in MySQL. Uploaded and AI-generated covers are saved in `LONGTEXT` columns, so they survive Hostinger code redeployments without depending on the application filesystem.
+Posts, books, play events, social videos and cover images are stored in MySQL. Uploaded and AI-generated covers are saved in `LONGTEXT` columns, so they survive Hostinger code redeployments without depending on the application filesystem.
