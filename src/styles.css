@@ -209,6 +209,67 @@
   width: 16px;
   height: 16px;
 }
+.northern-region-legend {
+  position: absolute;
+  top: 14px;
+  left: 52px;
+  z-index: 700;
+  width: min(220px, calc(100% - 280px));
+  padding: 9px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(239, 180, 56, 0.48);
+  border-radius: 7px;
+  background: rgba(5, 7, 20, 0.9);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+}
+.northern-region-legend > b {
+  padding: 2px 5px 5px;
+  color: #e8c96f;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.northern-region-legend button {
+  min-width: 0;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #eee3c9;
+  text-align: left;
+  cursor: pointer;
+}
+.northern-region-legend button:hover,
+.northern-region-legend button:focus-visible {
+  background: rgba(239, 180, 56, 0.13);
+  outline: 1px solid rgba(239, 180, 56, 0.35);
+}
+.northern-region-legend i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 50%;
+}
+.northern-region-legend span {
+  min-width: 0;
+  display: grid;
+  font-size: 10px;
+  font-weight: 700;
+}
+.northern-region-legend small {
+  overflow: hidden;
+  color: #9995a0;
+  font-size: 7px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .india-map {
   width: 100%;
   height: 100%;
@@ -227,6 +288,21 @@
 }
 .india-map .leaflet-overlay-pane path {
   vector-effect: non-scaling-stroke;
+}
+.india-map .leaflet-tooltip.india-region-label {
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 231, 164, 0.72);
+  border-radius: 3px;
+  background: rgba(7, 9, 22, 0.86);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28);
+  color: #fff0bf;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.india-map .leaflet-tooltip.india-region-label:before {
+  display: none;
 }
 .map-busy {
   position: absolute;
@@ -903,6 +979,11 @@
   .map-mode-switch button {
     min-height: 42px;
     padding: 8px 10px;
+  }
+  .northern-region-legend {
+    top: 64px;
+    left: 10px;
+    width: min(210px, calc(100% - 20px));
   }
   .golden-card-page {
     padding: 32px 14px 60px;
