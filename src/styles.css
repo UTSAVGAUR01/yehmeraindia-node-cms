@@ -12,6 +12,613 @@
   --line: rgba(232, 155, 45, 0.25);
   --white: #fff;
 }
+
+/* Know My India — map, research states and golden knowledge cards. */
+.know-india-page {
+  min-height: 100vh;
+  background: #050714;
+  color: var(--ivory);
+}
+.india-explorer {
+  min-height: calc(100vh - 78px);
+  display: grid;
+  grid-template-columns: minmax(390px, 0.8fr) minmax(0, 1.2fr);
+  background:
+    radial-gradient(circle at 16% 25%, rgba(239, 180, 56, 0.15), transparent 28%),
+    #070a1b;
+}
+.india-map-copy {
+  padding: 70px clamp(28px, 5vw, 78px);
+  align-self: center;
+}
+.india-map-copy h1,
+.india-research-loading h1,
+.golden-card-head h1 {
+  margin: 10px 0 22px;
+  font-size: clamp(58px, 7vw, 108px);
+  line-height: 0.9;
+}
+.india-map-copy > p:not(.eyebrow) {
+  max-width: 680px;
+  color: #bab8c4;
+  line-height: 1.75;
+}
+.place-search {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid rgba(239, 180, 56, 0.45);
+  background: rgba(2, 4, 14, 0.75);
+}
+.place-search > svg {
+  margin-left: 16px;
+  color: #e9b748;
+}
+.place-search input {
+  min-height: 56px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+.place-search .button {
+  min-height: 56px;
+  border: 0;
+}
+.place-results {
+  max-height: 310px;
+  margin-top: 10px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0c1025;
+}
+.place-results button {
+  width: 100%;
+  padding: 13px 15px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: transparent;
+  color: #ece8de;
+  text-align: left;
+  cursor: pointer;
+}
+.place-results button:hover {
+  background: rgba(239, 180, 56, 0.1);
+}
+.place-results svg {
+  color: #e9b748;
+}
+.place-results span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.place-results small {
+  overflow: hidden;
+  color: #93909f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-results em {
+  color: #e9b748;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.map-instructions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  color: #9794a3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.map-instructions svg {
+  flex: 0 0 auto;
+  color: #e9b748;
+}
+.map-instructions span,
+.map-instructions b {
+  display: block;
+}
+.map-instructions b {
+  color: #ddd8cc;
+}
+.india-map-shell {
+  min-height: calc(100vh - 78px);
+  position: relative;
+  border-left: 1px solid rgba(239, 180, 56, 0.22);
+  background: #d9cda9;
+}
+.india-map {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 78px);
+  background: #e9ddbc;
+}
+.india-map .leaflet-tile-pane {
+  filter: sepia(0.42) saturate(0.75) contrast(1.05);
+}
+.india-map .leaflet-control-attribution {
+  background: rgba(255, 250, 235, 0.82);
+  font-size: 9px;
+}
+.map-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  background: rgba(5, 7, 20, 0.78);
+  color: #f7d577;
+}
+.map-busy span {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(247, 213, 119, 0.25);
+  border-top-color: #f7d577;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.india-research-loading {
+  min-height: calc(100vh - 78px);
+  padding: 50px 24px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  background:
+    radial-gradient(circle at center, rgba(233, 183, 72, 0.2), transparent 32%),
+    repeating-radial-gradient(circle at center, transparent 0 42px, rgba(233, 183, 72, 0.07) 43px 44px),
+    #060817;
+  text-align: center;
+}
+.india-research-loading h1 {
+  margin-bottom: 18px;
+}
+.india-research-loading > p:not(.eyebrow) {
+  max-width: 720px;
+  color: #aaa7b3;
+}
+.gold-orbit {
+  width: 150px;
+  height: 150px;
+  margin-bottom: 26px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid rgba(239, 180, 56, 0.35);
+  border-radius: 50%;
+}
+.gold-orbit:before,
+.gold-orbit:after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px dashed rgba(239, 180, 56, 0.35);
+  border-radius: 50%;
+  animation: spin 7s linear infinite;
+}
+.gold-orbit:after {
+  inset: -12px;
+  animation-direction: reverse;
+  animation-duration: 11s;
+}
+.gold-orbit svg {
+  width: 48px;
+  height: 48px;
+  color: #efb438;
+}
+.research-steps {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.research-steps span {
+  padding: 8px 12px;
+  border: 1px solid rgba(239, 180, 56, 0.25);
+  color: #c4a45e;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.golden-card-page {
+  min-height: calc(100vh - 78px);
+  padding: 55px 6vw 80px;
+  background:
+    linear-gradient(rgba(4, 6, 17, 0.92), rgba(4, 6, 17, 0.98)),
+    radial-gradient(circle at 50% 0, #75500d, transparent 40%);
+}
+.golden-card-head {
+  max-width: 1100px;
+  margin: 0 auto 42px;
+  text-align: center;
+}
+.golden-card-head h1 {
+  font-size: clamp(50px, 6vw, 88px);
+}
+.golden-card-head > p:not(.eyebrow) {
+  max-width: 760px;
+  margin: auto;
+  color: #bdb8ad;
+  line-height: 1.7;
+}
+.back-gold,
+.gold-overlay-back {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: #efc66b;
+  cursor: pointer;
+}
+.place-breadcrumbs {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.place-breadcrumbs span {
+  min-width: 120px;
+  padding: 9px 12px;
+  display: grid;
+  border: 1px solid rgba(239, 180, 56, 0.25);
+  color: #e4d4ac;
+}
+.place-breadcrumbs small {
+  color: #947943;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.gold-card-grid {
+  max-width: 1350px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  perspective: 1400px;
+}
+.gold-category-card {
+  min-height: 350px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #b68425;
+  background:
+    linear-gradient(145deg, rgba(255, 248, 196, 0.22), transparent 24%),
+    linear-gradient(145deg, #e1ab34, #7e5008 58%, #3d2603);
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 169, 0.2), 0 22px 55px rgba(0, 0, 0, 0.28);
+  color: #fff4cf;
+  text-align: left;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  animation: goldCardEnter 0.65s var(--card-delay) both;
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+.gold-category-card:before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(255, 236, 158, 0.35);
+  pointer-events: none;
+}
+.gold-category-card:hover,
+.gold-category-card:focus-visible {
+  transform: translateY(-8px) rotateX(3deg) rotateY(-3deg);
+  box-shadow: 18px 30px 60px rgba(0, 0, 0, 0.42);
+}
+.gold-category-card > svg {
+  width: 42px;
+  height: 42px;
+  margin-top: 34px;
+}
+.gold-card-number {
+  position: absolute;
+  top: 22px;
+  right: 26px;
+  color: rgba(255, 246, 210, 0.55);
+  font: 24px var(--serif);
+}
+.gold-category-card > div {
+  margin-top: auto;
+}
+.gold-category-card small {
+  color: #ffe7a0;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.gold-category-card h2 {
+  margin: 7px 0 10px;
+  font-size: 34px;
+  line-height: 1.05;
+}
+.gold-category-card p {
+  color: #efdca8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.gold-category-card > b {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.research-note {
+  max-width: 900px;
+  margin: 32px auto 18px;
+  padding: 18px 22px;
+  display: flex;
+  gap: 12px;
+  border: 1px solid rgba(239, 180, 56, 0.2);
+  color: #a9a5af;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.research-note svg {
+  flex: 0 0 auto;
+  color: #efb438;
+}
+.research-note p {
+  margin: 0;
+}
+.gold-outline {
+  margin: 10px auto 0;
+  display: flex;
+  color: #efc66b !important;
+  border-color: #8e671d !important;
+}
+.gold-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  padding: 70px 24px 24px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(224, 171, 52, 0.25), transparent 34%),
+    rgba(2, 3, 10, 0.97);
+  overflow: auto;
+}
+.gold-overlay-back {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 24px;
+  z-index: 3;
+}
+.gold-flip-stage {
+  width: min(1120px, 100%);
+  height: min(760px, calc(100vh - 110px));
+  min-height: 560px;
+  perspective: 1800px;
+}
+.gold-flip-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: goldFlipReveal 1s cubic-bezier(0.2, 0.75, 0.25, 1) forwards;
+}
+.gold-flip-front,
+.gold-flip-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border: 1px solid #c18b25;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.55), inset 0 0 0 2px rgba(255, 237, 168, 0.17);
+}
+.gold-flip-front {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 207, 0.25), transparent 25%),
+    linear-gradient(145deg, #e3ae3a, #885608 60%, #3b2302);
+  color: #fff2c5;
+  text-align: center;
+}
+.gold-flip-front:before,
+.gold-flip-back:before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(255, 236, 159, 0.32);
+  pointer-events: none;
+}
+.gold-flip-front svg {
+  width: 70px;
+  height: 70px;
+}
+.gold-flip-front p,
+.gold-flip-front span {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.gold-flip-front h2 {
+  max-width: 760px;
+  margin: 12px;
+  font-size: clamp(48px, 7vw, 88px);
+}
+.gold-flip-back {
+  padding: 46px 52px;
+  overflow-y: auto;
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(135deg, rgba(255, 237, 172, 0.1), transparent 30%),
+    #171109;
+  color: #f6e9c6;
+}
+.gold-data-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(225, 171, 52, 0.3);
+}
+.gold-data-head > svg {
+  width: 44px;
+  height: 44px;
+  color: #e4ae37;
+}
+.gold-data-head h2 {
+  margin: 3px 0 0;
+  font-size: 46px;
+}
+.gold-summary {
+  font: 23px/1.55 var(--serif);
+  color: #f0dfb8;
+}
+.gold-flip-back ul {
+  margin: 24px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  list-style: none;
+}
+.gold-flip-back li {
+  padding: 15px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  border: 1px solid rgba(225, 171, 52, 0.2);
+  color: #d2c5a9;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.gold-flip-back li > span {
+  color: #e4ae37;
+}
+.gold-sources {
+  display: grid;
+  gap: 7px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(225, 171, 52, 0.3);
+}
+.gold-sources > b {
+  margin-bottom: 5px;
+  color: #e4ae37;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.gold-sources a {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #e8d19e;
+  font-size: 12px;
+}
+.gold-sources svg {
+  width: 15px;
+  flex: 0 0 auto;
+}
+@keyframes goldCardEnter {
+  from { opacity: 0; transform: translateY(28px) rotateX(-8deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes goldFlipReveal {
+  0% { transform: rotateY(0deg) scale(0.86); opacity: 0; }
+  28% { transform: rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: rotateY(180deg) scale(1); opacity: 1; }
+}
+
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1200px) {
+  .india-explorer {
+    grid-template-columns: 1fr;
+  }
+  .india-map-copy {
+    padding: 42px 20px;
+  }
+  .india-map-copy h1 {
+    font-size: 58px;
+  }
+  .india-map-shell,
+  .india-map {
+    min-height: 62vh;
+  }
+  .india-map-shell {
+    border-top: 1px solid rgba(239, 180, 56, 0.22);
+    border-left: 0;
+  }
+  .gold-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px), (pointer: coarse) and (max-width: 1200px) {
+  .place-search {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .place-search .button {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+  }
+  .india-map-shell,
+  .india-map {
+    min-height: 58vh;
+  }
+  .golden-card-page {
+    padding: 32px 14px 60px;
+  }
+  .golden-card-head h1 {
+    font-size: 48px;
+  }
+  .place-breadcrumbs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gold-card-grid {
+    grid-template-columns: 1fr;
+  }
+  .gold-category-card {
+    min-height: 290px;
+  }
+  .gold-card-overlay {
+    padding: 62px 0 0;
+  }
+  .gold-overlay-back {
+    left: 12px;
+  }
+  .gold-flip-stage {
+    height: calc(100dvh - 62px);
+    min-height: 0;
+  }
+  .gold-flip-card,
+  .gold-flip-front,
+  .gold-flip-back {
+    border-left: 0;
+    border-right: 0;
+  }
+  .gold-flip-back {
+    padding: 30px 20px max(30px, env(safe-area-inset-bottom));
+  }
+  .gold-data-head h2 {
+    font-size: 34px;
+  }
+  .gold-summary {
+    font-size: 20px;
+  }
+  .gold-flip-back ul {
+    grid-template-columns: 1fr;
+  }
+}
 * {
   box-sizing: border-box;
 }

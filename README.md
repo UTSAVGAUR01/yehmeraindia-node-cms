@@ -5,6 +5,8 @@ A full-stack author, playwright and AI exploration platform with a public journa
 ## Included
 
 - Heritage Stage responsive public website
+- **Know My India** interactive map with state, district, city and village search
+- Seven sourced 3D golden knowledge cards covering place identity, history, facts, culture, landmarks, present scenario and current news
 - Journal listing and individual article pages
 - Admin, author and viewer roles with server-enforced permissions
 - Admin user/role management and visual page designer
@@ -49,6 +51,7 @@ DB_CONNECTION_LIMIT=10
 JWT_SECRET=use-a-long-random-secret
 JWT_EXPIRES_IN=7d
 FRONTEND_URL=https://yehmeraindia.com
+PUBLIC_SITE_URL=https://yehmeraindia.com
 OPENAI_API_KEY=your-rotated-server-side-key
 OPENAI_TEXT_MODEL=gpt-5.5
 OPENAI_AUTHOR_TEXT_MODEL=gpt-5.5
@@ -61,6 +64,8 @@ The studio accepts active users with `role='admin'` or `role='author'`. New publ
 
 The OpenAI key is only read by the Express backend. Environment model values seed the database on first startup. After that, an Admin can select separate Admin and Author writing models plus the shared image model from **Studio → AI settings**. Authors can see their assigned model but cannot change it. `gpt-5.5` replaces the unavailable `gpt-5.6-luna` preview default shown in the earlier runtime error.
 
+Know My India uses OpenStreetMap tiles and Nominatim for India-only place search and reverse geocoding. Lookups are throttled and cached in MySQL. New AI research is limited per visitor and cached for 12 hours; cached results do not consume another AI request.
+
 OpenAI API usage is billed separately from ChatGPT and is subject to provider quota and rate limits. The website does not advertise or bypass those limits. Never add a real `.env` file to Git.
 
 AI text and image requests allow up to three minutes by default. GPT-5 writing models use low reasoning effort for editorial rewrites to reduce latency. Both timeout values can be adjusted between 30 and 300 seconds using the environment variables above.
@@ -71,4 +76,4 @@ The responsive CMS also switches to its mobile layout for coarse-pointer touchsc
 
 ## Persistent storage
 
-Posts, books, play events, social videos and cover images are stored in MySQL. Uploaded and AI-generated covers are saved in `LONGTEXT` columns, so they survive Hostinger code redeployments without depending on the application filesystem.
+Posts, books, play events, social videos, place lookups, researched insights and cover images are stored in MySQL. Uploaded and AI-generated covers are saved in `LONGTEXT` columns, so they survive Hostinger code redeployments without depending on the application filesystem.
