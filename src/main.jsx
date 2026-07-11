@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, Polygon, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,6 +45,8 @@ import "leaflet/dist/leaflet.css";
 import "./styles.css";
 
 const API = import.meta.env.VITE_API_URL || "";
+const INDIA_VIEW_BOUNDS = [[5.7, 67.2], [39.2, 99.6]];
+const INDIA_MASK_OUTER_RING = [[-5, 50], [-5, 115], [50, 115], [50, 50], [-5, 50]];
 const emptyPost = {
   title: "",
   slug: "",
@@ -375,11 +377,36 @@ function IndiaMapFocus({ place }) {
   return null;
 }
 
+function IndiaMapViewport({ place }) {
+  const map = useMap();
+  useEffect(() => {
+    const resize = () => {
+      map.invalidateSize();
+      if (!place) map.fitBounds(INDIA_VIEW_BOUNDS, { padding: [12, 12] });
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [map, place?.placeId]);
+  return null;
+}
+
+function indiaBoundaryRings(geometry) {
+  if (!geometry?.coordinates) return [];
+  const polygons = geometry.type === "Polygon"
+    ? [geometry.coordinates]
+    : geometry.type === "MultiPolygon" ? geometry.coordinates : [];
+  return polygons
+    .map((polygon) => polygon?.[0]?.map(([longitude, latitude]) => [latitude, longitude]))
+    .filter((ring) => Array.isArray(ring) && ring.length > 3);
+}
+
 function KnowMyIndia() {
   const [stage, setStage] = useState("map");
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [indiaBoundary, setIndiaBoundary] = useState(null);
   const selectedPlaceRef = useRef(null);
   const [categoryResearch, setCategoryResearch] = useState({});
   const [verifiedPhotos, setVerifiedPhotos] = useState([]);
@@ -403,6 +430,11 @@ function KnowMyIndia() {
     document.body.style.overflow = activeCard ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [activeCard]);
+  useEffect(() => {
+    request("/api/places/india-boundary")
+      .then((data) => setIndiaBoundary(data?.geometry || null))
+      .catch(() => setIndiaBoundary(null));
+  }, []);
 
   function selectPlace(place) {
     selectedPlaceRef.current = place.placeId;
@@ -497,6 +529,7 @@ function KnowMyIndia() {
     .slice(0, 4);
   const nearbyAreas = active?.key === "places" && Array.isArray(active.nearbyAreas) ? active.nearbyAreas : [];
   const visitPlan = active?.key === "places" ? active.visitPlan : null;
+  const indiaMaskRings = useMemo(() => indiaBoundaryRings(indiaBoundary), [indiaBoundary]);
   const ActiveIcon = activeVisual?.icon || MapPin;
 
   return (
@@ -507,10 +540,10 @@ function KnowMyIndia() {
           <div className="india-map-copy">
             <p className="eyebrow">The Golden Bird · researched place by place</p>
             <h1>Know My India</h1>
-            <p>Tap the map or search any Indian state, district, city or village. Our research agent gathers history, remarkable facts, culture, today’s scenario and recent news into golden knowledge cards.</p>
+            <p>Tap the India-only map or search any Indian state, union territory, district, city or village. The opening view includes the Himalayas, Jammu & Kashmir, Ladakh, mainland India and the island territories.</p>
             <form className="place-search" onSubmit={searchPlaces}>
               <Search />
-              <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search Rajasthan, Rajsamand, Deogarh or a village" aria-label="Search a place in India" />
+              <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search Jammu, Srinagar, Leh, Rajasthan or a village" aria-label="Search a place in India" />
               <button className="button primary" disabled={busy === "search"}>{busy === "search" ? "Searching…" : "Search"}</button>
             </form>
             {error && <div className="form-error">{error}</div>}
@@ -520,11 +553,15 @@ function KnowMyIndia() {
               </button>
             ))}</div>}
             <div className="map-instructions"><Compass /><span><b>Choose your depth</b>Start with a state, then zoom or search deeper for a district, city or village.</span></div>
+            <div className="india-map-reference"><MapPin /><span><b>Complete India view</b>Jammu & Kashmir and Ladakh remain available in the northern Himalayan map extent. <a href="https://surveyofindia.gov.in/pages/political-map-of-india" target="_blank" rel="noopener noreferrer">Official political map reference</a></span></div>
           </div>
           <div className="india-map-shell">
-            <MapContainer center={[22.7, 79.2]} zoom={4} minZoom={4} maxZoom={16} maxBounds={[[5.5, 66.5], [38.5, 99.5]]} scrollWheelZoom className="india-map">
-              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <MapContainer bounds={INDIA_VIEW_BOUNDS} boundsOptions={{ padding: [12, 12] }} minZoom={3} maxZoom={16} zoomSnap={0.25} maxBounds={INDIA_VIEW_BOUNDS} maxBoundsViscosity={1} scrollWheelZoom className="india-map">
+              <TileLayer bounds={INDIA_VIEW_BOUNDS} noWrap attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {indiaMaskRings.length > 0 && <Polygon positions={[INDIA_MASK_OUTER_RING, ...indiaMaskRings]} interactive={false} pathOptions={{ stroke: false, fill: true, fillColor: "#050714", fillOpacity: 0.92, fillRule: "evenodd" }} />}
+              {indiaBoundary && <GeoJSON data={{ type: "Feature", properties: {}, geometry: indiaBoundary }} interactive={false} style={{ color: "#c8922e", weight: 1.4, opacity: 0.9, fillOpacity: 0 }} />}
               <IndiaMapEvents onChoose={chooseMapPoint} />
+              <IndiaMapViewport place={selectedPlace} />
               <IndiaMapFocus place={selectedPlace} />
               {selectedPlace && <CircleMarker center={[selectedPlace.lat, selectedPlace.lon]} radius={10} pathOptions={{ color: "#8f5b08", fillColor: "#f4c34f", fillOpacity: 0.9 }} />}
             </MapContainer>
