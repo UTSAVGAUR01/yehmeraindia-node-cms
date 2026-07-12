@@ -20,7 +20,7 @@ source = source.replace(
 );
 source = source.replace(
   middlewareMarker,
-  `${middlewareMarker}\nregisterSecurityAuth(app, { query, bcrypt, signToken, publicUser, requireAuth });`,
+  `${middlewareMarker}\nawait initializeDatabase();\nregisterSecurityAuth(app, { query, bcrypt, signToken, publicUser, requireAuth });`,
 );
 
 fs.writeFileSync(runtimePath, source, { mode: 0o600 });
