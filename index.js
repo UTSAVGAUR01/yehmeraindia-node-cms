@@ -1,3 +1,4 @@
-// Compatibility entry point for hosting panels that require a root-level file.
-// The actual Express application lives in server/index.js.
-import './server/index.js';
+// Compatibility entry point for Hostinger and other managed Node.js panels.
+// The preload normalizes database variables and adds a non-blocking health route.
+import "./server/hostinger-preload.js";
+import "./server/index.js";
