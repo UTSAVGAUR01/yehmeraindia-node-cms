@@ -1,0 +1,1 @@
+Security review completed for application-layer authentication, request hardening, SMTP OTP delivery, password reset, audit logging and crypto-mining abuse indicators. See SECURITY.md and README_SECURITY_SETUP.md for deployment controls.
