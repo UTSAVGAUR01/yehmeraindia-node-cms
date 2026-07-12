@@ -1,0 +1,1 @@
+Hostinger startup no longer throws when database environment variables are incomplete or MySQL is temporarily unavailable. Express starts normally, and database-backed routes report their own errors instead of taking down the entire site.
