@@ -1,0 +1,1 @@
+Database connection fix in progress: normalize Hostinger variables, retry transient MySQL disconnects, remove blocking duplicate initialization, and expose `/api/health/database` without returning credentials.
