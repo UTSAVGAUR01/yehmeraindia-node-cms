@@ -1,6 +1,7 @@
 // Stable Hostinger entry point.
-// Normalize database variables first, then start the actual Express server.
-import { normalizeDatabaseEnvironment } from "./server/db-env.js";
+// Apply database defaults without throwing so the public website can start
+// even when MySQL is temporarily unavailable or a variable is incomplete.
+import { applyDatabaseDefaults } from "./server/db-env-safe.js";
 
-normalizeDatabaseEnvironment();
+applyDatabaseDefaults();
 await import("./server/index.js");
