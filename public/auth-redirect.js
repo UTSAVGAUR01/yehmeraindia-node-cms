@@ -4,6 +4,10 @@
     if (path === "/signin" || path === "/signup") {
       const mode = path === "/signup" ? "signup" : "signin";
       window.location.replace(`/account.html?mode=${mode}`);
+      return;
+    }
+    if (path === "/admin" && !localStorage.getItem("ymi_admin_token")) {
+      window.location.replace("/account.html?mode=signin&next=%2Fadmin");
     }
   };
   const pushState = history.pushState.bind(history);
