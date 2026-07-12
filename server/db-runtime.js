@@ -1,4 +1,4 @@
-import { initializeDatabase as initializeBase, query as execute } from "./db.js";
+import { initializeDatabase as initializeBase, query as execute } from "./.runtime-db.mjs";
 
 const transientCodes = new Set([
   "PROTOCOL_CONNECTION_LOST",
