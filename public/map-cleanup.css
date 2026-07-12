@@ -1,0 +1,5 @@
+/* Keep northern administrative information in the map data without showing extra visitor panels. */
+.india-map-reference,
+.northern-region-legend {
+  display: none !important;
+}
