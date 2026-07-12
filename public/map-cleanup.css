@@ -1,5 +1,17 @@
-/* Keep northern administrative information in the map data without showing extra visitor panels. */
+/* Keep the public map visually unified while retaining India-wide research data. */
 .india-map-reference,
-.northern-region-legend {
+.northern-region-legend,
+.india-region-label {
   display: none !important;
+}
+
+/* Remove the coloured Jammu, Kashmir and Ladakh overlay polygons and their click targets. */
+.india-map .leaflet-overlay-pane path[stroke="#f08a32"],
+.india-map .leaflet-overlay-pane path[fill="#f08a32"],
+.india-map .leaflet-overlay-pane path[stroke="#e8c659"],
+.india-map .leaflet-overlay-pane path[fill="#e8c659"],
+.india-map .leaflet-overlay-pane path[stroke="#70b7d6"],
+.india-map .leaflet-overlay-pane path[fill="#70b7d6"] {
+  display: none !important;
+  pointer-events: none !important;
 }
