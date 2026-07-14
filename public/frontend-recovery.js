@@ -5,7 +5,7 @@
 
   function rootIsEmpty() {
     const root = document.getElementById("root");
-    return !root || !String(root.textContent || "").trim() && !root.children.length;
+    return !root || (!String(root.textContent || "").trim() && !root.children.length);
   }
 
   function recover(reason) {
@@ -43,8 +43,8 @@
 
   window.addEventListener("error", (event) => {
     const target = event.target;
-    if (target instanceof HTMLScriptElement && /\/assets\/.*\.js(?:\?|$)/.test(target.src)) recover("javascript-asset");
-    if (target instanceof HTMLLinkElement && /\/assets\/.*\.css(?:\?|$)/.test(target.href)) recover("stylesheet-asset");
+    if (target instanceof HTMLScriptElement && /\/assets\/index-.*\.js(?:\?|$)/.test(target.src)) recover("javascript-entry-asset");
+    if (target instanceof HTMLLinkElement && /\/assets\/index-.*\.css(?:\?|$)/.test(target.href)) recover("stylesheet-entry-asset");
   }, true);
 
   window.addEventListener("pageshow", () => {
@@ -54,4 +54,8 @@
   window.setTimeout(() => {
     if (document.readyState === "complete" && rootIsEmpty()) recover("empty-react-root");
   }, 7000);
+
+  window.setTimeout(() => {
+    if (!rootIsEmpty()) sessionStorage.removeItem(retryKey);
+  }, 10000);
 })();
