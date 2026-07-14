@@ -58,11 +58,11 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify default Vite production output
+      - name: Verify React-owned DOM remains isolated
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.css' -size +0c -print -quit)"
           grep -Eq '/assets/index-[^" ]+\.js' dist/index.html
           grep -Eq '/assets/index-[^" ]+\.css' dist/index.html
-          ! grep -q 'frontend-recovery.js' dist/index.html
+          ! grep -Eq '(frontend-recovery|work-details|site-footer|author-follow|work-description-ai|india-bilingual-index|member-studio-link|admin-site-settings-link)\.js' dist/index.html
