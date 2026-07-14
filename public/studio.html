@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#080b1d" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>User Studio | Yeh Mera India</title>
+    <title>My Profile | Yeh Mera India</title>
     <link rel="stylesheet" href="/studio.css" />
+    <link rel="stylesheet" href="/profile-enhancements.css" />
   </head>
   <body>
     <header class="studio-topbar">
       <a class="studio-brand" href="/">Yeh Mera India</a>
-      <nav aria-label="Studio actions">
+      <nav aria-label="Profile actions">
         <a href="/">View website</a>
-        <a id="admin-studio-link" href="/admin" hidden>Admin Studio</a>
+        <a id="admin-studio-link" href="/admin" hidden>Publishing panel</a>
         <button id="signout-button" type="button">Sign out</button>
       </nav>
     </header>
@@ -21,9 +22,9 @@
     <main class="studio-shell">
       <section class="studio-hero">
         <div>
-          <p class="eyebrow">User Studio</p>
-          <h1 id="welcome-title">Your Yeh Mera India space.</h1>
-          <p id="account-summary">Loading your account and conversations…</p>
+          <p class="eyebrow">My Profile</p>
+          <h1 id="welcome-title">Your Yeh Mera India account.</h1>
+          <p id="account-summary">Loading your account, access and messages…</p>
         </div>
         <span id="role-badge" class="role-badge">Viewer</span>
       </section>
@@ -32,9 +33,10 @@
       <div id="studio-error" class="studio-error" hidden></div>
 
       <section class="studio-layout">
-        <aside class="studio-navigation" aria-label="User Studio navigation">
-          <button type="button" class="active" data-view="overview">Overview</button>
-          <button type="button" data-view="conversations">My conversations <span id="member-unread-count"></span></button>
+        <aside class="studio-navigation" aria-label="Profile navigation">
+          <button type="button" class="active" data-view="overview">My profile</button>
+          <button type="button" data-view="conversations">Message box <span id="member-unread-count"></span></button>
+          <button type="button" data-profile-view="journal-messages">Journal messages <span id="journal-message-count"></span></button>
           <button type="button" id="admin-requests-tab" data-view="admin-requests" hidden>Role requests <span id="request-count"></span></button>
           <button type="button" id="admin-conversations-tab" data-view="admin-conversations" hidden>Member inbox <span id="admin-unread-count"></span></button>
           <a href="/account.html?mode=security">Login security</a>
@@ -44,15 +46,15 @@
           <section id="view-overview" class="studio-view">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Account overview</p>
-                <h2>Your role and access</h2>
+                <p class="eyebrow">Account and access</p>
+                <h2>My profile</h2>
               </div>
               <button id="start-conversation-button" type="button" class="button primary">Start a conversation</button>
             </div>
 
             <div class="overview-grid">
               <article class="studio-card account-card">
-                <p class="card-label">Signed in as</p>
+                <p class="card-label">Account details</p>
                 <h3 id="profile-name">Member</h3>
                 <p id="profile-email"></p>
                 <dl>
@@ -62,7 +64,7 @@
               </article>
 
               <article class="studio-card role-card">
-                <p class="card-label">Role upgrade</p>
+                <p class="card-label">Role selection</p>
                 <div id="role-request-summary"></div>
                 <form id="role-request-form" hidden>
                   <label>
@@ -80,11 +82,47 @@
                 </form>
               </article>
             </div>
+
+            <div class="profile-settings-grid">
+              <article class="studio-card profile-settings-card">
+                <p class="card-label">Personal details</p>
+                <h3>Update your name</h3>
+                <p>Your email address and role are managed separately and cannot be changed here.</p>
+                <form id="profile-name-form">
+                  <label>
+                    Display name
+                    <input id="profile-name-input" name="name" minlength="2" maxlength="120" required autocomplete="name" />
+                  </label>
+                  <button class="button primary" type="submit">Save name</button>
+                </form>
+              </article>
+
+              <article class="studio-card profile-settings-card">
+                <p class="card-label">Password</p>
+                <h3>Change password</h3>
+                <p>Use at least 10 characters with uppercase, lowercase and a number.</p>
+                <form id="profile-password-form">
+                  <label>
+                    Current password
+                    <input type="password" name="currentPassword" required autocomplete="current-password" />
+                  </label>
+                  <label>
+                    New password
+                    <input type="password" name="newPassword" minlength="10" required autocomplete="new-password" />
+                  </label>
+                  <label>
+                    Confirm new password
+                    <input type="password" name="confirmPassword" minlength="10" required autocomplete="new-password" />
+                  </label>
+                  <button class="button primary" type="submit">Change password</button>
+                </form>
+              </article>
+            </div>
           </section>
 
           <section id="view-conversations" class="studio-view" hidden>
             <div class="section-heading">
-              <div><p class="eyebrow">Messages</p><h2>My conversations</h2></div>
+              <div><p class="eyebrow">Messages</p><h2>Message box</h2><p>Direct conversations between you and Yeh Mera India.</p></div>
               <button id="new-conversation-toggle" type="button" class="button primary">New conversation</button>
             </div>
 
@@ -102,6 +140,19 @@
               <div id="member-thread-panel" class="thread-panel empty-panel">
                 <p>Select a conversation, or start a new one.</p>
               </div>
+            </div>
+          </section>
+
+          <section id="view-journal-messages" class="studio-view profile-only-view" hidden>
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Journal and posts</p>
+                <h2>Messages sent from articles</h2>
+                <p>Messages you submitted from a journal or post page are kept here for reference.</p>
+              </div>
+            </div>
+            <div id="journal-message-list" class="journal-message-list">
+              <div class="studio-card">Loading journal messages…</div>
             </div>
           </section>
 
@@ -135,5 +186,6 @@
     </main>
 
     <script src="/studio.js" defer></script>
+    <script src="/profile-enhancements.js" defer></script>
   </body>
 </html>
