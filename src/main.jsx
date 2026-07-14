@@ -1305,7 +1305,7 @@ function AdminLogin({ onLogin }) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@yehmeraindia.com"
+            placeholder="support@yehmeraindia.com"
           />
         </label>
         <label>
