@@ -2,18 +2,18 @@
   "use strict";
 
   const countries = [
-    ["INDIA", "भारत", 22.8, 79.2],
-    ["PAKISTAN", "पाकिस्तान", 30.2, 69.4],
-    ["AFGHANISTAN", "अफ़ग़ानिस्तान", 35.0, 68.7],
-    ["TAJIKISTAN", "ताजिकिस्तान", 38.2, 71.0],
-    ["CHINA", "चीन", 33.8, 95.2],
-    ["NEPAL", "नेपाल", 28.2, 84.0],
-    ["BHUTAN", "भूटान", 27.5, 90.5],
-    ["BANGLADESH", "बांग्लादेश", 23.7, 90.3],
-    ["MYANMAR", "म्यांमार", 23.4, 96.4],
-    ["SRI LANKA", "श्रीलंका", 7.4, 80.7],
-    ["MALDIVES", "मालदीव", 6.7, 73.3],
-  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "country", min: 3, max: 6 }));
+    ["India", "भारत", 22.8, 79.2],
+    ["Pakistan", "पाकिस्तान", 30.2, 69.4],
+    ["Afghanistan", "अफ़ग़ानिस्तान", 35.0, 68.7],
+    ["Tajikistan", "ताजिकिस्तान", 38.2, 71.0],
+    ["China", "चीन", 33.8, 95.2],
+    ["Nepal", "नेपाल", 28.2, 84.0],
+    ["Bhutan", "भूटान", 27.5, 90.5],
+    ["Bangladesh", "बांग्लादेश", 23.7, 90.3],
+    ["Myanmar", "म्यांमार", 23.4, 96.4],
+    ["Sri Lanka", "श्रीलंका", 7.4, 80.7],
+    ["Maldives", "मालदीव", 6.7, 73.3],
+  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "country", min: 3, max: 4, priority: 30 }));
 
   const states = [
     ["Andhra Pradesh", "आंध्र प्रदेश", 15.9, 79.7], ["Arunachal Pradesh", "अरुणाचल प्रदेश", 28.2, 94.7],
@@ -29,8 +29,8 @@
     ["West Bengal", "पश्चिम बंगाल", 23.1, 87.9], ["Andaman & Nicobar", "अंडमान और निकोबार", 11.7, 92.7],
     ["Chandigarh", "चंडीगढ़", 30.73, 76.78], ["Dadra, Nagar Haveli, Daman & Diu", "दादरा नगर हवेली दमन दीव", 20.4, 72.9],
     ["Delhi", "दिल्ली", 28.61, 77.21], ["Jammu & Kashmir", "जम्मू और कश्मीर", 33.5, 75.1],
-    ["Ladakh", "लद्दाख", 34.2, 77.6], ["Lakshadweep", "लक्षद्वीप", 10.6, 72.6], ["Puducherry", "पुडुचेरी", 11.94, 79.81]
-  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "state", min: 4, max: 8 }));
+    ["Ladakh", "लद्दाख", 34.2, 77.6], ["Lakshadweep", "लक्षद्वीप", 10.6, 72.6], ["Puducherry", "पुडुचेरी", 11.94, 79.81],
+  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "state", min: 5, max: 8, priority: 20 }));
 
   const districts = [
     ["New Delhi", "नई दिल्ली", 28.61, 77.21], ["Jammu", "जम्मू", 32.73, 74.87], ["Srinagar", "श्रीनगर", 34.08, 74.80],
@@ -55,8 +55,8 @@
     ["Hyderabad", "हैदराबाद", 17.39, 78.49], ["Warangal", "वारंगल", 17.98, 79.60], ["Vijayawada", "विजयवाड़ा", 16.51, 80.65],
     ["Visakhapatnam", "विशाखापट्टनम", 17.69, 83.22], ["Tirupati", "तिरुपति", 13.63, 79.42], ["Chennai", "चेन्नई", 13.08, 80.27],
     ["Madurai", "मदुरै", 9.93, 78.12], ["Coimbatore", "कोयंबटूर", 11.02, 76.96], ["Thanjavur", "तंजावुर", 10.79, 79.14],
-    ["Kochi", "कोच्चि", 9.93, 76.27], ["Thiruvananthapuram", "तिरुवनंतपुरम", 8.52, 76.94], ["Kozhikode", "कोझिकोड", 11.26, 75.78]
-  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "district", min: 6, max: 16 }));
+    ["Kochi", "कोच्चि", 9.93, 76.27], ["Thiruvananthapuram", "तिरुवनंतपुरम", 8.52, 76.94], ["Kozhikode", "कोझिकोड", 11.26, 75.78],
+  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "district", min: 7, max: 16, priority: 10 }));
 
   const labels = [...countries, ...states, ...districts];
   const observers = new WeakMap();
@@ -131,14 +131,28 @@
     layer.setAttribute("aria-label", "Map place names in English and Hindi");
     labels.forEach((item, index) => {
       const node = document.createElement("span");
+      const english = document.createElement("b");
+      const hindi = document.createElement("small");
       node.className = "ymi-map-label";
       node.dataset.index = String(index);
       node.dataset.level = item.level;
-      node.innerHTML = `<b>${item.en}</b><small lang="hi">${item.hi}</small>`;
+      english.textContent = item.en;
+      hindi.lang = "hi";
+      hindi.textContent = item.hi;
+      node.append(english, hindi);
       layer.appendChild(node);
     });
     map.appendChild(layer);
     return layer;
+  }
+
+  function intersects(box, occupied, margin) {
+    return occupied.some((other) => !(
+      box.right + margin < other.left
+      || box.left - margin > other.right
+      || box.bottom + margin < other.top
+      || box.top - margin > other.bottom
+    ));
   }
 
   function positionLabels(map) {
@@ -153,21 +167,47 @@
     const originX = coordinates.x * tileSize - (tileRect.left - mapRect.left);
     const originY = coordinates.y * tileSize - (tileRect.top - mapRect.top);
     const layer = ensureLayer(map);
+    const nodes = [...layer.querySelectorAll(".ymi-map-label")];
 
-    layer.querySelectorAll(".ymi-map-label").forEach((node) => {
+    nodes.forEach((node) => {
+      node.hidden = true;
+      node.style.visibility = "hidden";
+    });
+
+    const candidates = nodes.map((node) => {
       const item = labels[Number(node.dataset.index)];
       const visibleAtZoom = coordinates.z >= item.min && coordinates.z <= item.max;
       const point = project(item.lat, item.lon, coordinates.z, tileSize);
       const left = point.x - originX;
       const top = point.y - originY;
-      const inside = left > -80 && top > -35 && left < mapRect.width + 80 && top < mapRect.height + 35;
-      node.hidden = !visibleAtZoom || !inside;
-      if (!node.hidden) {
-        const nextLeft = `${left}px`;
-        const nextTop = `${top}px`;
-        if (node.style.left !== nextLeft) node.style.left = nextLeft;
-        if (node.style.top !== nextTop) node.style.top = nextTop;
+      const inside = left > -60 && top > -24 && left < mapRect.width + 60 && top < mapRect.height + 24;
+      return { node, item, left, top, visible: visibleAtZoom && inside };
+    }).filter((candidate) => candidate.visible)
+      .sort((a, b) => b.item.priority - a.item.priority);
+
+    const occupied = [
+      { left: 0, top: 0, right: 72, bottom: 112 },
+      { left: Math.max(0, mapRect.width - 220), top: 0, right: mapRect.width, bottom: 82 },
+    ];
+
+    candidates.forEach(({ node, item, left, top }) => {
+      node.style.left = `${left}px`;
+      node.style.top = `${top}px`;
+      node.hidden = false;
+      const rect = node.getBoundingClientRect();
+      const box = {
+        left: rect.left - mapRect.left,
+        top: rect.top - mapRect.top,
+        right: rect.right - mapRect.left,
+        bottom: rect.bottom - mapRect.top,
+      };
+      const margin = item.level === "country" ? 7 : item.level === "state" ? 4 : 2;
+      if (intersects(box, occupied, margin)) {
+        node.hidden = true;
+        return;
       }
+      node.style.visibility = "visible";
+      occupied.push(box);
     });
   }
 
