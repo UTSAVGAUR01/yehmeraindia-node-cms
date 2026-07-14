@@ -13,8 +13,20 @@ function requestIp(req) {
   return String(req.ip || req.socket?.remoteAddress || "unknown").slice(0, 100);
 }
 
+function pruneBuckets(now, windowMs) {
+  if (buckets.size < 5000) return;
+  for (const [key, values] of buckets) {
+    const active = values.filter((time) => now - time < windowMs);
+    if (active.length) buckets.set(key, active);
+    else buckets.delete(key);
+    if (buckets.size <= 3500) break;
+  }
+  while (buckets.size > 5000) buckets.delete(buckets.keys().next().value);
+}
+
 function rateLimit(req, scope, maximum, windowMs) {
   const now = Date.now();
+  pruneBuckets(now, windowMs);
   const key = `${scope}:${requestIp(req)}`;
   const recent = (buckets.get(key) || []).filter((time) => now - time < windowMs);
   if (recent.length >= maximum) return false;
@@ -78,7 +90,12 @@ function install(app) {
       return res.status(405).json({ message: "Method not allowed." });
     }
 
-    const pathname = decodeURIComponent(String(req.path || req.url || "/").split("?")[0]).toLowerCase();
+    let pathname;
+    try {
+      pathname = decodeURIComponent(String(req.path || req.url || "/").split("?")[0]).toLowerCase();
+    } catch {
+      return res.status(400).json({ message: "Malformed request path." });
+    }
     const rawQuery = String(req.originalUrl || "").split("?").slice(1).join("?").slice(0, 4000);
     if (BLOCKED_PATH.test(pathname) || BLOCKED_QUERY.test(rawQuery)) {
       return res.status(404).end();
@@ -108,7 +125,7 @@ function install(app) {
     if (pathname.startsWith("/api/")) {
       const authRequest = pathname.startsWith("/api/auth/") || pathname === "/api/admin/login";
       const maximum = authRequest ? 80 : WRITE_METHODS.has(method) ? 180 : 600;
-      const windowMs = authRequest ? 15 * 60 * 1000 : 15 * 60 * 1000;
+      const windowMs = 15 * 60 * 1000;
       if (!rateLimit(req, authRequest ? "auth" : WRITE_METHODS.has(method) ? "api-write" : "api-read", maximum, windowMs)) {
         res.setHeader("Retry-After", "900");
         return res.status(429).json({ message: "Too many requests. Please wait and try again." });
