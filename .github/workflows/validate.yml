@@ -30,12 +30,19 @@ jobs:
         run: |
           node --check index.js
           node --check server/frontend-cache-preload.js
+          node --check server/security-edge-preload.js
+          node --check server/viewer-verification-preload.js
+          node --check server/bilingual-place-preload.js
           node --check server/footer-email-preload.js
           node --check server/member-studio-preload.js
           node --check server/profile-preload.js
           node --check server/security-auth-preload.js
           node --check server/social-footer-preload.js
           node --check server/work-description-ai-preload.js
+          node --check public/frontend-recovery.js
+          node --check public/session-verification.js
+          node --check public/account-verification-hint.js
+          node --check public/india-bilingual-index.js
           node --check public/account.js
           node --check public/studio.js
           node --check public/profile-enhancements.js
@@ -45,7 +52,6 @@ jobs:
           node --check public/site-settings.js
           node --check public/admin-site-settings-link.js
           node --check public/work-description-ai.js
-          node --check public/india-boundary-refine.js
           node --check public/auth-redirect.js
           node --check public/member-studio-link.js
 
