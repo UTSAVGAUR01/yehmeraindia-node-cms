@@ -69,7 +69,7 @@
   will-change: transform, left, top;
 }
 
-.satellite-map + .ymi-map-label-layer .ymi-map-label,
+.india-map.satellite-map .ymi-map-label,
 .india-map-shell:has(.satellite-map) .ymi-map-label {
   color: #fff8e8;
   background: rgba(7, 10, 26, 0.78);
@@ -115,6 +115,10 @@
   padding: 1px 4px;
   background: rgba(255, 250, 238, 0.77);
   border-color: rgba(157, 103, 15, 0.22);
+}
+
+.india-map.satellite-map .ymi-map-label[data-level="district"] {
+  background: rgba(7, 10, 26, 0.72);
 }
 
 .ymi-map-label[data-level="district"] b {
