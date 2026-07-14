@@ -78,7 +78,13 @@ jobs:
           grep -q 'tiles.openfreemap.org/styles/liberty' public/india-vector-map.js
           grep -q 'name:en' public/india-vector-map.js
           grep -q 'name:hi' public/india-vector-map.js
-          grep -q 'ymi-india-boundary-line' public/india-vector-map.js
+          grep -q 'nameEnglish' server/bilingual-place-preload.js
+          grep -q 'bilingual-v3' server/bilingual-place-preload.js
+          grep -q 'maxZoom: 20' public/india-vector-map.js
+          grep -q 'softenNeighbourBorders' public/india-vector-map.js
+          grep -q 'ymi-india-boundary-halo' public/india-vector-map.js
+          grep -q 'line-color": "#15120d"' public/india-vector-map.js
+          grep -q 'ymi-vpn-shell-7' public/ymi-sw.js
           ! grep -q '/india-map-labels.js' dist/index.html
           ! grep -q '/india-map-labels.css' dist/index.html
           grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
