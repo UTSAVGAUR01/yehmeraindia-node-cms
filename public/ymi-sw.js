@@ -1,4 +1,4 @@
-const VERSION = "ymi-vpn-shell-3";
+const VERSION = "ymi-vpn-shell-4";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
@@ -11,8 +11,6 @@ const CORE = [
   "/global-footer-safe.css",
   "/admin-profile-link.css",
   "/network-resilience.js",
-  "/india-map-labels.css",
-  "/india-map-labels.js",
 ];
 
 async function cacheOne(cache, url) {
