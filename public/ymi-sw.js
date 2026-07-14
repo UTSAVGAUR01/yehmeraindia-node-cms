@@ -1,0 +1,105 @@
+const VERSION = "ymi-vpn-shell-1";
+const SHELL_CACHE = `${VERSION}-shell`;
+const RUNTIME_CACHE = `${VERSION}-runtime`;
+const TILE_CACHE = `${VERSION}-tiles`;
+const CORE = [
+  "/",
+  "/map-cleanup.css",
+  "/india-boundary-refine.css",
+  "/book-card-compact.css",
+  "/react-layout-fixes.css",
+  "/site-footer.css",
+  "/global-footer-safe.css",
+  "/admin-profile-link.css",
+  "/network-resilience.js",
+  "/india-map-labels.css",
+  "/india-map-labels.js",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(CORE)).catch(() => {}));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key.startsWith("ymi-") && ![SHELL_CACHE, RUNTIME_CACHE, TILE_CACHE].includes(key))
+        .map((key) => caches.delete(key)),
+    )),
+  );
+  self.clients.claim();
+});
+
+async function withTimeout(request, milliseconds) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), milliseconds);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function navigationResponse(request) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await withTimeout(request, 7000);
+    if (response?.ok) cache.put(request, response.clone()).catch(() => {});
+    return response;
+  } catch {
+    return (await cache.match(request)) || (await cache.match("/")) || new Response(
+      "Yeh Mera India is waiting for the network connection to return.",
+      { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+    );
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = await cache.match(request);
+  const update = fetch(request).then((response) => {
+    if (response?.ok) cache.put(request, response.clone()).catch(() => {});
+    return response;
+  }).catch(() => null);
+  return cached || (await update) || new Response("", { status: 504 });
+}
+
+async function tileResponse(request) {
+  const cache = await caches.open(TILE_CACHE);
+  const cached = await cache.match(request);
+  if (cached) {
+    fetch(request, { mode: "no-cors" }).then((response) => cache.put(request, response.clone())).catch(() => {});
+    return cached;
+  }
+  try {
+    const response = await fetch(request, { mode: "no-cors" });
+    cache.put(request, response.clone()).catch(() => {});
+    return response;
+  } catch {
+    return new Response("", { status: 504 });
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+
+  if (request.mode === "navigate") {
+    event.respondWith(navigationResponse(request));
+    return;
+  }
+
+  if (url.origin === self.location.origin) {
+    if (url.pathname.startsWith("/api/")) return;
+    if (["script", "style", "font", "image"].includes(request.destination)) {
+      event.respondWith(staleWhileRevalidate(request));
+    }
+    return;
+  }
+
+  if (/tile\.openstreetmap\.org$|basemaps\.cartocdn\.com$|arcgisonline\.com$/.test(url.hostname)) {
+    event.respondWith(tileResponse(request));
+  }
+});
