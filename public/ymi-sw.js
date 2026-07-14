@@ -1,8 +1,9 @@
-const VERSION = "ymi-vpn-shell-7";
+const VERSION = "ymi-vpn-shell-8";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
 const CORE = [
+  "/map-bootstrap.js",
   "/map-cleanup.css",
   "/india-boundary-refine.css",
   "/network-resilience.css",
