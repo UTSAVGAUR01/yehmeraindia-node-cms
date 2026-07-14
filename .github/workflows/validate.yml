@@ -41,7 +41,6 @@ jobs:
           node --check server/security-auth-preload.js
           node --check server/social-footer-preload.js
           node --check server/work-description-ai-preload.js
-          node --check public/frontend-recovery.js
           node --check public/session-verification.js
           node --check public/account-verification-hint.js
           node --check public/india-bilingual-index.js
@@ -56,6 +55,10 @@ jobs:
           node --check public/work-description-ai.js
           node --check public/auth-redirect.js
           node --check public/member-studio-link.js
+          node --check scripts/verify-frontend-build.mjs
 
       - name: Build production frontend
         run: npm run build
+
+      - name: Verify production frontend files
+        run: node scripts/verify-frontend-build.mjs
