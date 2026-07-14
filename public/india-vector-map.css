@@ -1,3 +1,18 @@
+html.ymi-vector-preferred .india-map-shell > .leaflet-container,
+.india-map-shell.ymi-vector-map-pending > .leaflet-container,
+.india-map-shell.ymi-vector-map-active > .leaflet-container {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.india-map-shell.ymi-vector-map-fallback > .leaflet-container {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.india-map-shell.ymi-vector-map-pending,
 .india-map-shell.ymi-vector-map-active {
   overflow: hidden;
 }
@@ -9,12 +24,36 @@
   width: 100%;
   height: 100%;
   min-height: calc(100vh - 78px);
-  background: #d9cda9;
+  background: #e7e4d8;
 }
 
-.india-map-shell.ymi-vector-map-active > .leaflet-container {
-  visibility: hidden;
-  pointer-events: none;
+.ymi-map-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background:
+    radial-gradient(circle at center, rgba(225, 171, 52, 0.13), transparent 34%),
+    #e7e4d8;
+  color: #34291d;
+  font: 700 12px/1.4 Manrope, "Noto Sans Devanagari", sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.ymi-map-loading span {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(143, 91, 8, 0.2);
+  border-top-color: #8f5b08;
+  border-radius: 50%;
+  animation: ymiMapSpin 0.75s linear infinite;
+}
+
+@keyframes ymiMapSpin {
+  to { transform: rotate(360deg); }
 }
 
 .ymi-vector-map .maplibregl-canvas,
@@ -47,8 +86,15 @@
   height: 34px;
 }
 
+.ymi-vector-map .maplibregl-ctrl-scale {
+  border-color: rgba(32, 28, 22, 0.72);
+  background: rgba(255, 252, 242, 0.82);
+  color: #28231d;
+  font-size: 9px;
+}
+
 .ymi-vector-map .maplibregl-ctrl-attrib {
-  background: rgba(255, 250, 235, 0.82);
+  background: rgba(255, 250, 235, 0.86);
   color: #393125;
   font-size: 9px;
 }
@@ -95,13 +141,15 @@
 .golden-card-head > h1 {
   max-width: 100%;
   margin: 0;
-  line-height: 0.98;
+  line-height: 1.02;
   overflow-wrap: anywhere;
   word-break: normal;
 }
 
 .golden-card-head > p:not(.eyebrow) {
-  margin-top: 16px;
+  max-width: min(850px, 100%);
+  margin: 16px auto 0;
+  line-height: 1.65;
   overflow-wrap: anywhere;
 }
 
@@ -130,7 +178,7 @@
 
   .golden-card-head > h1 {
     font-size: clamp(42px, 13vw, 68px);
-    line-height: 1;
+    line-height: 1.04;
   }
 
   .golden-card-head > p:not(.eyebrow) {

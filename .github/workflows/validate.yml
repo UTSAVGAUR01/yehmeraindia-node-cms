@@ -40,6 +40,7 @@ jobs:
           node --check server/security-auth-preload.js
           node --check server/social-footer-preload.js
           node --check server/work-description-ai-preload.js
+          node --check public/map-bootstrap.js
           node --check public/network-resilience.js
           node --check public/ymi-sw.js
           node --check public/india-vector-map.js
@@ -61,7 +62,7 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify React-owned DOM and bilingual map assets
+      - name: Verify React-owned DOM and single vector map assets
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
@@ -71,20 +72,25 @@ jobs:
           grep -q 'id="ymi-global-footer"' dist/index.html
           grep -q '/site-footer.js' dist/index.html
           grep -q '/network-resilience.js' dist/index.html
+          grep -q '/map-bootstrap.js' dist/index.html
           grep -q '/india-vector-map.js' dist/index.html
           grep -q '/india-vector-map.css' dist/index.html
           grep -q 'maplibre-gl@5.24.0' dist/index.html
           grep -q 'serviceWorker.register("/ymi-sw.js"' public/network-resilience.js
+          grep -q 'tiles.openfreemap.org/styles/bright' public/india-vector-map.js
           grep -q 'tiles.openfreemap.org/styles/liberty' public/india-vector-map.js
           grep -q 'name:en' public/india-vector-map.js
           grep -q 'name:hi' public/india-vector-map.js
+          grep -q 'name:latin' public/india-vector-map.js
+          ! grep -q '\["get", "name"\]' public/india-vector-map.js
+          grep -q 'maxZoom: 20' public/india-vector-map.js
+          grep -q 'ymi-india-boundary-halo' public/india-vector-map.js
+          grep -q 'line-color": "#17120c"' public/india-vector-map.js
+          grep -q 'ymi-vector-map-pending' public/india-vector-map.css
+          grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
+          grep -q 'ymi-vpn-shell-8' public/ymi-sw.js
           grep -q 'nameEnglish' server/bilingual-place-preload.js
           grep -q 'bilingual-v3' server/bilingual-place-preload.js
-          grep -q 'maxZoom: 20' public/india-vector-map.js
-          grep -q 'softenNeighbourBorders' public/india-vector-map.js
-          grep -q 'ymi-india-boundary-halo' public/india-vector-map.js
-          grep -q 'line-color": "#15120d"' public/india-vector-map.js
-          grep -q 'ymi-vpn-shell-7' public/ymi-sw.js
           ! grep -q '/india-map-labels.js' dist/index.html
           ! grep -q '/india-map-labels.css' dist/index.html
           grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
