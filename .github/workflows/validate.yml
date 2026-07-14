@@ -65,4 +65,9 @@ jobs:
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.css' -size +0c -print -quit)"
           grep -Eq '/assets/index-[^" ]+\.js' dist/index.html
           grep -Eq '/assets/index-[^" ]+\.css' dist/index.html
-          ! grep -Eq '(frontend-recovery|work-details|site-footer|author-follow|work-description-ai|india-bilingual-index|member-studio-link|admin-site-settings-link)\.js' dist/index.html
+          grep -q 'id="ymi-global-footer"' dist/index.html
+          grep -q '/site-footer.js' dist/index.html
+          grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
+          ! grep -q 'MutationObserver' public/site-footer.js
+          ! grep -q 'main footer' public/site-footer.js
+          ! grep -Eq '(frontend-recovery|work-details|author-follow|work-description-ai|india-bilingual-index|member-studio-link|admin-site-settings-link)\.js' dist/index.html
