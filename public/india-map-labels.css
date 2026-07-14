@@ -1,0 +1,142 @@
+#ymi-network-status {
+  position: fixed;
+  z-index: 100000;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(560px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  padding: 12px 16px;
+  color: #f8eedb;
+  background: rgba(8, 11, 29, 0.96);
+  border: 1px solid rgba(232, 158, 39, 0.72);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
+  font: 600 13px/1.45 Arial, sans-serif;
+  text-align: center;
+}
+
+#ymi-network-status[data-kind="online"] {
+  border-color: rgba(73, 190, 119, 0.78);
+}
+
+#ymi-network-status[hidden] {
+  display: none !important;
+}
+
+/* India is displayed as one map. Remove the old special northern-region UI and overlays. */
+.india-map-reference,
+.northern-region-legend,
+.india-region-label,
+.leaflet-tooltip.india-region-label {
+  display: none !important;
+}
+
+.india-map .leaflet-overlay-pane path[stroke="#f08a32"],
+.india-map .leaflet-overlay-pane path[stroke="#e8c659"],
+.india-map .leaflet-overlay-pane path[stroke="#70b7d6"],
+.india-map .leaflet-overlay-pane path[style*="rgb(240, 138, 50)"],
+.india-map .leaflet-overlay-pane path[style*="rgb(232, 198, 89)"],
+.india-map .leaflet-overlay-pane path[style*="rgb(112, 183, 214)"] {
+  display: none !important;
+}
+
+.india-map-shell {
+  isolation: isolate;
+}
+
+.ymi-map-label-layer {
+  position: absolute;
+  z-index: 650;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ymi-map-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 150px;
+  padding: 2px 5px;
+  color: #17130b;
+  background: rgba(255, 248, 229, 0.84);
+  border: 1px solid rgba(157, 103, 15, 0.36);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
+  font-family: Arial, "Noto Sans Devanagari", sans-serif;
+  line-height: 1.05;
+  text-align: center;
+  white-space: nowrap;
+  will-change: transform, left, top;
+}
+
+.india-map.satellite-map .ymi-map-label,
+.india-map-shell:has(.satellite-map) .ymi-map-label {
+  color: #fff8e8;
+  background: rgba(7, 10, 26, 0.78);
+  border-color: rgba(239, 172, 56, 0.58);
+  text-shadow: 0 1px 2px #000;
+}
+
+.ymi-map-label b,
+.ymi-map-label small {
+  display: block;
+}
+
+.ymi-map-label b {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.ymi-map-label small {
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.ymi-map-label[data-level="country"] {
+  padding: 5px 8px;
+  border-color: rgba(157, 103, 15, 0.62);
+}
+
+.ymi-map-label[data-level="country"] b {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+
+.ymi-map-label[data-level="country"] small {
+  font-size: 13px;
+}
+
+.ymi-map-label[data-level="state"] b {
+  font-size: 10px;
+}
+
+.ymi-map-label[data-level="district"] {
+  padding: 1px 4px;
+  background: rgba(255, 250, 238, 0.77);
+  border-color: rgba(157, 103, 15, 0.22);
+}
+
+.india-map.satellite-map .ymi-map-label[data-level="district"] {
+  background: rgba(7, 10, 26, 0.72);
+}
+
+.ymi-map-label[data-level="district"] b {
+  font-size: 9px;
+}
+
+.ymi-map-label[data-level="district"] small {
+  font-size: 8px;
+}
+
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  .ymi-map-label {
+    max-width: 115px;
+    padding: 1px 3px;
+  }
+
+  .ymi-map-label[data-level="state"] b { font-size: 9px; }
+  .ymi-map-label[data-level="state"] small { font-size: 8px; }
+  .ymi-map-label[data-level="district"] b { font-size: 8px; }
+  .ymi-map-label[data-level="district"] small { font-size: 7px; }
+}
