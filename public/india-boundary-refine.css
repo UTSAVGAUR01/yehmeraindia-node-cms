@@ -1,24 +1,26 @@
-.india-map .leaflet-overlay-pane path[data-ymi-india-boundary="true"] {
-  stroke: #b57a16 !important;
-  stroke-width: 2.2 !important;
-  stroke-linecap: round !important;
-  stroke-linejoin: round !important;
-  stroke-miterlimit: 1 !important;
-  vector-effect: non-scaling-stroke;
-  fill: transparent !important;
-  opacity: 0.92 !important;
-  pointer-events: none !important;
+/*
+ * The previous brown GeoJSON outline was a second, simplified geometry placed
+ * over raster tiles. At some zoom levels it visibly crossed water or sat
+ * outside the coastline. Hide that duplicate outline and use the boundary
+ * already drawn by the active basemap, which stays aligned with its land data.
+ */
+.india-map .leaflet-overlay-pane path[data-ymi-india-boundary="true"],
+.india-map .leaflet-overlay-pane path[stroke="#c8922e"],
+.india-map .leaflet-overlay-pane path[stroke="rgb(200, 146, 46)"],
+.india-map .leaflet-overlay-pane path[stroke="#C8922E"] {
+  display: none !important;
 }
 
-.india-map.satellite-map .leaflet-overlay-pane path[data-ymi-india-boundary="true"] {
-  stroke: #f0b548 !important;
-  opacity: 0.96 !important;
-  filter: drop-shadow(0 0 1px rgba(5, 8, 23, 0.75));
-}
-
-/* Administrative overlays remain hidden. Only India's unified outer land outline is retained. */
+/* Keep all former northern-region overlays, fills, labels and special borders hidden. */
 .india-map .leaflet-overlay-pane path[stroke="#f08a32"],
 .india-map .leaflet-overlay-pane path[stroke="#e8c659"],
-.india-map .leaflet-overlay-pane path[stroke="#70b7d6"] {
+.india-map .leaflet-overlay-pane path[stroke="#70b7d6"],
+.india-map .india-region-label,
+.india-map-shell .northern-region-legend,
+.india-map-reference {
   display: none !important;
+}
+
+.india-map-shell {
+  position: relative;
 }
