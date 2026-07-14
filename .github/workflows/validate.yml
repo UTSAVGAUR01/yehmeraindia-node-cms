@@ -33,6 +33,7 @@ jobs:
           node --check server/security-edge-preload.js
           node --check server/viewer-verification-preload.js
           node --check server/bilingual-place-preload.js
+          node --check server/place-research-normalize-preload.js
           node --check server/footer-email-preload.js
           node --check server/member-studio-preload.js
           node --check server/profile-preload.js
