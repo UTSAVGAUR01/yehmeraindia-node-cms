@@ -1,0 +1,7 @@
+html.ymi-session-checking body {
+  visibility: hidden;
+}
+
+html.ymi-session-ready body {
+  visibility: visible;
+}
