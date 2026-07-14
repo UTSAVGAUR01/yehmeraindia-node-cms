@@ -32,6 +32,7 @@ jobs:
           node --check server/frontend-cache-preload.js
           node --check server/security-edge-preload.js
           node --check server/viewer-verification-preload.js
+          node --check server/viewer-message-gate-preload.js
           node --check server/bilingual-place-preload.js
           node --check server/place-research-normalize-preload.js
           node --check server/footer-email-preload.js
