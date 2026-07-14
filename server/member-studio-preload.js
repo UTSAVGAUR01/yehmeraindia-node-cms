@@ -119,6 +119,7 @@ async function sendMail({ to, subject, text, html }) {
 
 async function ensureSchema() {
   const statements = [
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at DATETIME NULL",
     `CREATE TABLE IF NOT EXISTS role_requests (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       user_id BIGINT UNSIGNED NOT NULL,
@@ -300,7 +301,7 @@ function installRoutes(app) {
   installing = true;
   const ready = ensureSchema().catch((error) => {
     console.error("Member Studio schema initialization failed:", error.code || error.message);
-    throw error;
+    return null;
   });
 
   app.post("/api/auth/password-reset/request", async (req, res, next) => {
