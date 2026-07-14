@@ -3,16 +3,83 @@
 
   const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
   const SATELLITE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-  const INDIA_BOUNDS = [[67.2, 5.7], [99.6, 39.2]];
+  const INDIA_BOUNDS = [[65.2, 3.8], [101.8, 40.5]];
   const MAP_HOST_CLASS = "ymi-vector-map";
   const ACTIVE_CLASS = "ymi-vector-map-active";
   const SATELLITE_SOURCE = "ymi-satellite";
   const SATELLITE_LAYER = "ymi-satellite-layer";
   const INDIA_SOURCE = "ymi-india-boundary";
+  const INDIA_HALO_LAYER = "ymi-india-boundary-halo";
   const INDIA_LAYER = "ymi-india-boundary-line";
 
   let active = null;
   let scanQueued = false;
+
+  const HINDI_CORRECTIONS = {
+    india: "भारत",
+    rajasthan: "राजस्थान",
+    gujarat: "गुजरात",
+    maharashtra: "महाराष्ट्र",
+    goa: "गोवा",
+    karnataka: "कर्नाटक",
+    kerala: "केरल",
+    "tamil nadu": "तमिलनाडु",
+    "andhra pradesh": "आंध्र प्रदेश",
+    telangana: "तेलंगाना",
+    odisha: "ओडिशा",
+    chhattisgarh: "छत्तीसगढ़",
+    "madhya pradesh": "मध्य प्रदेश",
+    jharkhand: "झारखंड",
+    bihar: "बिहार",
+    "uttar pradesh": "उत्तर प्रदेश",
+    uttarakhand: "उत्तराखंड",
+    haryana: "हरियाणा",
+    punjab: "पंजाब",
+    "himachal pradesh": "हिमाचल प्रदेश",
+    "jammu and kashmir": "जम्मू और कश्मीर",
+    ladakh: "लद्दाख",
+    sikkim: "सिक्किम",
+    assam: "असम",
+    meghalaya: "मेघालय",
+    tripura: "त्रिपुरा",
+    mizoram: "मिजोरम",
+    manipur: "मणिपुर",
+    nagaland: "नागालैंड",
+    "arunachal pradesh": "अरुणाचल प्रदेश",
+    "west bengal": "पश्चिम बंगाल",
+    delhi: "दिल्ली",
+    chandigarh: "चंडीगढ़",
+    puducherry: "पुडुचेरी",
+    lakshadweep: "लक्षद्वीप",
+    "andaman and nicobar islands": "अंडमान और निकोबार द्वीपसमूह",
+    jaipur: "जयपुर",
+    jodhpur: "जोधपुर",
+    udaipur: "उदयपुर",
+    mumbai: "मुंबई",
+    pune: "पुणे",
+    ahmedabad: "अहमदाबाद",
+    surat: "सूरत",
+    bengaluru: "बेंगलुरु",
+    chennai: "चेन्नई",
+    hyderabad: "हैदराबाद",
+    kolkata: "कोलकाता",
+    bhopal: "भोपाल",
+    lucknow: "लखनऊ",
+    patna: "पटना",
+    srinagar: "श्रीनगर",
+    jammu: "जम्मू",
+    leh: "लेह",
+    "new delhi": "नई दिल्ली",
+    nepal: "नेपाल",
+    bhutan: "भूटान",
+    bangladesh: "बांग्लादेश",
+    pakistan: "पाकिस्तान",
+    afghanistan: "अफ़ग़ानिस्तान",
+    china: "चीन",
+    myanmar: "म्यांमार",
+    "sri lanka": "श्रीलंका",
+    maldives: "मालदीव",
+  };
 
   const englishName = [
     "coalesce",
@@ -22,16 +89,22 @@
     ["get", "name"],
     "",
   ];
-  const hindiName = [
+  const providerHindiName = [
     "coalesce",
     ["get", "name:hi"],
     ["get", "name_hi"],
     "",
   ];
+  const correctedHindiName = [
+    "match",
+    ["downcase", englishName],
+    ...Object.entries(HINDI_CORRECTIONS).flat(),
+    providerHindiName,
+  ];
   const bilingualName = [
     "case",
-    ["all", ["!=", hindiName, ""], ["!=", hindiName, englishName]],
-    ["concat", englishName, "\n", hindiName],
+    ["all", ["!=", correctedHindiName, ""], ["!=", correctedHindiName, englishName]],
+    ["concat", englishName, "\n", correctedHindiName],
     englishName,
   ];
 
@@ -103,27 +176,38 @@
 
       const input = document.querySelector(".place-search input");
       const form = input?.closest("form");
-      if (!input || !form || !place?.name) throw new Error("The place search is not ready yet.");
+      const searchName = place?.nameEnglish || place?.name;
+      if (!input || !form || !searchName) throw new Error("The place search is not ready yet.");
 
-      waitForAndChooseResult(place.name);
-      setReactInputValue(input, place.name);
+      waitForAndChooseResult(searchName);
+      setReactInputValue(input, searchName);
       if (typeof form.requestSubmit === "function") form.requestSubmit();
       else form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-      showMessage(shell, `${place.name} selected. Loading its research cards…`, 3000);
+      showMessage(shell, `${searchName} selected. Loading its research cards…`, 3000);
     } catch (error) {
       showMessage(shell, error?.message || "This place could not be selected.", 6000);
     }
   }
 
+  function layerIdentity(layer) {
+    return `${String(layer?.id || "").toLowerCase()} ${String(layer?.["source-layer"] || "").toLowerCase()}`;
+  }
+
   function isNameLayer(layer) {
     if (layer?.type !== "symbol" || !layer.layout || !("text-field" in layer.layout)) return false;
-    const id = String(layer.id || "").toLowerCase();
-    const sourceLayer = String(layer["source-layer"] || "").toLowerCase();
+    const identity = layerIdentity(layer);
     const textField = JSON.stringify(layer.layout["text-field"] || "").toLowerCase();
-    if (/shield|house.?number|road.?number|route.?number|exit|ref[_-]?label/.test(id)) return false;
-    return sourceLayer === "place"
-      || /name/.test(textField)
-      || /label|place|poi|water|park|airport|station|country|state|city|town|village|district/.test(id);
+    if (/shield|house.?number|road.?number|route.?number|exit|ref[_-]?label/.test(identity)) return false;
+    return /name/.test(textField)
+      || /label|place|poi|water|park|airport|station|country|state|city|town|village|district|suburb|neighbourhood/.test(identity);
+  }
+
+  function isAdministrativeBoundary(layer) {
+    return layer?.type === "line" && /boundary|admin/.test(layerIdentity(layer));
+  }
+
+  function isCountryBoundary(layer) {
+    return /country|admin[_ -]?(?:0|2)|boundary[_ -]?(?:0|2)|international/.test(layerIdentity(layer));
   }
 
   function applyBilingualLabels(map) {
@@ -132,11 +216,49 @@
       if (!isNameLayer(layer)) continue;
       try {
         map.setLayoutProperty(layer.id, "text-field", bilingualName);
-        map.setLayoutProperty(layer.id, "text-line-height", 1.02);
+        map.setLayoutProperty(layer.id, "text-line-height", 1.08);
         map.setLayoutProperty(layer.id, "text-optional", true);
+        map.setLayoutProperty(layer.id, "text-allow-overlap", false);
+        map.setLayoutProperty(layer.id, "text-ignore-placement", false);
       } catch {
-        // Some provider layers are not editable. Leave their native style intact.
+        // Leave provider layers unchanged when a property cannot be edited.
       }
+    }
+  }
+
+  function softenNeighbourBorders(map) {
+    const layers = map.getStyle()?.layers || [];
+    for (const layer of layers) {
+      if (!isAdministrativeBoundary(layer)) continue;
+      const country = isCountryBoundary(layer);
+      try {
+        map.setPaintProperty(layer.id, "line-color", country ? "#8e897f" : "#b8b2a7");
+        map.setPaintProperty(layer.id, "line-opacity", country ? 0.58 : 0.36);
+        map.setPaintProperty(
+          layer.id,
+          "line-width",
+          country
+            ? ["interpolate", ["linear"], ["zoom"], 3, 0.75, 7, 1.05, 12, 1.35, 18, 1.8]
+            : ["interpolate", ["linear"], ["zoom"], 4, 0.45, 9, 0.7, 14, 1.0, 18, 1.25],
+        );
+      } catch {
+        // Some style layers use immutable paint expressions.
+      }
+    }
+  }
+
+  function revealDetailedPlaces(map) {
+    for (const layer of map.getStyle()?.layers || []) {
+      if (layer.type !== "symbol") continue;
+      const identity = layerIdentity(layer);
+      if (!/place|city|town|village|hamlet|suburb|neighbourhood|poi|station|airport/.test(identity)) continue;
+      try {
+        map.setLayoutProperty(layer.id, "visibility", "visible");
+        const minZoom = Number(layer.minzoom);
+        if (Number.isFinite(minZoom) && minZoom > 15) {
+          map.setLayerZoomRange(layer.id, 15, Number.isFinite(layer.maxzoom) ? layer.maxzoom : 24);
+        }
+      } catch {}
     }
   }
 
@@ -157,7 +279,6 @@
       restoreBaseLayers(map, hiddenLayers);
       if (map.getLayer(SATELLITE_LAYER)) map.removeLayer(SATELLITE_LAYER);
       if (map.getSource(SATELLITE_SOURCE)) map.removeSource(SATELLITE_SOURCE);
-      if (map.getLayer(INDIA_LAYER)) map.setPaintProperty(INDIA_LAYER, "line-color", "#a96f14");
       return;
     }
 
@@ -166,7 +287,8 @@
         type: "raster",
         tiles: [SATELLITE_URL],
         tileSize: 256,
-        maxzoom: 18,
+        minzoom: 0,
+        maxzoom: 19,
         attribution: "Tiles © Esri, Maxar, Earthstar Geographics and the GIS User Community",
       });
     }
@@ -176,17 +298,21 @@
         id: SATELLITE_LAYER,
         type: "raster",
         source: SATELLITE_SOURCE,
-        paint: { "raster-saturation": -0.05, "raster-contrast": 0.08, "raster-brightness-max": 0.92 },
+        paint: {
+          "raster-saturation": -0.04,
+          "raster-contrast": 0.08,
+          "raster-brightness-max": 0.94,
+          "raster-fade-duration": 120,
+        },
       }, firstLayer);
     }
 
     for (const layer of map.getStyle()?.layers || []) {
-      if ([SATELLITE_LAYER, INDIA_LAYER].includes(layer.id)) continue;
+      if ([SATELLITE_LAYER, INDIA_HALO_LAYER, INDIA_LAYER].includes(layer.id)) continue;
       if (!["background", "fill", "fill-extrusion", "hillshade", "raster"].includes(layer.type)) continue;
       if (!hiddenLayers.has(layer.id)) hiddenLayers.set(layer.id, layer.layout?.visibility || "visible");
       try { map.setLayoutProperty(layer.id, "visibility", "none"); } catch {}
     }
-    if (map.getLayer(INDIA_LAYER)) map.setPaintProperty(INDIA_LAYER, "line-color", "#ffd873");
   }
 
   function currentMode(shell) {
@@ -214,14 +340,26 @@
     map.addSource(INDIA_SOURCE, { type: "geojson", data });
     const before = (map.getStyle()?.layers || []).find((layer) => layer.type === "symbol")?.id;
     map.addLayer({
+      id: INDIA_HALO_LAYER,
+      type: "line",
+      source: INDIA_SOURCE,
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "rgba(255,255,255,0.92)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 4.3, 7, 5.4, 12, 7.2, 18, 9.2],
+        "line-opacity": 0.9,
+        "line-blur": 0.15,
+      },
+    }, before);
+    map.addLayer({
       id: INDIA_LAYER,
       type: "line",
       source: INDIA_SOURCE,
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
-        "line-color": instance.mode === "satellite" ? "#ffd873" : "#a96f14",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.7, 7, 2.25, 12, 3.1],
-        "line-opacity": 0.96,
+        "line-color": "#15120d",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.6, 7, 3.4, 12, 4.7, 18, 6.2],
+        "line-opacity": 1,
       },
     }, before);
   }
@@ -251,22 +389,33 @@
 
     const host = document.createElement("div");
     host.className = MAP_HOST_CLASS;
-    host.setAttribute("aria-label", "Interactive English and Hindi map of India");
+    host.setAttribute("aria-label", "Interactive HD English and Hindi map of India");
     shell.appendChild(host);
 
     const map = new window.maplibregl.Map({
       container: host,
       style: STYLE_URL,
       center: [79.2, 22.7],
-      zoom: 3.55,
+      zoom: 3.45,
       minZoom: 3,
-      maxZoom: 16,
+      maxZoom: 20,
       maxBounds: INDIA_BOUNDS,
       renderWorldCopies: false,
       attributionControl: true,
       localIdeographFontFamily: "Noto Sans Devanagari, Noto Sans, sans-serif",
+      fadeDuration: 120,
+      refreshExpiredTiles: true,
+      crossSourceCollisions: true,
+      cooperativeGestures: false,
+      trackResize: true,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2.5),
+      pitchWithRotate: false,
+      dragRotate: false,
+      maxPitch: 0,
     });
-    map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-left");
+    map.addControl(new window.maplibregl.NavigationControl({ showCompass: false, visualizePitch: false }), "top-left");
+    map.touchZoomRotate?.disableRotation?.();
+    map.dragRotate?.disable?.();
 
     const instance = {
       shell,
@@ -287,15 +436,17 @@
 
     map.on("load", () => {
       shell.classList.add(ACTIVE_CLASS);
-      map.fitBounds(INDIA_BOUNDS, { padding: 12, duration: 0 });
+      map.fitBounds(INDIA_BOUNDS, { padding: 12, duration: 0, maxZoom: 4.1 });
+      softenNeighbourBorders(map);
       applyBilingualLabels(map);
+      revealDetailedPlaces(map);
       syncMode(instance);
       addIndiaBoundary(instance);
     });
     map.on("click", (event) => chooseMapPoint(shell, event, map));
     map.on("error", () => {
       if (!shell.classList.contains(ACTIVE_CLASS)) {
-        showMessage(shell, "The bilingual map could not load. The previous map remains available.", 6500);
+        showMessage(shell, "The HD bilingual map could not load. The previous map remains available.", 6500);
       }
     });
 
