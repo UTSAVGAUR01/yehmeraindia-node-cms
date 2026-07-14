@@ -26,8 +26,8 @@ function currentAssets() {
   let stylesheet = "";
   try {
     const html = fs.readFileSync(distIndex, "utf8");
-    javascript = html.match(/<script[^>]+src=["'](\/assets\/[^"']+\.js)["']/i)?.[1] || "";
-    stylesheet = html.match(/<link[^>]+href=["'](\/assets\/[^"']+\.css)["']/i)?.[1] || "";
+    javascript = html.match(/<script[^>]+src=["'](\/assets\/index-[^"']+\.js)["']/i)?.[1] || "";
+    stylesheet = html.match(/<link[^>]+href=["'](\/assets\/index-[^"']+\.css)["']/i)?.[1] || "";
   } catch {}
   assetSnapshot = { checkedAt: now, javascript, stylesheet };
   return assetSnapshot;
@@ -36,13 +36,13 @@ function currentAssets() {
 function existingAsset(pathname) {
   if (!pathname.startsWith("/assets/")) return false;
   const relative = pathname.replace(/^\/+/, "");
-  const resolved = path.resolve(distDir, relative.replace(/^assets\//, "assets/"));
+  const resolved = path.resolve(distDir, relative);
   if (!resolved.startsWith(path.join(distDir, "assets"))) return false;
   return fs.existsSync(resolved);
 }
 
 function recoveryAsset(pathname) {
-  if (!/^\/assets\/[A-Za-z0-9._-]+\.(?:js|css)$/.test(pathname)) return "";
+  if (!/^\/assets\/index-[A-Za-z0-9._-]+\.(?:js|css)$/.test(pathname)) return "";
   if (existingAsset(pathname)) return "";
   const assets = currentAssets();
   return pathname.endsWith(".js") ? assets.javascript : assets.stylesheet;
