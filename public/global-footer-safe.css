@@ -1,0 +1,18 @@
+#ymi-global-footer[hidden] {
+  display: none !important;
+}
+
+body.ymi-global-footer-active #root > main > footer {
+  display: none !important;
+}
+
+#ymi-global-footer {
+  display: block;
+  width: 100%;
+}
+
+@media (max-width: 580px) {
+  #ymi-global-footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
