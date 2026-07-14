@@ -1,0 +1,98 @@
+.profile-settings-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.profile-settings-card h3,
+.journal-message-card h3,
+.journal-message-empty h3 {
+  margin: 4px 0 10px;
+}
+
+.profile-settings-card > p:not(.card-label) {
+  margin: 0 0 20px;
+  color: #b8b7c2;
+  line-height: 1.6;
+}
+
+.profile-settings-card form {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-settings-card form .button {
+  justify-self: start;
+}
+
+.journal-message-list {
+  display: grid;
+  gap: 18px;
+}
+
+.journal-message-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.journal-message-card header small {
+  color: #aaa8b5;
+}
+
+.journal-message-body {
+  margin: 22px 0;
+  padding: 18px;
+  border-left: 3px solid #e89b2d;
+  background: rgba(255, 255, 255, 0.035);
+  color: #d8d6df;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.journal-message-card footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.journal-message-empty {
+  text-align: center;
+}
+
+.journal-message-empty .button {
+  margin-top: 12px;
+}
+
+.studio-navigation [data-profile-view].active {
+  border-color: rgba(232, 155, 45, 0.48);
+  background: rgba(232, 155, 45, 0.12);
+  color: #f3e7d2;
+}
+
+@media (max-width: 900px) {
+  .profile-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-settings-grid {
+    gap: 16px;
+  }
+
+  .journal-message-card header {
+    display: grid;
+  }
+
+  .journal-message-card header .status-pill {
+    justify-self: start;
+  }
+
+  .journal-message-card footer .button,
+  .profile-settings-card form .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
