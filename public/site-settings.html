@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#080b1d" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Footer & Social | Yeh Mera India</title>
+    <link rel="stylesheet" href="/site-settings.css" />
+  </head>
+  <body>
+    <header class="settings-topbar">
+      <a class="settings-brand" href="/">Yeh Mera India</a>
+      <nav>
+        <a href="/admin">Back to Admin panel</a>
+        <a href="/studio.html">My Profile</a>
+        <button id="settings-signout" type="button">Sign out</button>
+      </nav>
+    </header>
+
+    <main class="settings-shell">
+      <section class="settings-hero">
+        <div>
+          <p class="eyebrow">Admin design controls</p>
+          <h1>Footer & social profiles.</h1>
+          <p>Keep the site footer attractive, consistent and connected to the right public channels. Manage individual Author follow links from the same screen.</p>
+        </div>
+        <a class="button secondary" href="/">Preview website</a>
+      </section>
+
+      <div id="settings-notice" class="settings-notice" hidden></div>
+      <div id="settings-error" class="settings-error" hidden></div>
+
+      <section class="settings-grid">
+        <form id="footer-settings-form" class="settings-card">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">Public footer</p>
+              <h2>Footer content and channels</h2>
+              <p>These values are used across the homepage, journal, article, video and detail pages.</p>
+            </div>
+            <span>Site-wide</span>
+          </div>
+
+          <label>Footer headline<input name="title" maxlength="500" required /></label>
+          <label>Footer introduction<textarea name="body" rows="5" maxlength="2000"></textarea></label>
+          <label>Public contact email<input name="email" type="email" maxlength="160" required /></label>
+
+          <div class="form-grid">
+            <label>Instagram<input name="instagramUrl" type="url" maxlength="1000" placeholder="https://instagram.com/..." /></label>
+            <label>Facebook<input name="facebookUrl" type="url" maxlength="1000" placeholder="https://facebook.com/..." /></label>
+            <label>X / Twitter<input name="xUrl" type="url" maxlength="1000" placeholder="https://x.com/..." /></label>
+            <label>YouTube<input name="youtubeUrl" type="url" maxlength="1000" placeholder="https://youtube.com/@..." /></label>
+            <label>LinkedIn<input name="linkedinUrl" type="url" maxlength="1000" placeholder="https://linkedin.com/..." /></label>
+          </div>
+
+          <div class="form-actions">
+            <p>Empty social links remain hidden. The contact title, body and email stay compatible with the existing Page Designer.</p>
+            <button class="button primary" type="submit">Save footer</button>
+          </div>
+        </form>
+
+        <form id="admin-author-social-form" class="settings-card">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">Individual authors</p>
+              <h2>Author follow profiles</h2>
+              <p>Review or update the links shown beneath each Author’s journal articles.</p>
+            </div>
+            <span>Per author</span>
+          </div>
+
+          <label>Choose Author or Admin<select id="author-profile-select" name="authorId" required><option value="">Loading accounts…</option></select></label>
+          <label>Short author introduction<textarea name="bio" rows="5" maxlength="1200"></textarea></label>
+
+          <div class="form-grid">
+            <label>Instagram<input name="instagramUrl" type="url" maxlength="1000" /></label>
+            <label>Facebook<input name="facebookUrl" type="url" maxlength="1000" /></label>
+            <label>X / Twitter<input name="xUrl" type="url" maxlength="1000" /></label>
+            <label>YouTube<input name="youtubeUrl" type="url" maxlength="1000" /></label>
+            <label>LinkedIn<input name="linkedinUrl" type="url" maxlength="1000" /></label>
+            <label>Personal website<input name="websiteUrl" type="url" maxlength="1000" /></label>
+            <label>Other platform name<input name="otherLabel" maxlength="80" placeholder="Podcast, Goodreads, Threads…" /></label>
+            <label>Other platform link<input name="otherUrl" type="url" maxlength="1000" /></label>
+          </div>
+
+          <div class="form-actions">
+            <p>Authors can also manage their own links from My Profile.</p>
+            <button class="button primary" type="submit">Save Author profile</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/site-settings.js" defer></script>
+  </body>
+</html>

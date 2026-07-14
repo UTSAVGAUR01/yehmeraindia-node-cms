@@ -33,9 +33,15 @@ jobs:
           node --check server/member-studio-preload.js
           node --check server/profile-preload.js
           node --check server/security-auth-preload.js
+          node --check server/social-footer-preload.js
           node --check public/account.js
           node --check public/studio.js
           node --check public/profile-enhancements.js
+          node --check public/author-social-profile.js
+          node --check public/site-footer.js
+          node --check public/author-follow.js
+          node --check public/site-settings.js
+          node --check public/admin-site-settings-link.js
           node --check public/auth-redirect.js
           node --check public/member-studio-link.js
 
