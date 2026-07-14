@@ -1,9 +1,8 @@
-const VERSION = "ymi-vpn-shell-1";
+const VERSION = "ymi-vpn-shell-2";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
 const CORE = [
-  "/",
   "/map-cleanup.css",
   "/india-boundary-refine.css",
   "/book-card-compact.css",
@@ -16,8 +15,45 @@ const CORE = [
   "/india-map-labels.js",
 ];
 
+async function cacheOne(cache, url) {
+  try {
+    const response = await fetch(url, { cache: "reload" });
+    if (response?.ok) await cache.put(url, response.clone());
+    return response;
+  } catch {
+    return null;
+  }
+}
+
+function buildAssets(html) {
+  const values = new Set();
+  for (const match of html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+\.(?:js|css))["']/gi)) {
+    values.add(match[1]);
+  }
+  return [...values];
+}
+
+async function cacheDocumentAndAssets(response, requestUrl = "/") {
+  if (!response?.ok) return;
+  const cache = await caches.open(SHELL_CACHE);
+  let html = "";
+  try {
+    html = await response.clone().text();
+  } catch {}
+  await cache.put(requestUrl, response.clone()).catch(() => {});
+  if (requestUrl !== "/") await cache.put("/", response.clone()).catch(() => {});
+  await Promise.all(buildAssets(html).map((asset) => cacheOne(cache, asset)));
+}
+
+async function installShell() {
+  const cache = await caches.open(SHELL_CACHE);
+  await Promise.all(CORE.map((url) => cacheOne(cache, url)));
+  const homepage = await cacheOne(cache, "/");
+  if (homepage) await cacheDocumentAndAssets(homepage, "/");
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(CORE)).catch(() => {}));
+  event.waitUntil(installShell());
   self.skipWaiting();
 });
 
@@ -45,19 +81,22 @@ async function navigationResponse(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
     const response = await withTimeout(request, 7000);
-    if (response?.ok) cache.put(request, response.clone()).catch(() => {});
+    if (response?.ok) cacheDocumentAndAssets(response.clone(), request.url).catch(() => {});
     return response;
   } catch {
-    return (await cache.match(request)) || (await cache.match("/")) || new Response(
-      "Yeh Mera India is waiting for the network connection to return.",
-      { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
-    );
+    return (await cache.match(request, { ignoreSearch: true }))
+      || (await cache.match("/", { ignoreSearch: true }))
+      || new Response(
+        "Yeh Mera India is waiting for the network connection to return.",
+        { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+      );
   }
 }
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(RUNTIME_CACHE);
-  const cached = await cache.match(request);
+  const shell = await caches.open(SHELL_CACHE);
+  const cached = (await cache.match(request)) || (await shell.match(request));
   const update = fetch(request).then((response) => {
     if (response?.ok) cache.put(request, response.clone()).catch(() => {});
     return response;
