@@ -1,7 +1,14 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 
 let installed = false;
+let assetSnapshot = { checkedAt: 0, javascript: "", stylesheet: "" };
 const originalUse = express.application.use;
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const distDir = path.join(rootDir, "dist");
+const distIndex = path.join(distDir, "index.html");
 
 function isHtmlNavigation(req) {
   if (!["GET", "HEAD"].includes(String(req.method || "").toUpperCase())) return false;
@@ -12,15 +19,56 @@ function isHtmlNavigation(req) {
   return !accept || accept.includes("text/html") || accept.includes("*/*");
 }
 
+function currentAssets() {
+  const now = Date.now();
+  if (now - assetSnapshot.checkedAt < 2000) return assetSnapshot;
+  let javascript = "";
+  let stylesheet = "";
+  try {
+    const html = fs.readFileSync(distIndex, "utf8");
+    javascript = html.match(/<script[^>]+src=["'](\/assets\/[^"']+\.js)["']/i)?.[1] || "";
+    stylesheet = html.match(/<link[^>]+href=["'](\/assets\/[^"']+\.css)["']/i)?.[1] || "";
+  } catch {}
+  assetSnapshot = { checkedAt: now, javascript, stylesheet };
+  return assetSnapshot;
+}
+
+function existingAsset(pathname) {
+  if (!pathname.startsWith("/assets/")) return false;
+  const relative = pathname.replace(/^\/+/, "");
+  const resolved = path.resolve(distDir, relative.replace(/^assets\//, "assets/"));
+  if (!resolved.startsWith(path.join(distDir, "assets"))) return false;
+  return fs.existsSync(resolved);
+}
+
+function recoveryAsset(pathname) {
+  if (!/^\/assets\/[A-Za-z0-9._-]+\.(?:js|css)$/.test(pathname)) return "";
+  if (existingAsset(pathname)) return "";
+  const assets = currentAssets();
+  return pathname.endsWith(".js") ? assets.javascript : assets.stylesheet;
+}
+
+function noCache(res) {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+}
+
 function installCacheMiddleware(app) {
   if (installed) return;
   installed = true;
   originalUse.call(app, (req, res, next) => {
-    if (isHtmlNavigation(req)) {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      res.setHeader("Surrogate-Control", "no-store");
+    const pathname = String(req.path || req.url || "/").split("?")[0];
+    if (isHtmlNavigation(req)) noCache(res);
+
+    if (["GET", "HEAD"].includes(String(req.method || "").toUpperCase())) {
+      const replacement = recoveryAsset(pathname);
+      if (replacement && replacement !== pathname) {
+        noCache(res);
+        res.setHeader("X-YMI-Asset-Recovery", "stale-build-reference");
+        return res.redirect(307, `${replacement}?recovered=${Date.now()}`);
+      }
     }
     next();
   });
