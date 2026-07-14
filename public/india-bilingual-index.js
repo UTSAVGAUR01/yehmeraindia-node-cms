@@ -1,5 +1,6 @@
 (() => {
   "use strict";
+  if (!/^\/know-india(?:\/|$)/.test(location.pathname)) return;
 
   const places = [
     ["Andhra Pradesh", "आंध्र प्रदेश"], ["Arunachal Pradesh", "अरुणाचल प्रदेश"],
