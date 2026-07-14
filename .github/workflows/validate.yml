@@ -30,9 +30,11 @@ jobs:
         run: |
           node --check index.js
           node --check server/member-studio-preload.js
+          node --check server/profile-preload.js
           node --check server/security-auth-preload.js
           node --check public/account.js
           node --check public/studio.js
+          node --check public/profile-enhancements.js
           node --check public/auth-redirect.js
           node --check public/member-studio-link.js
 
