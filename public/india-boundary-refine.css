@@ -1,0 +1,24 @@
+.india-map .leaflet-overlay-pane path[data-ymi-india-boundary="true"] {
+  stroke: #b57a16 !important;
+  stroke-width: 2.2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-miterlimit: 1 !important;
+  vector-effect: non-scaling-stroke;
+  fill: transparent !important;
+  opacity: 0.92 !important;
+  pointer-events: none !important;
+}
+
+.india-map.satellite-map .leaflet-overlay-pane path[data-ymi-india-boundary="true"] {
+  stroke: #f0b548 !important;
+  opacity: 0.96 !important;
+  filter: drop-shadow(0 0 1px rgba(5, 8, 23, 0.75));
+}
+
+/* Administrative overlays remain hidden. Only India's unified outer land outline is retained. */
+.india-map .leaflet-overlay-pane path[stroke="#f08a32"],
+.india-map .leaflet-overlay-pane path[stroke="#e8c659"],
+.india-map .leaflet-overlay-pane path[stroke="#70b7d6"] {
+  display: none !important;
+}
