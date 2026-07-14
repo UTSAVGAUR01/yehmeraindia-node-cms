@@ -68,20 +68,27 @@ function installProfileRoutes(app) {
   if (installed || installing) return;
   installing = true;
 
-  let schemaError = null;
-  const ready = ensureProfileSchema().catch((error) => {
-    schemaError = error;
-    console.error("Profile schema initialization failed:", error.code || error.message);
-  });
+  let schemaReady = false;
+  let schemaPromise = null;
 
   async function requireReady(res) {
-    await ready;
-    if (!schemaError) return true;
-    res.status(503).json({
-      message: "Profile settings are temporarily unavailable because the database could not be prepared.",
-      code: String(schemaError.code || "PROFILE_SCHEMA_ERROR").slice(0, 80),
-    });
-    return false;
+    if (schemaReady) return true;
+    if (!schemaPromise) {
+      schemaPromise = ensureProfileSchema()
+        .then(() => { schemaReady = true; })
+        .finally(() => { schemaPromise = null; });
+    }
+    try {
+      await schemaPromise;
+      return true;
+    } catch (error) {
+      console.error("Profile schema initialization failed:", error.code || error.message);
+      res.status(503).json({
+        message: "Profile settings are temporarily unavailable because the database could not be prepared.",
+        code: String(error.code || "PROFILE_SCHEMA_ERROR").slice(0, 80),
+      });
+      return false;
+    }
   }
 
   app.get("/api/profile", requireMember, async (req, res, next) => {
