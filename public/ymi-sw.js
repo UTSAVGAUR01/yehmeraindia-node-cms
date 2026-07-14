@@ -1,4 +1,4 @@
-const VERSION = "ymi-vpn-shell-5";
+const VERSION = "ymi-vpn-shell-6";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
@@ -6,6 +6,8 @@ const CORE = [
   "/map-cleanup.css",
   "/india-boundary-refine.css",
   "/network-resilience.css",
+  "/india-vector-map.css",
+  "/india-vector-map.js",
   "/book-card-compact.css",
   "/react-layout-fixes.css",
   "/site-footer.css",
@@ -97,22 +99,24 @@ async function staleWhileRevalidate(request) {
   const shell = await caches.open(SHELL_CACHE);
   const cached = (await cache.match(request)) || (await shell.match(request));
   const update = fetch(request).then((response) => {
-    if (response?.ok) cache.put(request, response.clone()).catch(() => {});
+    if (response?.ok || response?.type === "opaque") cache.put(request, response.clone()).catch(() => {});
     return response;
   }).catch(() => null);
   return cached || (await update) || new Response("", { status: 504 });
 }
 
-async function tileResponse(request) {
+async function externalMapResponse(request) {
   const cache = await caches.open(TILE_CACHE);
   const cached = await cache.match(request);
   if (cached) {
-    fetch(request, { mode: "no-cors" }).then((response) => cache.put(request, response.clone())).catch(() => {});
+    fetch(request).then((response) => {
+      if (response?.ok || response?.type === "opaque") cache.put(request, response.clone()).catch(() => {});
+    }).catch(() => {});
     return cached;
   }
   try {
-    const response = await fetch(request, { mode: "no-cors" });
-    cache.put(request, response.clone()).catch(() => {});
+    const response = await fetch(request);
+    if (response?.ok || response?.type === "opaque") cache.put(request, response.clone()).catch(() => {});
     return response;
   } catch {
     return new Response("", { status: 504 });
@@ -137,7 +141,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (/tile\.openstreetmap\.org$|basemaps\.cartocdn\.com$|arcgisonline\.com$/.test(url.hostname)) {
-    event.respondWith(tileResponse(request));
+  if (/tile\.openstreetmap\.org$|basemaps\.cartocdn\.com$|arcgisonline\.com$|tiles\.openfreemap\.org$|unpkg\.com$/.test(url.hostname)) {
+    event.respondWith(externalMapResponse(request));
   }
 });
