@@ -1,7 +1,20 @@
 (() => {
   "use strict";
 
-  const country = [{ en: "INDIA", hi: "भारत", lat: 22.8, lon: 79.2, level: "country", min: 3, max: 5 }];
+  const countries = [
+    ["INDIA", "भारत", 22.8, 79.2],
+    ["PAKISTAN", "पाकिस्तान", 30.2, 69.4],
+    ["AFGHANISTAN", "अफ़ग़ानिस्तान", 35.0, 68.7],
+    ["TAJIKISTAN", "ताजिकिस्तान", 38.2, 71.0],
+    ["CHINA", "चीन", 33.8, 95.2],
+    ["NEPAL", "नेपाल", 28.2, 84.0],
+    ["BHUTAN", "भूटान", 27.5, 90.5],
+    ["BANGLADESH", "बांग्लादेश", 23.7, 90.3],
+    ["MYANMAR", "म्यांमार", 23.4, 96.4],
+    ["SRI LANKA", "श्रीलंका", 7.4, 80.7],
+    ["MALDIVES", "मालदीव", 6.7, 73.3],
+  ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "country", min: 3, max: 6 }));
+
   const states = [
     ["Andhra Pradesh", "आंध्र प्रदेश", 15.9, 79.7], ["Arunachal Pradesh", "अरुणाचल प्रदेश", 28.2, 94.7],
     ["Assam", "असम", 26.2, 92.9], ["Bihar", "बिहार", 25.9, 85.6], ["Chhattisgarh", "छत्तीसगढ़", 21.3, 81.6],
@@ -45,7 +58,7 @@
     ["Kochi", "कोच्चि", 9.93, 76.27], ["Thiruvananthapuram", "तिरुवनंतपुरम", 8.52, 76.94], ["Kozhikode", "कोझिकोड", 11.26, 75.78]
   ].map(([en, hi, lat, lon]) => ({ en, hi, lat, lon, level: "district", min: 6, max: 16 }));
 
-  const labels = [...country, ...states, ...districts];
+  const labels = [...countries, ...states, ...districts];
   const observers = new WeakMap();
 
   function parseTile(image) {
@@ -89,9 +102,7 @@
     });
 
     const attribution = map.querySelector(".leaflet-control-attribution");
-    if (attribution && normal) {
-      attribution.innerHTML = '&copy; OpenStreetMap contributors &copy; CARTO';
-    }
+    if (attribution && normal) attribution.innerHTML = '&copy; OpenStreetMap contributors &copy; CARTO';
   }
 
   function referenceTile(map) {
@@ -115,7 +126,7 @@
     if (layer) return layer;
     layer = document.createElement("div");
     layer.className = "ymi-map-label-layer";
-    layer.setAttribute("aria-label", "India place names in English and Hindi");
+    layer.setAttribute("aria-label", "Map place names in English and Hindi");
     labels.forEach((item, index) => {
       const node = document.createElement("span");
       node.className = "ymi-map-label";
