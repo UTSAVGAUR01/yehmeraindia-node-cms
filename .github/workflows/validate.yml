@@ -40,6 +40,9 @@ jobs:
           node --check server/security-auth-preload.js
           node --check server/social-footer-preload.js
           node --check server/work-description-ai-preload.js
+          node --check public/network-resilience.js
+          node --check public/ymi-sw.js
+          node --check public/india-map-labels.js
           node --check public/session-verification.js
           node --check public/account-verification-hint.js
           node --check public/india-bilingual-index.js
@@ -67,6 +70,12 @@ jobs:
           grep -Eq '/assets/index-[^" ]+\.css' dist/index.html
           grep -q 'id="ymi-global-footer"' dist/index.html
           grep -q '/site-footer.js' dist/index.html
+          grep -q '/network-resilience.js' dist/index.html
+          grep -q '/india-map-labels.js' dist/index.html
+          grep -q '/india-map-labels.css' dist/index.html
+          grep -q 'serviceWorker.register("/ymi-sw.js"' public/network-resilience.js
+          grep -q 'light_nolabels' public/india-map-labels.js
+          grep -q 'World_Boundaries_and_Places' public/india-map-labels.js
           grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
           ! grep -q 'MutationObserver' public/site-footer.js
           ! grep -q 'main footer' public/site-footer.js
