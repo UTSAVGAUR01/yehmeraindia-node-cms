@@ -8,6 +8,8 @@ let queue = Promise.resolve();
 let lastRequestAt = 0;
 
 const INDIA_BOUNDS = { south: 5.5, north: 38.8, west: 67.5, east: 98.8 };
+const DEVANAGARI = /[\u0900-\u097F]/;
+const LATIN = /[A-Za-z]/;
 const HINDI_NAMES = new Map(Object.entries({
   "andhra pradesh": "आंध्र प्रदेश",
   "arunachal pradesh": "अरुणाचल प्रदेश",
@@ -88,7 +90,7 @@ const HINDI_NAMES = new Map(Object.entries({
   "kavaratti": "कवरत्ती"
 }));
 
-const clean = (value, max = 500) => String(value || "").trim().slice(0, max);
+const clean = (value, max = 500) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
 const hash = (value) => createHash("sha256").update(String(value)).digest("hex");
 
 function scriptValue(details, language) {
@@ -125,6 +127,40 @@ function hierarchyName(address, key) {
   return address[key] || "";
 }
 
+function splitNameCandidates(...values) {
+  return values
+    .flatMap((value) => Array.isArray(value) ? value : [value])
+    .flatMap((value) => clean(value, 1000).split(/\s*(?:,|\/|\||·)\s*/))
+    .map((value) => clean(value, 300))
+    .filter(Boolean);
+}
+
+function firstLatin(...values) {
+  return splitNameCandidates(...values).find((value) => LATIN.test(value)) || "";
+}
+
+function firstDevanagari(...values) {
+  return splitNameCandidates(...values).find((value) => DEVANAGARI.test(value)) || "";
+}
+
+function uniqueParts(parts) {
+  const seen = new Set();
+  return parts.filter((value) => {
+    const normalised = clean(value, 300).toLocaleLowerCase();
+    if (!normalised || seen.has(normalised)) return false;
+    seen.add(normalised);
+    return true;
+  });
+}
+
+function englishAddressName(address, key) {
+  return firstLatin(hierarchyName(address, key));
+}
+
+function hindiAddressName(address, key, english) {
+  return knownHindi(english) || firstDevanagari(hierarchyName(address, key));
+}
+
 function mapPlace(item = {}) {
   const address = item.address || {};
   const details = item.namedetails || {};
@@ -140,38 +176,94 @@ function mapPlace(item = {}) {
   else if (address.state) level = "state";
 
   const primaryRaw = hierarchyName(address, level) || plainPrimary(item);
-  const english = scriptValue(details, "en") || primaryRaw;
-  const hindi = scriptValue(details, "hi") || knownHindi(english) || knownHindi(primaryRaw);
-  const stateEnglish = clean(address.state, 300);
-  const stateHindi = knownHindi(stateEnglish);
-  const districtEnglish = clean(hierarchyName(address, "district"), 300);
-  const cityEnglish = clean(hierarchyName(address, "city"), 300);
-  const villageEnglish = clean(hierarchyName(address, "village"), 300);
+  const english = firstLatin(
+    scriptValue(details, "en"),
+    primaryRaw,
+    item.name,
+    item.display_name,
+    details.name,
+    details.official_name,
+  ) || clean(scriptValue(details, "en") || primaryRaw, 300);
+  const hindi = knownHindi(english)
+    || firstDevanagari(
+      scriptValue(details, "hi"),
+      primaryRaw,
+      item.name,
+      item.display_name,
+      details.name,
+      details.official_name,
+    );
+
+  const stateEnglish = englishAddressName(address, "state") || firstLatin(address.state);
+  const stateHindi = hindiAddressName(address, "state", stateEnglish);
+  const districtEnglish = englishAddressName(address, "district");
+  const districtHindi = hindiAddressName(address, "district", districtEnglish);
+  const cityEnglish = englishAddressName(address, "city");
+  const cityHindi = hindiAddressName(address, "city", cityEnglish);
+  const villageEnglish = englishAddressName(address, "village");
+  const villageHindi = hindiAddressName(address, "village", villageEnglish);
 
   const hierarchy = {
     country: "India / भारत",
     state: bilingual(stateEnglish, stateHindi),
+    district: bilingual(districtEnglish, districtHindi),
+    city: bilingual(cityEnglish, cityHindi),
+    village: bilingual(villageEnglish, villageHindi),
+  };
+
+  const englishHierarchy = {
+    country: "India",
+    state: stateEnglish,
     district: districtEnglish,
     city: cityEnglish,
     village: villageEnglish,
   };
-  const parts = [
+  const hindiHierarchy = {
+    country: "भारत",
+    state: stateHindi,
+    district: districtHindi,
+    city: cityHindi,
+    village: villageHindi,
+  };
+
+  const bilingualParts = uniqueParts([
     bilingual(english, hindi),
+    level !== "village" ? hierarchy.village : "",
+    level !== "city" ? hierarchy.city : "",
     level !== "district" ? hierarchy.district : "",
     level !== "state" ? hierarchy.state : "",
     "India / भारत",
-  ].filter(Boolean);
+  ]);
+  const englishParts = uniqueParts([
+    english,
+    level !== "village" ? villageEnglish : "",
+    level !== "city" ? cityEnglish : "",
+    level !== "district" ? districtEnglish : "",
+    level !== "state" ? stateEnglish : "",
+    "India",
+  ]);
+  const hindiParts = uniqueParts([
+    hindi,
+    level !== "village" ? villageHindi : "",
+    level !== "city" ? cityHindi : "",
+    level !== "district" ? districtHindi : "",
+    level !== "state" ? stateHindi : "",
+    "भारत",
+  ]);
 
   return {
-    placeId: `${item.osm_type || "place"}:${item.osm_id || item.place_id || hash(item.display_name || english).slice(0, 16)}:${level}`,
-    name: bilingual(english, hindi) || "Selected place / चयनित स्थान",
+    placeId: `${item.osm_type || "place"}:${item.osm_id || item.place_id || hash(item.display_name || english || hindi).slice(0, 16)}:${level}`,
+    name: english || hindi || "Selected place",
     nameEnglish: english,
     nameHindi: hindi,
-    displayName: parts.join(", "),
-    displayNameEnglish: clean(item.display_name, 1000) || parts.join(", "),
-    displayNameHindi: hindi ? [hindi, stateHindi, "भारत"].filter(Boolean).join(", ") : "",
+    nameBilingual: bilingual(english, hindi),
+    displayName: bilingualParts.join(", "),
+    displayNameEnglish: englishParts.join(", "),
+    displayNameHindi: hindiParts.join(", "),
     level,
     hierarchy,
+    hierarchyEnglish: englishHierarchy,
+    hierarchyHindi: hindiHierarchy,
     hierarchyBilingual: hierarchy,
     lat: Number(item.lat),
     lon: Number(item.lon),
@@ -203,7 +295,7 @@ async function saveCache(key, type, text, result) {
 }
 
 async function nominatim(type, text, url) {
-  const key = hash(`bilingual-v2:${type}:${text}`);
+  const key = hash(`bilingual-v3:${type}:${text}`);
   const saved = await cached(key);
   if (saved) return saved;
 
@@ -213,8 +305,8 @@ async function nominatim(type, text, url) {
     lastRequestAt = Date.now();
     const response = await fetch(url, {
       headers: {
-        "User-Agent": `YehMeraIndia/2.1 (${process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://yehmeraindia.com"})`,
-        "Accept-Language": "en-IN,hi-IN;q=0.95,en;q=0.9,hi;q=0.85",
+        "User-Agent": `YehMeraIndia/2.2 (${process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://yehmeraindia.com"})`,
+        "Accept-Language": "en-IN,en;q=0.98,hi-IN;q=0.92,hi;q=0.88",
         Accept: "application/json",
       },
       signal: AbortSignal.timeout(15000),
@@ -264,7 +356,7 @@ function install(app) {
     try {
       const lat = Number(req.query.lat);
       const lon = Number(req.query.lon);
-      const zoom = Math.min(18, Math.max(3, Number(req.query.zoom || 10)));
+      const zoom = Math.min(20, Math.max(3, Number(req.query.zoom || 10)));
       if (!insideIndia(lat, lon)) return res.status(400).json({ message: "Choose a location within India." });
       const params = new URLSearchParams({
         format: "jsonv2",

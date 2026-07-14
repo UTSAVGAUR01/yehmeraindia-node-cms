@@ -22,6 +22,10 @@
   outline: none;
 }
 
+.ymi-vector-map .maplibregl-canvas {
+  image-rendering: auto;
+}
+
 .ymi-vector-map .maplibregl-control-container {
   font-family: Manrope, "Noto Sans Devanagari", "Noto Sans", sans-serif;
 }
@@ -36,6 +40,11 @@
   border: 1px solid rgba(92, 64, 25, 0.24);
   border-radius: 5px;
   box-shadow: 0 3px 12px rgba(31, 22, 8, 0.18);
+}
+
+.ymi-vector-map .maplibregl-ctrl button {
+  width: 34px;
+  height: 34px;
 }
 
 .ymi-vector-map .maplibregl-ctrl-attrib {
@@ -66,6 +75,44 @@
   pointer-events: none;
 }
 
+/* Keep the selected location title on its own line and prevent bilingual text collisions. */
+.golden-card-head {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+}
+
+.golden-card-head .back-gold {
+  margin-bottom: 14px;
+}
+
+.golden-card-head > .eyebrow {
+  position: static;
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
+
+.golden-card-head > h1 {
+  max-width: 100%;
+  margin: 0;
+  line-height: 0.98;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.golden-card-head > p:not(.eyebrow) {
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+
+.golden-card-head .place-breadcrumbs {
+  width: 100%;
+}
+
+.golden-card-head .place-breadcrumbs span {
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 760px) {
   .india-map-shell .ymi-vector-map {
     min-height: 72vh;
@@ -79,5 +126,15 @@
   .ymi-map-message {
     bottom: 12px;
     font-size: 11px;
+  }
+
+  .golden-card-head > h1 {
+    font-size: clamp(42px, 13vw, 68px);
+    line-height: 1;
+  }
+
+  .golden-card-head > p:not(.eyebrow) {
+    font-size: 13px;
+    line-height: 1.55;
   }
 }
