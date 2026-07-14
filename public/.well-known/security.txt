@@ -1,5 +1,5 @@
-Contact: mailto:security@yehmeraindia.com
+Contact: mailto:support@yehmeraindia.com
 Preferred-Languages: en, hi
 Canonical: https://yehmeraindia.com/.well-known/security.txt
 Policy: https://github.com/UTSAVGAUR01/yehmeraindia-node-cms/blob/main/SECURITY.md
-Expires: 2027-07-12T00:00:00Z
+Expires: 2027-07-14T23:59:59Z
