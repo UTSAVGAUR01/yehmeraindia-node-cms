@@ -55,88 +55,97 @@
 .ymi-map-label {
   position: absolute;
   transform: translate(-50%, -50%);
-  max-width: 150px;
-  padding: 2px 5px;
-  color: #17130b;
-  background: rgba(255, 248, 229, 0.84);
-  border: 1px solid rgba(157, 103, 15, 0.36);
-  border-radius: 3px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
+  max-width: 130px;
+  padding: 0;
+  color: #29261f;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   font-family: Arial, "Noto Sans Devanagari", sans-serif;
-  line-height: 1.05;
+  line-height: 1.02;
   text-align: center;
   white-space: nowrap;
-  will-change: transform, left, top;
+  opacity: 0.92;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.96),
+     1px -1px 0 rgba(255, 255, 255, 0.96),
+    -1px  1px 0 rgba(255, 255, 255, 0.96),
+     1px  1px 0 rgba(255, 255, 255, 0.96),
+     0 0 3px rgba(255, 255, 255, 0.96);
+  will-change: left, top;
 }
 
-.india-map.satellite-map .ymi-map-label,
-.india-map-shell:has(.satellite-map) .ymi-map-label {
-  color: #fff8e8;
-  background: rgba(7, 10, 26, 0.78);
-  border-color: rgba(239, 172, 56, 0.58);
-  text-shadow: 0 1px 2px #000;
+.ymi-map-label[hidden] {
+  display: none !important;
 }
 
 .ymi-map-label b,
 .ymi-map-label small {
   display: block;
+  font-style: normal;
 }
 
 .ymi-map-label b {
-  font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .ymi-map-label small {
   margin-top: 1px;
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.ymi-map-label[data-level="country"] {
-  padding: 5px 8px;
-  border-color: rgba(157, 103, 15, 0.62);
+  font-weight: 600;
 }
 
 .ymi-map-label[data-level="country"] b {
-  font-size: 15px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.025em;
 }
 
 .ymi-map-label[data-level="country"] small {
-  font-size: 13px;
-}
-
-.ymi-map-label[data-level="state"] b {
-  font-size: 10px;
-}
-
-.ymi-map-label[data-level="district"] {
-  padding: 1px 4px;
-  background: rgba(255, 250, 238, 0.77);
-  border-color: rgba(157, 103, 15, 0.22);
-}
-
-.india-map.satellite-map .ymi-map-label[data-level="district"] {
-  background: rgba(7, 10, 26, 0.72);
-}
-
-.ymi-map-label[data-level="district"] b {
   font-size: 9px;
 }
 
-.ymi-map-label[data-level="district"] small {
+.ymi-map-label[data-level="state"] b {
+  font-size: 9px;
+}
+
+.ymi-map-label[data-level="state"] small {
   font-size: 8px;
+}
+
+.ymi-map-label[data-level="district"] {
+  opacity: 0.86;
+}
+
+.ymi-map-label[data-level="district"] b {
+  font-size: 8px;
+  font-weight: 650;
+}
+
+.ymi-map-label[data-level="district"] small {
+  font-size: 7px;
+  font-weight: 550;
+}
+
+.india-map.satellite-map .ymi-map-label,
+.india-map-shell:has(.satellite-map) .ymi-map-label {
+  color: #fffdf5;
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.92),
+     1px -1px 0 rgba(0, 0, 0, 0.92),
+    -1px  1px 0 rgba(0, 0, 0, 0.92),
+     1px  1px 0 rgba(0, 0, 0, 0.92),
+     0 0 4px rgba(0, 0, 0, 0.96);
 }
 
 @media (max-width: 700px), (hover: none) and (pointer: coarse) {
   .ymi-map-label {
-    max-width: 115px;
-    padding: 1px 3px;
+    max-width: 105px;
   }
 
-  .ymi-map-label[data-level="state"] b { font-size: 9px; }
-  .ymi-map-label[data-level="state"] small { font-size: 8px; }
-  .ymi-map-label[data-level="district"] b { font-size: 8px; }
-  .ymi-map-label[data-level="district"] small { font-size: 7px; }
+  .ymi-map-label[data-level="country"] b { font-size: 10px; }
+  .ymi-map-label[data-level="country"] small { font-size: 8px; }
+  .ymi-map-label[data-level="state"] b { font-size: 8px; }
+  .ymi-map-label[data-level="state"] small { font-size: 7px; }
+  .ymi-map-label[data-level="district"] b { font-size: 7px; }
+  .ymi-map-label[data-level="district"] small { font-size: 6px; }
 }
