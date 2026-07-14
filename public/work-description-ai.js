@@ -3,6 +3,7 @@
 
   const states = new WeakMap();
   const sparkle = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m19 14 .9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14Z"/></svg>';
+  let adminObserver = null;
 
   function label(form, pattern) {
     return [...form.querySelectorAll("label")].find((item) => pattern.test(item.childNodes[0]?.textContent || item.textContent || ""));
@@ -59,7 +60,7 @@
     return states.get(form);
   }
 
-  function panelHtml(type, state) {
+  function panelHtml(type) {
     const noun = type === "book" ? "book" : "play event";
     return `
       <div class="ymi-work-ai-heading">
@@ -91,8 +92,8 @@
         </label>
       </div>
       <div class="ymi-work-ai-actions">
-        <button type="button" class="ymi-work-ai-action primary" data-ymi-action="write">${sparkle} Write a new description</button>
-        <button type="button" class="ymi-work-ai-action" data-ymi-action="rewrite">Rewrite my current description</button>
+        <button type="button" class="ymi-work-ai-action primary" data-ymi-action="write">${sparkle}<span>Write a new description</span></button>
+        <button type="button" class="ymi-work-ai-action" data-ymi-action="rewrite"><span>Rewrite my current description</span></button>
       </div>
       <p class="ymi-work-ai-status" data-ymi-status hidden></p>
       <p class="ymi-work-ai-error" data-ymi-error hidden></p>
@@ -100,8 +101,8 @@
         <b>AI draft for review</b>
         <textarea data-ymi-generated aria-label="Generated description preview"></textarea>
         <div class="ymi-work-ai-preview-actions">
-          <button type="button" class="ymi-work-ai-action primary" data-ymi-apply>Use this description</button>
-          <button type="button" class="ymi-work-ai-action" data-ymi-again>Generate another version</button>
+          <button type="button" class="ymi-work-ai-action primary" data-ymi-apply><span>Use this description</span></button>
+          <button type="button" class="ymi-work-ai-action" data-ymi-again><span>Generate another version</span></button>
         </div>
       </div>`;
   }
@@ -130,14 +131,13 @@
     }
 
     const descriptionField = label(form, config.descriptionPattern)?.querySelector("textarea");
-    const instruction = panel.querySelector("[data-ymi-instruction]")?.value?.trim() || "";
     const payload = {
       type: config.type,
       action,
       title: value(form, config.titlePattern),
       secondaryTitle: config.secondaryPattern ? value(form, config.secondaryPattern) : "",
       currentDescription: descriptionField?.value || "",
-      instruction,
+      instruction: panel.querySelector("[data-ymi-instruction]")?.value?.trim() || "",
       style: panel.querySelector("[data-ymi-style]")?.value || "balanced",
       language: panel.querySelector("[data-ymi-language]")?.value || "auto",
       venue: config.venuePattern ? value(form, config.venuePattern) : "",
@@ -190,7 +190,7 @@
     const panel = document.createElement("section");
     panel.className = "ymi-work-ai-writer";
     panel.setAttribute("aria-label", `AI ${config.type} description writer`);
-    panel.innerHTML = panelHtml(config.type, state);
+    panel.innerHTML = panelHtml(config.type);
     descriptionLabel.after(panel);
 
     panel.querySelector("[data-ymi-style]").value = state.style;
@@ -215,12 +215,25 @@
   }
 
   function scan() {
-    if (!/^\/admin\/?$/.test(location.pathname)) return;
     document.querySelectorAll("form.works-form").forEach(enhance);
   }
 
-  const observer = new MutationObserver(scan);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener("popstate", scan);
-  scan();
+  function activateForCurrentPage() {
+    const isAdmin = /^\/admin\/?$/.test(location.pathname);
+    if (!isAdmin) {
+      adminObserver?.disconnect();
+      adminObserver = null;
+      return;
+    }
+    scan();
+    if (adminObserver) return;
+    const root = document.getElementById("root");
+    if (!root) return;
+    adminObserver = new MutationObserver(scan);
+    adminObserver.observe(root, { childList: true, subtree: true });
+  }
+
+  window.addEventListener("popstate", () => window.setTimeout(activateForCurrentPage, 0));
+  window.addEventListener("pageshow", activateForCurrentPage);
+  activateForCurrentPage();
 })();

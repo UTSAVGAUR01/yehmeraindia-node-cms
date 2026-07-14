@@ -111,6 +111,7 @@
 .ymi-work-ai-actions,
 .ymi-work-ai-preview-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
@@ -120,13 +121,35 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   gap: 8px;
   min-height: 42px;
+  max-width: 100%;
   padding: 0 14px;
   color: #f7ecd6;
   background: transparent;
   border: 1px solid rgba(247, 236, 214, 0.28);
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ymi-work-ai-action svg {
+  display: block;
+  flex: 0 0 17px;
+  width: 17px !important;
+  height: 17px !important;
+  min-width: 17px;
+  max-width: 17px;
+  color: currentColor;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .ymi-work-ai-action.primary {
@@ -191,5 +214,9 @@
   .ymi-work-ai-heading { flex-direction: column; }
   .ymi-work-ai-actions,
   .ymi-work-ai-preview-actions { display: grid; grid-template-columns: 1fr; }
-  .ymi-work-ai-action { width: 100%; }
+  .ymi-work-ai-action {
+    width: 100%;
+    white-space: normal;
+    padding: 11px 14px;
+  }
 }
