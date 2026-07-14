@@ -1,7 +1,10 @@
 (() => {
   "use strict";
 
-  function currentUser() {
+  let roleChecked = false;
+  let isAdmin = false;
+
+  function cachedUser() {
     try {
       return JSON.parse(localStorage.getItem("ymi_user") || "null");
     } catch {
@@ -9,10 +12,31 @@
     }
   }
 
-  function inject() {
-    if (location.pathname !== "/admin") return;
-    const user = currentUser();
-    if (user?.role !== "admin") return;
+  async function verifyRole() {
+    if (roleChecked) return isAdmin;
+    roleChecked = true;
+    const cached = cachedUser();
+    if (cached?.role === "admin") {
+      isAdmin = true;
+      return true;
+    }
+    const token = localStorage.getItem("ymi_admin_token") || localStorage.getItem("ymi_user_token");
+    if (!token) return false;
+    try {
+      const response = await fetch("/api/profile", {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      if (!response.ok) return false;
+      const data = await response.json().catch(() => ({}));
+      isAdmin = data?.user?.role === "admin";
+      return isAdmin;
+    } catch {
+      return false;
+    }
+  }
+
+  function insertButton() {
+    if (!/^\/admin\/?$/.test(location.pathname) || !isAdmin) return;
     const aside = document.querySelector(".admin-page > aside");
     if (!aside || aside.querySelector("[data-footer-social-settings]")) return;
 
@@ -27,8 +51,14 @@
     else aside.append(button);
   }
 
-  const observer = new MutationObserver(inject);
+  async function inject() {
+    if (!/^\/admin\/?$/.test(location.pathname)) return;
+    if (!roleChecked) await verifyRole();
+    insertButton();
+  }
+
+  const observer = new MutationObserver(() => void inject());
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener("popstate", inject);
-  inject();
+  window.addEventListener("popstate", () => void inject());
+  void inject();
 })();
