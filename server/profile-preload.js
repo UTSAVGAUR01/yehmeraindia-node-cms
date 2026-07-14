@@ -71,7 +71,7 @@ function installProfileRoutes(app) {
   let schemaReady = false;
   let schemaPromise = null;
 
-  async function requireReady(res) {
+  async function requirePasswordSchema(res) {
     if (schemaReady) return true;
     if (!schemaPromise) {
       schemaPromise = ensureProfileSchema()
@@ -84,7 +84,7 @@ function installProfileRoutes(app) {
     } catch (error) {
       console.error("Profile schema initialization failed:", error.code || error.message);
       res.status(503).json({
-        message: "Profile settings are temporarily unavailable because the database could not be prepared.",
+        message: "Password change is temporarily unavailable because the database could not be prepared.",
         code: String(error.code || "PROFILE_SCHEMA_ERROR").slice(0, 80),
       });
       return false;
@@ -93,7 +93,6 @@ function installProfileRoutes(app) {
 
   app.get("/api/profile", requireMember, async (req, res, next) => {
     try {
-      if (!(await requireReady(res))) return;
       res.json({ user: publicUser(req.user) });
     } catch (error) {
       next(error);
@@ -102,7 +101,6 @@ function installProfileRoutes(app) {
 
   app.put("/api/profile", requireMember, async (req, res, next) => {
     try {
-      if (!(await requireReady(res))) return;
       const name = clean(req.body?.name, 120);
       if (name.length < 2) {
         return res.status(400).json({ message: "Name must contain at least 2 characters." });
@@ -121,7 +119,7 @@ function installProfileRoutes(app) {
 
   app.put("/api/profile/password", requireMember, async (req, res, next) => {
     try {
-      if (!(await requireReady(res))) return;
+      if (!(await requirePasswordSchema(res))) return;
       const currentPassword = String(req.body?.currentPassword || "");
       const newPassword = String(req.body?.newPassword || "");
       const confirmPassword = String(req.body?.confirmPassword || "");
@@ -172,7 +170,6 @@ function installProfileRoutes(app) {
 
   app.get("/api/profile/journal-messages", requireMember, async (req, res, next) => {
     try {
-      if (!(await requireReady(res))) return;
       const rows = await query(
         `SELECT m.id, m.message, m.is_read, m.created_at,
                 p.id AS post_id, p.title AS post_title, p.slug AS post_slug,
