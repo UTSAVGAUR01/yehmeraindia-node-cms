@@ -1,0 +1,83 @@
+.india-map-shell.ymi-vector-map-active {
+  overflow: hidden;
+}
+
+.india-map-shell .ymi-vector-map {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 78px);
+  background: #d9cda9;
+}
+
+.india-map-shell.ymi-vector-map-active > .leaflet-container {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ymi-vector-map .maplibregl-canvas,
+.ymi-vector-map .maplibregl-canvas-container {
+  outline: none;
+}
+
+.ymi-vector-map .maplibregl-control-container {
+  font-family: Manrope, "Noto Sans Devanagari", "Noto Sans", sans-serif;
+}
+
+.ymi-vector-map .maplibregl-ctrl-top-left {
+  top: 8px;
+  left: 8px;
+}
+
+.ymi-vector-map .maplibregl-ctrl-group {
+  overflow: hidden;
+  border: 1px solid rgba(92, 64, 25, 0.24);
+  border-radius: 5px;
+  box-shadow: 0 3px 12px rgba(31, 22, 8, 0.18);
+}
+
+.ymi-vector-map .maplibregl-ctrl-attrib {
+  background: rgba(255, 250, 235, 0.82);
+  color: #393125;
+  font-size: 9px;
+}
+
+.ymi-vector-map .maplibregl-ctrl-attrib a {
+  color: #393125;
+}
+
+.ymi-map-message {
+  position: absolute;
+  z-index: 720;
+  left: 50%;
+  bottom: 18px;
+  max-width: min(520px, calc(100% - 32px));
+  padding: 10px 14px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(239, 180, 56, 0.5);
+  border-radius: 5px;
+  background: rgba(5, 7, 20, 0.92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  color: #f7e6bd;
+  font: 600 12px/1.45 Manrope, "Noto Sans Devanagari", sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .india-map-shell .ymi-vector-map {
+    min-height: 72vh;
+  }
+
+  .ymi-vector-map .maplibregl-ctrl-top-left {
+    top: 10px;
+    left: 10px;
+  }
+
+  .ymi-map-message {
+    bottom: 12px;
+    font-size: 11px;
+  }
+}

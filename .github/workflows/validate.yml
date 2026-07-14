@@ -42,6 +42,7 @@ jobs:
           node --check server/work-description-ai-preload.js
           node --check public/network-resilience.js
           node --check public/ymi-sw.js
+          node --check public/india-vector-map.js
           node --check public/session-verification.js
           node --check public/account-verification-hint.js
           node --check public/india-bilingual-index.js
@@ -60,7 +61,7 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify React-owned DOM remains isolated
+      - name: Verify React-owned DOM and bilingual map assets
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
@@ -70,7 +71,14 @@ jobs:
           grep -q 'id="ymi-global-footer"' dist/index.html
           grep -q '/site-footer.js' dist/index.html
           grep -q '/network-resilience.js' dist/index.html
+          grep -q '/india-vector-map.js' dist/index.html
+          grep -q '/india-vector-map.css' dist/index.html
+          grep -q 'maplibre-gl@5.24.0' dist/index.html
           grep -q 'serviceWorker.register("/ymi-sw.js"' public/network-resilience.js
+          grep -q 'tiles.openfreemap.org/styles/liberty' public/india-vector-map.js
+          grep -q 'name:en' public/india-vector-map.js
+          grep -q 'name:hi' public/india-vector-map.js
+          grep -q 'ymi-india-boundary-line' public/india-vector-map.js
           ! grep -q '/india-map-labels.js' dist/index.html
           ! grep -q '/india-map-labels.css' dist/index.html
           grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
