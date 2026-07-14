@@ -3,7 +3,12 @@
 
   let sequence = 0;
 
+  function setAttributeIfChanged(element, name, value) {
+    if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+  }
+
   function isIndiaBoundary(path) {
+    if (path.dataset.ymiIndiaBoundary === "true") return true;
     const stroke = String(path.getAttribute("stroke") || "").trim().toLowerCase();
     if (["#f08a32", "#e8c659", "#70b7d6"].includes(stroke)) return false;
     if (stroke === "#c8922e" || stroke === "rgb(200, 146, 46)") return true;
@@ -14,7 +19,7 @@
   function ensureClip(svg, path) {
     const namespace = "http://www.w3.org/2000/svg";
     let id = path.dataset.ymiBoundaryClip;
-    let clip = id ? svg.querySelector(`#${CSS.escape(id)}`) : null;
+    let clip = id ? svg.querySelector(`#${id}`) : null;
     let clone = clip?.querySelector("path") || null;
 
     if (!clip) {
@@ -39,15 +44,15 @@
     }
 
     const d = path.getAttribute("d") || "";
-    if (d && clone.getAttribute("d") !== d) clone.setAttribute("d", d);
+    if (d) setAttributeIfChanged(clone, "d", d);
 
     path.dataset.ymiIndiaBoundary = "true";
-    path.setAttribute("clip-path", `url(#${id})`);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke-width", "2.2");
-    path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-linejoin", "round");
-    path.setAttribute("vector-effect", "non-scaling-stroke");
+    setAttributeIfChanged(path, "clip-path", `url(#${id})`);
+    setAttributeIfChanged(path, "fill", "none");
+    setAttributeIfChanged(path, "stroke-width", "2.2");
+    setAttributeIfChanged(path, "stroke-linecap", "round");
+    setAttributeIfChanged(path, "stroke-linejoin", "round");
+    setAttributeIfChanged(path, "vector-effect", "non-scaling-stroke");
   }
 
   function refine() {
