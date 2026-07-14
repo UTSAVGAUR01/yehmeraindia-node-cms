@@ -83,7 +83,7 @@
     map.querySelectorAll("img.leaflet-tile").forEach((image) => {
       const src = image.currentSrc || image.src || "";
       if (src.includes("World_Boundaries_and_Places")) {
-        image.style.display = "none";
+        if (image.style.display !== "none") image.style.display = "none";
         image.setAttribute("aria-hidden", "true");
         return;
       }
@@ -102,7 +102,9 @@
     });
 
     const attribution = map.querySelector(".leaflet-control-attribution");
-    if (attribution && normal) attribution.innerHTML = '&copy; OpenStreetMap contributors &copy; CARTO';
+    if (attribution && normal && !attribution.textContent.includes("CARTO")) {
+      attribution.innerHTML = '&copy; OpenStreetMap contributors &copy; CARTO';
+    }
   }
 
   function referenceTile(map) {
@@ -161,8 +163,10 @@
       const inside = left > -80 && top > -35 && left < mapRect.width + 80 && top < mapRect.height + 35;
       node.hidden = !visibleAtZoom || !inside;
       if (!node.hidden) {
-        node.style.left = `${left}px`;
-        node.style.top = `${top}px`;
+        const nextLeft = `${left}px`;
+        const nextTop = `${top}px`;
+        if (node.style.left !== nextLeft) node.style.left = nextLeft;
+        if (node.style.top !== nextTop) node.style.top = nextTop;
       }
     });
   }
@@ -178,7 +182,17 @@
         positionLabels(map);
       });
     };
-    const observer = new MutationObserver(schedule);
+    const observer = new MutationObserver((mutations) => {
+      const relevant = mutations.some((mutation) => {
+        if (mutation.type === "childList") return true;
+        const target = mutation.target;
+        if (target instanceof HTMLImageElement && target.classList.contains("leaflet-tile")) return true;
+        return target instanceof HTMLElement
+          && mutation.attributeName === "style"
+          && (target.classList.contains("leaflet-map-pane") || target.classList.contains("leaflet-tile-pane"));
+      });
+      if (relevant) schedule();
+    });
     observer.observe(map, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "style", "class"] });
     observers.set(map, observer);
     ["wheel", "pointerup", "touchend", "transitionend"].forEach((event) => map.addEventListener(event, schedule, { passive: true }));
