@@ -29,7 +29,6 @@ jobs:
       - name: Check server and browser JavaScript syntax
         run: |
           node --check index.js
-          node --check server/frontend-cache-preload.js
           node --check server/security-edge-preload.js
           node --check server/viewer-verification-preload.js
           node --check server/viewer-message-gate-preload.js
@@ -55,10 +54,15 @@ jobs:
           node --check public/work-description-ai.js
           node --check public/auth-redirect.js
           node --check public/member-studio-link.js
-          node --check scripts/verify-frontend-build.mjs
 
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify production frontend files
-        run: node scripts/verify-frontend-build.mjs
+      - name: Verify default Vite production output
+        run: |
+          test -s dist/index.html
+          test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
+          test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.css' -size +0c -print -quit)"
+          grep -Eq '/assets/index-[^" ]+\.js' dist/index.html
+          grep -Eq '/assets/index-[^" ]+\.css' dist/index.html
+          ! grep -q 'frontend-recovery.js' dist/index.html

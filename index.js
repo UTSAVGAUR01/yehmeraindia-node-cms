@@ -1,6 +1,5 @@
 // Compatibility entry point for Hostinger and other managed Node.js panels.
-// Install runtime safeguards before starting the CMS.
-import "./server/frontend-cache-preload.js";
+// Install application safeguards before starting the CMS.
 import "./server/security-edge-preload.js";
 import "./server/viewer-verification-preload.js";
 import "./server/viewer-message-gate-preload.js";
