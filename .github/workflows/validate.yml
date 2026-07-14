@@ -70,4 +70,8 @@ jobs:
           grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
           ! grep -q 'MutationObserver' public/site-footer.js
           ! grep -q 'main footer' public/site-footer.js
-          ! grep -Eq '(frontend-recovery|work-details|author-follow|work-description-ai|india-bilingual-index|member-studio-link|admin-site-settings-link)\.js' dist/index.html
+          grep -q '/member-studio-link.js' dist/index.html
+          grep -q 'document.body.appendChild(host)' public/member-studio-link.js
+          grep -q 'href="/studio.html"' public/member-studio-link.js
+          ! grep -q 'querySelector' public/member-studio-link.js
+          ! grep -Eq '(frontend-recovery|work-details|author-follow|work-description-ai|india-bilingual-index|admin-site-settings-link)\.js' dist/index.html
