@@ -143,11 +143,12 @@
 
   document.getElementById("signin-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     showMessage(error, ""); showMessage(notice, "");
     try {
-      const body = Object.fromEntries(new FormData(event.currentTarget));
+      const body = Object.fromEntries(new FormData(form));
       const data = await request("/api/auth/signin", body);
       if (data.twoFactorRequired || data.challengeId) beginOtp(data, body.email, "login");
       else finishLogin(data);
@@ -157,12 +158,13 @@
 
   document.getElementById("signup-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     showMessage(error, ""); showMessage(notice, "");
     try {
-      const values = Object.fromEntries(new FormData(event.currentTarget));
-      values.enableTwoFactor = Boolean(event.currentTarget.elements.enableTwoFactor.checked);
+      const values = Object.fromEntries(new FormData(form));
+      values.enableTwoFactor = Boolean(form.elements.enableTwoFactor.checked);
       const data = await request("/api/auth/signup", values);
       if (data.verificationRequired || data.challengeId) beginOtp(data, values.email, "signup");
       else finishLogin(data);
@@ -172,12 +174,13 @@
 
   document.getElementById("otp-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     showMessage(error, "");
     try {
       if (!challenge?.id || !challenge?.email) throw new Error("Start the process again to request a new code.");
-      const code = new FormData(event.currentTarget).get("code");
+      const code = new FormData(form).get("code");
       if (challenge.purpose === "password_reset") {
         const data = await request("/api/auth/password-reset/verify", {
           challengeId: challenge.id,
@@ -186,7 +189,7 @@
         });
         saveResetSession({ resetToken: data.resetToken, email: challenge.email });
         saveChallenge(null);
-        event.currentTarget.reset();
+        form.reset();
         switchMode("reset");
         showMessage(notice, data.message || "Code verified. Choose a new password.");
         return;
@@ -200,11 +203,12 @@
 
   document.getElementById("forgot-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     showMessage(error, ""); showMessage(notice, "");
     try {
-      const email = new FormData(event.currentTarget).get("email");
+      const email = new FormData(form).get("email");
       const data = await request("/api/auth/password-reset/request", { email });
       beginOtp(data, email, "password_reset");
     } catch (e) { showMessage(error, e.message); }
@@ -213,11 +217,12 @@
 
   document.getElementById("reset-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     showMessage(error, "");
     try {
-      const values = Object.fromEntries(new FormData(event.currentTarget));
+      const values = Object.fromEntries(new FormData(form));
       if (values.password !== values.confirmPassword) throw new Error("The passwords do not match.");
       let data;
       if (resetSession?.resetToken) {
@@ -232,7 +237,7 @@
       }
       saveResetSession(null);
       saveChallenge(null);
-      event.currentTarget.reset();
+      form.reset();
       showMessage(notice, data.message);
       setTimeout(() => switchMode("signin"), 1400);
     } catch (e) { showMessage(error, e.message); }
@@ -241,18 +246,19 @@
 
   document.getElementById("security-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     showMessage(error, "");
     try {
       const token = localStorage.getItem("ymi_user_token");
-      const body = { password: event.currentTarget.elements.password.value, enabled: event.currentTarget.elements.enabled.checked };
+      const body = { password: form.elements.password.value, enabled: form.elements.enabled.checked };
       const response = await fetch("/api/auth/security", { method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "Unable to save security settings.");
       document.getElementById("security-status").textContent = data.twoFactorEnabled ? "Email OTP is enabled for every sign-in." : "Password-only sign-in is enabled.";
       showMessage(notice, "Security setting updated.");
-      event.currentTarget.elements.password.value = "";
+      form.elements.password.value = "";
     } catch (e) { showMessage(error, e.message); }
     finally { button.disabled = false; }
   });
