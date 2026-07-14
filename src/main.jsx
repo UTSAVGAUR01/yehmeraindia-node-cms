@@ -122,7 +122,7 @@ const defaultHomepage = {
   contactTitle: "Stories, stagecraft and ideas for tomorrow.",
   contactBody: "Start a conversation with Yeh Mera India.",
   contactImage: "",
-  contactEmail: "hello@yehmeraindia.com",
+  contactEmail: "support@yehmeraindia.com",
   journalPageEyebrow: "Yeh Mera India Journal",
   journalPageTitle: "Ideas from the page, the stage and the future.",
   journalPageBody: "Read essays, theatre notes, cultural reflections and responsible AI experiments.",
