@@ -193,21 +193,22 @@
 
     panel.querySelector(".thread-reply")?.addEventListener("submit", async (event) => {
       event.preventDefault();
+      const form = event.currentTarget;
       const button = event.submitter;
       button.disabled = true;
       try {
-        const message = new FormData(event.currentTarget).get("message");
+        const message = new FormData(form).get("message");
         const path = adminMode
           ? `/api/admin/conversations/${thread.id}/messages`
           : `/api/studio/conversations/${thread.id}/messages`;
         await request(path, { method: "POST", body: JSON.stringify({ message }) });
-        event.currentTarget.reset();
+        form.reset();
         if (adminMode) {
           await openAdminThread(thread.id);
-          await loadAdminConversations(false);
+          await loadAdminConversations();
         } else {
           await openMemberThread(thread.id);
-          await loadSummary(false);
+          await loadSummary();
         }
         showNotice("Reply sent.");
       } catch (e) { showError(e.message); }
@@ -219,7 +220,7 @@
         const nextStatus = thread.status === "open" ? "closed" : "open";
         await request(`/api/admin/conversations/${thread.id}/status`, { method: "PUT", body: JSON.stringify({ status: nextStatus }) });
         await openAdminThread(thread.id);
-        await loadAdminConversations(false);
+        await loadAdminConversations();
         showNotice(`Conversation ${nextStatus}.`);
       } catch (e) { showError(e.message); }
     });
@@ -231,7 +232,7 @@
       renderMemberConversationList();
       const data = await request(`/api/studio/conversations/${id}`);
       renderThread(document.getElementById("member-thread-panel"), data, false);
-      await loadSummary(false);
+      await loadSummary();
     } catch (e) { showError(e.message); }
   }
 
@@ -263,12 +264,11 @@
     } catch (e) { showError(e.message); }
   }
 
-  async function loadAdminConversations(render = true) {
+  async function loadAdminConversations() {
     if (state.summary?.user.role !== "admin") return;
     try {
       state.adminThreads = await request("/api/admin/conversations");
-      if (render) renderAdminConversationList();
-      else renderAdminConversationList();
+      renderAdminConversationList();
     } catch (e) { showError(e.message); }
   }
 
@@ -321,19 +321,13 @@
     } catch (e) { showError(e.message); }
   }
 
-  async function loadSummary(render = true) {
+  async function loadSummary() {
     try {
       state.summary = await request("/api/studio/summary");
       state.memberThreads = state.summary.conversations || [];
-      if (render) {
-        renderProfile();
-        renderRoleRequest();
-        renderMemberConversationList();
-      } else {
-        renderProfile();
-        renderRoleRequest();
-        renderMemberConversationList();
-      }
+      renderProfile();
+      renderRoleRequest();
+      renderMemberConversationList();
       if (state.summary.user.role === "admin") {
         await Promise.all([loadRoleRequests(), loadAdminConversations()]);
       }
@@ -346,12 +340,13 @@
 
   document.getElementById("role-request-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     try {
-      const values = Object.fromEntries(new FormData(event.currentTarget));
+      const values = Object.fromEntries(new FormData(form));
       state.summary.roleRequest = await request("/api/studio/role-requests", { method: "POST", body: JSON.stringify(values) });
-      event.currentTarget.reset();
+      form.reset();
       renderRoleRequest();
       showNotice("Your role request was sent to Admin.");
     } catch (e) { showError(e.message); }
@@ -374,14 +369,15 @@
   });
   document.getElementById("new-conversation-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     const button = event.submitter;
     button.disabled = true;
     try {
-      const values = Object.fromEntries(new FormData(event.currentTarget));
+      const values = Object.fromEntries(new FormData(form));
       const thread = await request("/api/studio/conversations", { method: "POST", body: JSON.stringify(values) });
-      event.currentTarget.reset();
-      event.currentTarget.hidden = true;
-      await loadSummary(false);
+      form.reset();
+      form.hidden = true;
+      await loadSummary();
       await openMemberThread(thread.id);
       showNotice("Conversation started.");
     } catch (e) { showError(e.message); }
