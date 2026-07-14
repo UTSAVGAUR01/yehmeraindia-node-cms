@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#080b1d" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>User Studio | Yeh Mera India</title>
+    <link rel="stylesheet" href="/studio.css" />
+  </head>
+  <body>
+    <header class="studio-topbar">
+      <a class="studio-brand" href="/">Yeh Mera India</a>
+      <nav aria-label="Studio actions">
+        <a href="/">View website</a>
+        <a id="admin-studio-link" href="/admin" hidden>Admin Studio</a>
+        <button id="signout-button" type="button">Sign out</button>
+      </nav>
+    </header>
+
+    <main class="studio-shell">
+      <section class="studio-hero">
+        <div>
+          <p class="eyebrow">User Studio</p>
+          <h1 id="welcome-title">Your Yeh Mera India space.</h1>
+          <p id="account-summary">Loading your account and conversations…</p>
+        </div>
+        <span id="role-badge" class="role-badge">Viewer</span>
+      </section>
+
+      <div id="studio-notice" class="studio-notice" hidden></div>
+      <div id="studio-error" class="studio-error" hidden></div>
+
+      <section class="studio-layout">
+        <aside class="studio-navigation" aria-label="User Studio navigation">
+          <button type="button" class="active" data-view="overview">Overview</button>
+          <button type="button" data-view="conversations">My conversations <span id="member-unread-count"></span></button>
+          <button type="button" id="admin-requests-tab" data-view="admin-requests" hidden>Role requests <span id="request-count"></span></button>
+          <button type="button" id="admin-conversations-tab" data-view="admin-conversations" hidden>Member inbox <span id="admin-unread-count"></span></button>
+          <a href="/account.html?mode=security">Login security</a>
+        </aside>
+
+        <div class="studio-content">
+          <section id="view-overview" class="studio-view">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Account overview</p>
+                <h2>Your role and access</h2>
+              </div>
+              <button id="start-conversation-button" type="button" class="button primary">Start a conversation</button>
+            </div>
+
+            <div class="overview-grid">
+              <article class="studio-card account-card">
+                <p class="card-label">Signed in as</p>
+                <h3 id="profile-name">Member</h3>
+                <p id="profile-email"></p>
+                <dl>
+                  <div><dt>Current role</dt><dd id="profile-role">Viewer</dd></div>
+                  <div><dt>Account status</dt><dd id="profile-status">Active</dd></div>
+                </dl>
+              </article>
+
+              <article class="studio-card role-card">
+                <p class="card-label">Role upgrade</p>
+                <div id="role-request-summary"></div>
+                <form id="role-request-form" hidden>
+                  <label>
+                    Requested role
+                    <select name="requestedRole" required>
+                      <option value="author">Author</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </label>
+                  <label>
+                    Why do you need this role?
+                    <textarea name="reason" rows="6" minlength="20" maxlength="2000" required placeholder="Describe your writing, theatre, publishing or administration work and how you plan to contribute."></textarea>
+                  </label>
+                  <button class="button primary" type="submit">Send request to Admin</button>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <section id="view-conversations" class="studio-view" hidden>
+            <div class="section-heading">
+              <div><p class="eyebrow">Messages</p><h2>My conversations</h2></div>
+              <button id="new-conversation-toggle" type="button" class="button primary">New conversation</button>
+            </div>
+
+            <form id="new-conversation-form" class="studio-card compose-card" hidden>
+              <label>Subject<input name="subject" maxlength="220" required placeholder="How can Yeh Mera India help?" /></label>
+              <label>Message<textarea name="message" rows="6" minlength="3" maxlength="4000" required placeholder="Write your message"></textarea></label>
+              <div class="form-actions">
+                <button id="cancel-new-conversation" type="button" class="button secondary">Cancel</button>
+                <button type="submit" class="button primary">Send message</button>
+              </div>
+            </form>
+
+            <div class="conversation-layout">
+              <div id="member-conversation-list" class="conversation-list"></div>
+              <div id="member-thread-panel" class="thread-panel empty-panel">
+                <p>Select a conversation, or start a new one.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-admin-requests" class="studio-view" hidden>
+            <div class="section-heading">
+              <div><p class="eyebrow">Administration</p><h2>Role requests</h2></div>
+              <select id="role-request-filter" aria-label="Filter role requests">
+                <option value="pending">Pending</option>
+                <option value="">All requests</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div id="admin-role-request-list" class="request-list"></div>
+          </section>
+
+          <section id="view-admin-conversations" class="studio-view" hidden>
+            <div class="section-heading">
+              <div><p class="eyebrow">Administration</p><h2>Member inbox</h2></div>
+            </div>
+            <div class="conversation-layout">
+              <div id="admin-conversation-list" class="conversation-list"></div>
+              <div id="admin-thread-panel" class="thread-panel empty-panel">
+                <p>Select a member conversation to read and reply.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="/studio.js" defer></script>
+  </body>
+</html>
