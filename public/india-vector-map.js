@@ -292,12 +292,6 @@
       syncMode(instance);
       addIndiaBoundary(instance);
     });
-    map.on("styledata", () => {
-      if (!map.isStyleLoaded()) return;
-      applyBilingualLabels(map);
-      syncMode(instance);
-      addIndiaBoundary(instance);
-    });
     map.on("click", (event) => chooseMapPoint(shell, event, map));
     map.on("error", () => {
       if (!shell.classList.contains(ACTIVE_CLASS)) {
