@@ -7,8 +7,20 @@
   const error = document.getElementById("error");
   const securityPanel = document.getElementById("security-panel");
   const params = new URLSearchParams(location.search);
+  const challengeStorageKey = "ymi_auth_challenge";
   let mode = params.get("mode") || "signin";
-  let challenge = null;
+
+  function readChallenge() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(challengeStorageKey) || "null");
+      if (!saved?.id || !saved?.email || !["signup", "login"].includes(saved.purpose)) return null;
+      return saved;
+    } catch {
+      return null;
+    }
+  }
+
+  let challenge = readChallenge();
 
   const copy = {
     signin: ["Welcome back", "Sign in to continue.", "Use your password. If two-factor login is enabled, a one-time code will be sent to your email."],
@@ -23,6 +35,17 @@
     element.hidden = !message;
   }
 
+  function saveChallenge(value) {
+    challenge = value;
+    if (value) sessionStorage.setItem(challengeStorageKey, JSON.stringify(value));
+    else sessionStorage.removeItem(challengeStorageKey);
+  }
+
+  function safeEmail(value) {
+    const email = String(value || "").trim().toLowerCase();
+    return /^\S+@\S+\.\S+$/.test(email) ? email : "";
+  }
+
   function switchMode(next) {
     mode = next;
     forms.forEach((form) => { form.hidden = form.dataset.mode !== next; });
@@ -32,7 +55,11 @@
     title.textContent = values[1];
     intro.textContent = values[2];
     showMessage(error, "");
-    history.replaceState({}, "", `/account.html?mode=${next}${next === "reset" && params.get("token") ? `&token=${encodeURIComponent(params.get("token"))}` : ""}`);
+
+    const nextParams = new URLSearchParams({ mode: next });
+    if (next === "reset" && params.get("token")) nextParams.set("token", params.get("token"));
+    if (params.get("next")) nextParams.set("next", params.get("next"));
+    history.replaceState({}, "", `/account.html?${nextParams.toString()}`);
   }
 
   async function request(path, body, token) {
@@ -56,14 +83,37 @@
   }
 
   function finishLogin(data) {
+    saveChallenge(null);
     storeSession(data);
-    const destination = ["admin", "author"].includes(data.user?.role) ? "/admin" : "/";
+    const requested = params.get("next");
+    const defaultDestination = ["admin", "author"].includes(data.user?.role) ? "/admin" : "/";
+    const destination = requested === "/admin" && ["admin", "author"].includes(data.user?.role)
+      ? "/admin"
+      : defaultDestination;
     location.assign(destination);
+  }
+
+  function beginOtp(data, fallbackEmail, purpose) {
+    if (data?.token && data?.user && !data?.challengeId) {
+      finishLogin(data);
+      return false;
+    }
+    const email = safeEmail(data?.email || data?.user?.email || fallbackEmail);
+    const id = String(data?.challengeId || "").trim();
+    if (!id || !email) throw new Error("The verification request was incomplete. Please request a new code.");
+    saveChallenge({ id, email, purpose });
+    switchMode("otp");
+    showMessage(notice, `${purpose === "signup" ? "A verification code" : "A login code"} was sent to ${email}.`);
+    return true;
   }
 
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-switch]");
-    if (button) switchMode(button.dataset.switch);
+    if (!button) return;
+    const next = button.dataset.switch;
+    if (next !== "otp") saveChallenge(null);
+    showMessage(notice, "");
+    switchMode(next);
   });
 
   document.getElementById("signin-form").addEventListener("submit", async (event) => {
@@ -74,11 +124,8 @@
     try {
       const body = Object.fromEntries(new FormData(event.currentTarget));
       const data = await request("/api/auth/signin", body);
-      if (data.twoFactorRequired) {
-        challenge = { id: data.challengeId, email: data.email, purpose: "login" };
-        switchMode("otp");
-        showMessage(notice, `A login code was sent to ${data.email}.`);
-      } else finishLogin(data);
+      if (data.twoFactorRequired || data.challengeId) beginOtp(data, body.email, "login");
+      else finishLogin(data);
     } catch (e) { showMessage(error, e.message); }
     finally { button.disabled = false; }
   });
@@ -92,9 +139,8 @@
       const values = Object.fromEntries(new FormData(event.currentTarget));
       values.enableTwoFactor = Boolean(event.currentTarget.elements.enableTwoFactor.checked);
       const data = await request("/api/auth/signup", values);
-      challenge = { id: data.challengeId, email: data.email, purpose: "signup" };
-      switchMode("otp");
-      showMessage(notice, `A verification code was sent to ${data.email}.`);
+      if (data.verificationRequired || data.challengeId) beginOtp(data, values.email, "signup");
+      else finishLogin(data);
     } catch (e) { showMessage(error, e.message); }
     finally { button.disabled = false; }
   });
@@ -105,7 +151,7 @@
     button.disabled = true;
     showMessage(error, "");
     try {
-      if (!challenge) throw new Error("Start sign-in or sign-up again to request a new code.");
+      if (!challenge?.id || !challenge?.email) throw new Error("Start sign-in or sign-up again to request a new code.");
       const code = new FormData(event.currentTarget).get("code");
       const endpoint = challenge.purpose === "signup" ? "/api/auth/verify-signup" : "/api/auth/verify-login";
       const data = await request(endpoint, { challengeId: challenge.id, email: challenge.email, code });
@@ -178,5 +224,13 @@
   }
 
   if (mode === "security") openSecurity();
-  else switchMode(mode === "reset" ? "reset" : mode === "signup" ? "signup" : mode === "forgot" ? "forgot" : "signin");
+  else if (mode === "otp") {
+    if (challenge) {
+      switchMode("otp");
+      showMessage(notice, `${challenge.purpose === "signup" ? "A verification code" : "A login code"} was sent to ${challenge.email}.`);
+    } else {
+      switchMode("signin");
+      showMessage(error, "Start sign-in or sign-up again to request a new code.");
+    }
+  } else switchMode(mode === "reset" ? "reset" : mode === "signup" ? "signup" : mode === "forgot" ? "forgot" : "signin");
 })();
