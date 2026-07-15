@@ -94,7 +94,7 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-14' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-15' public/ymi-sw.js
           grep -q '"/profile-navigation.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.css"' public/ymi-sw.js
@@ -111,6 +111,10 @@ jobs:
           grep -q '.journal-preview .post-grid > .post-card > img {' public/homepage-carousels.css
           grep -q 'object-fit: contain !important' public/homepage-carousels.css
           grep -q 'object-position: center center !important' public/homepage-carousels.css
+          grep -q 'flex: 0 0 calc(100% - 12px) !important' public/homepage-carousels.css
+          grep -q 'grid-template-columns: 1fr !important' public/homepage-carousels.css
+          grep -q 'height: clamp(190px, 58vw, 280px) !important' public/homepage-carousels.css
+          grep -q '@media (max-width: 480px)' public/homepage-carousels.css
           grep -q 'intervalSeconds = 5' public/homepage-carousels.js
           grep -q 'intervalSeconds \* 1000' public/homepage-carousels.js
           grep -q 'Save carousel timing' public/homepage-carousels.js
