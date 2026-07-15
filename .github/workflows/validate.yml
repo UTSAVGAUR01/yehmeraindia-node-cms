@@ -94,10 +94,11 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-15' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-16' public/ymi-sw.js
           grep -q '"/profile-navigation.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.css"' public/ymi-sw.js
+          grep -q '"/journal-book-card.css"' public/ymi-sw.js
           grep -q 'server/carousel-settings-preload.js' index.js
           grep -q '/api/carousel-settings' server/carousel-settings-preload.js
           grep -q '/api/admin/carousel-settings' server/carousel-settings-preload.js
@@ -106,14 +107,8 @@ jobs:
           grep -q '.work-section .play-event-grid,' public/homepage-carousels.css
           grep -q '.journal-preview .post-grid {' public/homepage-carousels.css
           grep -q 'display: flex !important' public/homepage-carousels.css
-          grep -q 'grid-template-columns: minmax(220px, 36%)' public/homepage-carousels.css
           grep -q 'overflow-x: auto !important' public/homepage-carousels.css
-          grep -q '.journal-preview .post-grid > .post-card > img {' public/homepage-carousels.css
-          grep -q 'object-fit: contain !important' public/homepage-carousels.css
-          grep -q 'object-position: center center !important' public/homepage-carousels.css
           grep -q 'flex: 0 0 calc(100% - 12px) !important' public/homepage-carousels.css
-          grep -q 'grid-template-columns: 1fr !important' public/homepage-carousels.css
-          grep -q 'height: clamp(190px, 58vw, 280px) !important' public/homepage-carousels.css
           grep -q '@media (max-width: 480px)' public/homepage-carousels.css
           grep -q 'intervalSeconds = 5' public/homepage-carousels.js
           grep -q 'intervalSeconds \* 1000' public/homepage-carousels.js
@@ -121,6 +116,17 @@ jobs:
           grep -q '/api/admin/carousel-settings' public/homepage-carousels.js
           grep -q 'window.setInterval(() => scan(), 1500)' public/homepage-carousels.js
           grep -q 'prefers-reduced-motion' public/homepage-carousels.js
+          grep -q 'enhanceJournalCards' public/homepage-carousels.js
+          grep -q 'journal-book-card.css' public/homepage-carousels.js
+          grep -q 'Read full journal' public/homepage-carousels.js
+          grep -q 'journal-book-card-body' public/homepage-carousels.js
+          test -s public/journal-book-card.css
+          grep -q 'grid-template-columns: minmax(220px, 36%)' public/journal-book-card.css
+          grep -q 'height: 400px !important' public/journal-book-card.css
+          grep -q -- '-webkit-line-clamp: 4' public/journal-book-card.css
+          grep -q '.journal-read-more' public/journal-book-card.css
+          grep -q '@media (max-width: 760px)' public/journal-book-card.css
+          grep -q 'grid-template-columns: 1fr !important' public/journal-book-card.css
           grep -q 'window.location.assign("/studio.html")' public/profile-navigation.js
           grep -q 'data-ymi-profile-entry' public/profile-navigation.js
           grep -q 'viewer.*author.*admin' public/profile-navigation.js
