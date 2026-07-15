@@ -40,6 +40,7 @@ jobs:
           node --check server/security-auth-preload.js
           node --check server/social-footer-preload.js
           node --check server/work-description-ai-preload.js
+          node --check server/carousel-settings-preload.js
           node --check public/map-bootstrap.js
           node --check public/network-resilience.js
           node --check public/ymi-sw.js
@@ -93,18 +94,26 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-12' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-13' public/ymi-sw.js
           grep -q '"/profile-navigation.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.css"' public/ymi-sw.js
-          grep -q '.work-section .book-grid' public/homepage-carousels.js
-          grep -q '.work-section .play-event-grid' public/homepage-carousels.js
-          grep -q '.journal-preview .post-grid' public/homepage-carousels.js
-          grep -q 'requestAnimationFrame' public/homepage-carousels.js
-          grep -q 'prefers-reduced-motion' public/homepage-carousels.js
+          grep -q 'server/carousel-settings-preload.js' index.js
+          grep -q '/api/carousel-settings' server/carousel-settings-preload.js
+          grep -q '/api/admin/carousel-settings' server/carousel-settings-preload.js
+          grep -q 'interval_seconds' server/carousel-settings-preload.js
+          grep -q '.work-section .book-grid,' public/homepage-carousels.css
+          grep -q '.work-section .play-event-grid,' public/homepage-carousels.css
+          grep -q '.journal-preview .post-grid {' public/homepage-carousels.css
           grep -q 'display: flex !important' public/homepage-carousels.css
-          grep -q 'overflow-x: auto' public/homepage-carousels.css
-          grep -q 'scroll-snap-type' public/homepage-carousels.css
+          grep -q 'grid-template-columns: minmax(220px, 36%)' public/homepage-carousels.css
+          grep -q 'overflow-x: auto !important' public/homepage-carousels.css
+          grep -q 'intervalSeconds = 5' public/homepage-carousels.js
+          grep -q 'intervalSeconds \* 1000' public/homepage-carousels.js
+          grep -q 'Save carousel timing' public/homepage-carousels.js
+          grep -q '/api/admin/carousel-settings' public/homepage-carousels.js
+          grep -q 'window.setInterval(() => scan(), 1500)' public/homepage-carousels.js
+          grep -q 'prefers-reduced-motion' public/homepage-carousels.js
           grep -q 'window.location.assign("/studio.html")' public/profile-navigation.js
           grep -q 'data-ymi-profile-entry' public/profile-navigation.js
           grep -q 'viewer.*author.*admin' public/profile-navigation.js
