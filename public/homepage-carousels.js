@@ -6,13 +6,56 @@
     ".work-section .play-event-grid",
     ".journal-preview .post-grid",
   ];
-  const controllers = new WeakMap();
+  const controllers = new Map();
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  let intervalSeconds = 5;
+  let scanTimer = 0;
+
+  function clampInterval(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 5;
+    return Math.min(60, Math.max(2, Math.round(number)));
+  }
 
   function carouselName(container) {
     if (container.classList.contains("book-grid")) return "Books";
     if (container.classList.contains("play-event-grid")) return "Plays and events";
     return "Journal stories";
+  }
+
+  function cardList(container) {
+    return [...container.children].filter((node) => node.nodeType === Node.ELEMENT_NODE);
+  }
+
+  function nextCard(container) {
+    const cards = cardList(container);
+    if (cards.length < 2) return null;
+    const baseLeft = cards[0].offsetLeft;
+    const current = container.scrollLeft;
+    const next = cards.find((card) => card.offsetLeft - baseLeft > current + 24);
+    return next || cards[0];
+  }
+
+  function moveOneCard(container, state) {
+    if (!container.isConnected || state.paused || document.hidden || performance.now() < state.manualPauseUntil) {
+      return;
+    }
+    if (container.scrollWidth <= container.clientWidth + 8) return;
+    const card = nextCard(container);
+    if (!card) return;
+    const first = container.firstElementChild;
+    const destination = card === first ? 0 : Math.max(0, card.offsetLeft - (first?.offsetLeft || 0));
+    state.programmaticUntil = performance.now() + 1200;
+    container.scrollTo({ left: destination, behavior: "smooth" });
+  }
+
+  function schedule(container, state) {
+    window.clearTimeout(state.timer);
+    if (reduceMotion || !container.isConnected) return;
+    state.timer = window.setTimeout(() => {
+      moveOneCard(container, state);
+      schedule(container, state);
+    }, intervalSeconds * 1000);
   }
 
   function enhance(container) {
@@ -26,20 +69,23 @@
 
     const state = {
       paused: false,
-      manuallyPausedUntil: 0,
-      lastFrame: performance.now(),
-      edgePauseUntil: 0,
-      frame: 0,
+      manualPauseUntil: 0,
+      programmaticUntil: 0,
+      timer: 0,
     };
     controllers.set(container, state);
 
-    const pause = () => { state.paused = true; };
+    const pause = () => {
+      state.paused = true;
+      window.clearTimeout(state.timer);
+    };
     const resume = () => {
       state.paused = false;
-      state.lastFrame = performance.now();
+      schedule(container, state);
     };
-    const temporaryPause = (milliseconds = 2800) => {
-      state.manuallyPausedUntil = performance.now() + milliseconds;
+    const temporaryPause = (milliseconds = 3500) => {
+      state.manualPauseUntil = performance.now() + milliseconds;
+      schedule(container, state);
     };
 
     container.addEventListener("pointerenter", pause);
@@ -50,74 +96,140 @@
     });
     container.addEventListener("pointerdown", () => {
       pause();
-      temporaryPause(3500);
+      state.manualPauseUntil = performance.now() + 4500;
     }, { passive: true });
     container.addEventListener("pointerup", () => {
-      resume();
-      temporaryPause(2500);
+      state.paused = false;
+      temporaryPause(3500);
     }, { passive: true });
-    container.addEventListener("touchstart", () => {
-      pause();
+    container.addEventListener("touchstart", pause, { passive: true });
+    container.addEventListener("touchend", () => {
+      state.paused = false;
       temporaryPause(4000);
     }, { passive: true });
-    container.addEventListener("touchend", () => {
-      resume();
+    container.addEventListener("scroll", () => {
+      if (performance.now() < state.programmaticUntil) return;
       temporaryPause(3000);
     }, { passive: true });
-    container.addEventListener("scroll", () => temporaryPause(1800), { passive: true });
     container.addEventListener("keydown", (event) => {
       if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
       event.preventDefault();
-      const amount = Math.max(260, container.clientWidth * 0.72);
-      container.scrollBy({
-        left: event.key === "ArrowRight" ? amount : -amount,
-        behavior: "smooth",
-      });
-      temporaryPause(4000);
+      const cards = cardList(container);
+      if (!cards.length) return;
+      const first = cards[0];
+      const current = container.scrollLeft;
+      const positions = cards.map((card) => Math.max(0, card.offsetLeft - first.offsetLeft));
+      let destination = 0;
+      if (event.key === "ArrowRight") {
+        destination = positions.find((value) => value > current + 24) ?? positions[positions.length - 1];
+      } else {
+        destination = [...positions].reverse().find((value) => value < current - 24) ?? 0;
+      }
+      state.programmaticUntil = performance.now() + 1200;
+      container.scrollTo({ left: destination, behavior: "smooth" });
+      temporaryPause(4500);
     });
 
-    if (reduceMotion) return;
+    schedule(container, state);
+  }
 
-    function tick(now) {
-      if (!container.isConnected) {
-        cancelAnimationFrame(state.frame);
-        controllers.delete(container);
-        return;
-      }
-
-      const elapsed = Math.min(64, now - state.lastFrame);
-      state.lastFrame = now;
-      const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
-      const canMove = maxScroll > 8;
-      const blocked = state.paused
-        || document.hidden
-        || now < state.manuallyPausedUntil
-        || now < state.edgePauseUntil;
-
-      if (canMove && !blocked) {
-        const speed = window.innerWidth < 720 ? 18 : 26;
-        container.scrollLeft += (speed * elapsed) / 1000;
-
-        if (container.scrollLeft >= maxScroll - 2) {
-          state.edgePauseUntil = now + 1400;
-          window.setTimeout(() => {
-            if (!container.isConnected) return;
-            container.scrollTo({ left: 0, behavior: "smooth" });
-            state.manuallyPausedUntil = performance.now() + 1100;
-          }, 900);
-        }
-      }
-
-      state.frame = requestAnimationFrame(tick);
+  function cleanup() {
+    for (const [container, state] of controllers) {
+      if (container.isConnected) continue;
+      window.clearTimeout(state.timer);
+      controllers.delete(container);
     }
-
-    state.frame = requestAnimationFrame(tick);
   }
 
   function scan(root = document) {
     SELECTORS.forEach((selector) => {
       root.querySelectorAll?.(selector).forEach(enhance);
       if (root.matches?.(selector)) enhance(root);
+    });
+    cleanup();
+    mountAdminSetting();
+  }
+
+  async function loadSetting() {
+    try {
+      const response = await fetch("/api/carousel-settings", {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (response.ok) intervalSeconds = clampInterval(data.intervalSeconds);
+    } catch {
+      intervalSeconds = 5;
+    }
+    for (const [container, state] of controllers) schedule(container, state);
+    updateAdminInput();
+  }
+
+  function updateAdminInput() {
+    const input = document.querySelector("[data-ymi-carousel-interval]");
+    if (input && document.activeElement !== input) input.value = String(intervalSeconds);
+  }
+
+  function mountAdminSetting() {
+    const fields = document.querySelector(".homepage-editor .homepage-fields");
+    if (!fields || fields.querySelector("[data-ymi-carousel-admin]")) return;
+
+    const panel = document.createElement("section");
+    panel.className = "ymi-carousel-admin-setting";
+    panel.dataset.ymiCarouselAdmin = "true";
+    panel.innerHTML = `
+      <div>
+        <h4>Homepage card auto-scroll</h4>
+        <p>Controls Books, Plays & events, and Journal preview cards.</p>
+      </div>
+      <div class="ymi-carousel-admin-row">
+        <label>
+          Time between cards in seconds
+          <input data-ymi-carousel-interval type="number" min="2" max="60" step="1" value="${intervalSeconds}" />
+        </label>
+        <button type="button" class="button primary" data-ymi-carousel-save>Save carousel timing</button>
+      </div>
+      <small>Default is 5 seconds. Visitors can still swipe, drag, use a trackpad, or press the arrow keys.</small>
+      <p class="ymi-carousel-admin-status" role="status" aria-live="polite"></p>
+    `;
+
+    const heading = fields.querySelector(".designer-heading");
+    if (heading?.nextSibling) fields.insertBefore(panel, heading.nextSibling);
+    else fields.prepend(panel);
+
+    const input = panel.querySelector("[data-ymi-carousel-interval]");
+    const button = panel.querySelector("[data-ymi-carousel-save]");
+    const status = panel.querySelector(".ymi-carousel-admin-status");
+
+    button.addEventListener("click", async () => {
+      const value = Number(input.value);
+      if (!Number.isFinite(value) || value < 2 || value > 60) {
+        status.textContent = "Choose a value from 2 to 60 seconds.";
+        return;
+      }
+      const token = localStorage.getItem("ymi_admin_token") || localStorage.getItem("ymi_user_token") || "";
+      button.disabled = true;
+      status.textContent = "Saving carousel timing…";
+      try {
+        const response = await fetch("/api/admin/carousel-settings", {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ intervalSeconds: value }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || "Unable to save carousel timing.");
+        intervalSeconds = clampInterval(data.intervalSeconds);
+        input.value = String(intervalSeconds);
+        status.textContent = `Saved. Cards will move every ${intervalSeconds} seconds.`;
+        for (const [container, state] of controllers) schedule(container, state);
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
     });
   }
 
@@ -127,11 +239,15 @@
         if (node.nodeType === Node.ELEMENT_NODE) scan(node);
       });
     });
+    mountAdminSetting();
   });
 
   function start() {
     scan();
     observer.observe(document.body, { childList: true, subtree: true });
+    window.clearInterval(scanTimer);
+    scanTimer = window.setInterval(() => scan(), 1500);
+    loadSetting();
   }
 
   if (document.readyState === "loading") {
