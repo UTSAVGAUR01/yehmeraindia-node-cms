@@ -53,12 +53,14 @@
   display: grid !important;
   grid-template-columns: minmax(220px, 36%) minmax(0, 1fr) !important;
   align-items: stretch !important;
+  overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
 .work-section .book-grid > .book-card > img,
 .work-section .book-grid > .book-card > .book-cover-fallback {
+  display: block;
   width: 100% !important;
   height: 100% !important;
   min-height: 400px;
@@ -83,6 +85,7 @@
   min-width: 0 !important;
   height: auto !important;
   margin: 0 !important;
+  overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -118,6 +121,19 @@
   width: 100% !important;
   height: 100% !important;
   min-height: 330px;
+}
+
+.journal-preview .post-grid > .post-card > div:last-child,
+.work-section .book-grid > .book-card > div:last-child,
+.work-section .play-event-grid > .play-event-card {
+  min-width: 0;
+}
+
+.journal-preview .post-grid > .post-card h3,
+.work-section .book-grid > .book-card h3,
+.work-section .play-event-grid > .play-event-card h3 {
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .work-section .book-grid:focus-visible,
@@ -177,36 +193,153 @@
   .work-section .book-grid,
   .work-section .play-event-grid,
   .journal-preview .post-grid {
+    box-sizing: border-box;
     gap: 14px !important;
-    padding-bottom: 18px !important;
+    padding: 6px 0 14px !important;
+    scroll-padding-inline: 0;
+    scrollbar-width: none;
+  }
+
+  .work-section .book-grid::-webkit-scrollbar,
+  .work-section .play-event-grid::-webkit-scrollbar,
+  .journal-preview .post-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .work-section .book-grid > .book-card,
+  .work-section .play-event-grid > .play-event-card,
+  .journal-preview .post-grid > .post-card {
+    box-sizing: border-box;
+    flex: 0 0 calc(100% - 12px) !important;
+    width: calc(100% - 12px) !important;
+    max-width: calc(100% - 12px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
   }
 
   .work-section .book-grid > .book-card {
-    flex-basis: calc(100vw - 34px) !important;
-    width: calc(100vw - 34px) !important;
-    grid-template-columns: minmax(112px, 36%) minmax(0, 1fr) !important;
-    min-height: 340px;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+    align-items: start !important;
   }
 
   .work-section .book-grid > .book-card > img,
   .work-section .book-grid > .book-card > .book-cover-fallback {
-    min-height: 340px;
+    width: 100% !important;
+    height: clamp(260px, 88vw, 430px) !important;
+    min-height: 0 !important;
+    max-height: 430px !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    background: #0b0e21;
   }
 
-  .work-section .play-event-grid > .play-event-card,
-  .journal-preview .post-grid > .post-card {
-    flex-basis: calc(100vw - 34px) !important;
-    width: calc(100vw - 34px) !important;
+  .work-section .book-grid > .book-card > div:last-child {
+    padding: 22px 20px 24px;
+  }
+
+  .work-section .book-grid > .book-card .button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 18px;
+  }
+
+  .work-section .play-event-grid > .play-event-card {
+    padding: 24px 20px !important;
   }
 
   .journal-preview .post-grid > .post-card {
-    grid-template-columns: minmax(118px, 38%) minmax(0, 1fr) !important;
-    min-height: 300px;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+    align-items: start !important;
   }
 
   .journal-preview .post-grid > .post-card > img,
   .journal-preview .post-grid > .post-card > .cover-fallback {
-    min-height: 300px;
+    display: block;
+    width: 100% !important;
+    height: clamp(190px, 58vw, 280px) !important;
+    min-height: 0 !important;
+    max-height: 280px !important;
+    aspect-ratio: auto !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    background: #0b0e21;
+  }
+
+  .journal-preview .post-grid > .post-card > div:last-child {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 22px 20px 24px !important;
+  }
+
+  .journal-preview .post-grid > .post-card h3 {
+    margin-block: 10px 12px;
+    font-size: clamp(1.7rem, 8vw, 2.45rem);
+    line-height: 1.02;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .journal-preview .post-grid > .post-card p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    font-size: clamp(1rem, 4.7vw, 1.2rem);
+    line-height: 1.55;
+  }
+
+  .journal-preview .section-heading,
+  .work-section .section-heading {
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .journal-preview .section-heading .button,
+  .work-section .section-heading .text-link {
+    flex: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .work-section .book-grid > .book-card,
+  .work-section .play-event-grid > .play-event-card,
+  .journal-preview .post-grid > .post-card {
+    flex-basis: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .journal-preview .post-grid > .post-card > img,
+  .journal-preview .post-grid > .post-card > .cover-fallback {
+    height: clamp(180px, 56vw, 240px) !important;
+  }
+
+  .journal-preview .post-grid > .post-card > div:last-child,
+  .work-section .book-grid > .book-card > div:last-child,
+  .work-section .play-event-grid > .play-event-card {
+    padding-inline: 18px !important;
+  }
+
+  .journal-preview .post-grid > .post-card h3 {
+    font-size: clamp(1.65rem, 9vw, 2.2rem);
+  }
+
+  .journal-preview .section-heading,
+  .work-section .section-heading {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .journal-preview .section-heading .button,
+  .work-section .section-heading .text-link {
+    justify-self: start;
   }
 }
 
