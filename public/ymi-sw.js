@@ -1,4 +1,4 @@
-const VERSION = "ymi-vpn-shell-9";
+const VERSION = "ymi-vpn-shell-10";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
