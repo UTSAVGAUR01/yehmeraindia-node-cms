@@ -98,16 +98,26 @@
   display: grid !important;
   grid-template-columns: minmax(180px, 40%) minmax(0, 1fr) !important;
   align-items: stretch !important;
+  overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
-.journal-preview .post-grid > .post-card > img,
+.journal-preview .post-grid > .post-card > img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 330px;
+  max-height: 100%;
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: #0b0e21;
+}
+
 .journal-preview .post-grid > .post-card > .cover-fallback {
   width: 100% !important;
   height: 100% !important;
   min-height: 330px;
-  object-fit: cover !important;
 }
 
 .work-section .book-grid:focus-visible,
