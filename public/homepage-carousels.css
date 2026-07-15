@@ -1,102 +1,209 @@
-.work-section .book-grid.ymi-horizontal-carousel,
-.work-section .play-event-grid.ymi-horizontal-carousel,
-.journal-preview .post-grid.ymi-horizontal-carousel {
+.work-section .book-grid,
+.work-section .play-event-grid,
+.journal-preview .post-grid {
   display: flex !important;
-  grid-template-columns: none !important;
+  flex-direction: row !important;
   flex-wrap: nowrap !important;
-  align-items: stretch;
-  gap: clamp(18px, 2.2vw, 30px);
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 8px 2px 22px;
-  margin-inline: 0;
-  scroll-snap-type: x proximity;
+  grid-template-columns: none !important;
+  align-items: stretch !important;
+  gap: clamp(18px, 2vw, 30px) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 10px 2px 24px !important;
+  margin-inline: 0 !important;
+  scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
-  scrollbar-color: rgba(232, 174, 58, 0.75) rgba(255, 255, 255, 0.08);
+  scrollbar-color: rgba(232, 174, 58, 0.78) rgba(255, 255, 255, 0.08);
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
 }
 
-.work-section .book-grid.ymi-horizontal-carousel::-webkit-scrollbar,
-.work-section .play-event-grid.ymi-horizontal-carousel::-webkit-scrollbar,
-.journal-preview .post-grid.ymi-horizontal-carousel::-webkit-scrollbar {
+.work-section .book-grid::-webkit-scrollbar,
+.work-section .play-event-grid::-webkit-scrollbar,
+.journal-preview .post-grid::-webkit-scrollbar {
   height: 8px;
 }
 
-.work-section .book-grid.ymi-horizontal-carousel::-webkit-scrollbar-track,
-.work-section .play-event-grid.ymi-horizontal-carousel::-webkit-scrollbar-track,
-.journal-preview .post-grid.ymi-horizontal-carousel::-webkit-scrollbar-track {
+.work-section .book-grid::-webkit-scrollbar-track,
+.work-section .play-event-grid::-webkit-scrollbar-track,
+.journal-preview .post-grid::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
 }
 
-.work-section .book-grid.ymi-horizontal-carousel::-webkit-scrollbar-thumb,
-.work-section .play-event-grid.ymi-horizontal-carousel::-webkit-scrollbar-thumb,
-.journal-preview .post-grid.ymi-horizontal-carousel::-webkit-scrollbar-thumb {
-  background: rgba(232, 174, 58, 0.72);
+.work-section .book-grid::-webkit-scrollbar-thumb,
+.work-section .play-event-grid::-webkit-scrollbar-thumb,
+.journal-preview .post-grid::-webkit-scrollbar-thumb {
+  background: rgba(232, 174, 58, 0.74);
   border-radius: 999px;
 }
 
-.work-section .book-grid.ymi-horizontal-carousel > .book-card {
-  flex: 0 0 clamp(360px, 44vw, 560px);
-  min-width: 0;
-  height: auto;
+.work-section .book-grid > .book-card {
+  flex: 0 0 clamp(640px, 60vw, 860px) !important;
+  width: clamp(640px, 60vw, 860px) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 400px;
+  height: auto !important;
+  margin: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(220px, 36%) minmax(0, 1fr) !important;
+  align-items: stretch !important;
   scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-stop: always;
 }
 
-.work-section .play-event-grid.ymi-horizontal-carousel > .play-event-card {
-  flex: 0 0 clamp(330px, 36vw, 470px);
+.work-section .book-grid > .book-card > img,
+.work-section .book-grid > .book-card > .book-cover-fallback {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 400px;
+  object-fit: cover !important;
+}
+
+.work-section .book-grid > .book-card > div:last-child {
   min-width: 0;
-  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.work-section .book-grid > .book-card .button {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.work-section .play-event-grid > .play-event-card {
+  flex: 0 0 clamp(460px, 43vw, 620px) !important;
+  width: clamp(460px, 43vw, 620px) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
   scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-stop: always;
 }
 
-.journal-preview .post-grid.ymi-horizontal-carousel > .post-card {
-  flex: 0 0 clamp(300px, 31vw, 410px);
-  min-width: 0;
-  height: auto;
+.journal-preview .post-grid > .post-card {
+  flex: 0 0 clamp(480px, 44vw, 640px) !important;
+  width: clamp(480px, 44vw, 640px) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 330px;
+  height: auto !important;
+  margin: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(180px, 40%) minmax(0, 1fr) !important;
+  align-items: stretch !important;
   scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-stop: always;
 }
 
-.work-section .ymi-horizontal-carousel > article,
-.journal-preview .ymi-horizontal-carousel > article {
-  margin: 0;
+.journal-preview .post-grid > .post-card > img,
+.journal-preview .post-grid > .post-card > .cover-fallback {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 330px;
+  object-fit: cover !important;
 }
 
-.work-section .ymi-horizontal-carousel:focus-visible,
-.journal-preview .ymi-horizontal-carousel:focus-visible {
+.work-section .book-grid:focus-visible,
+.work-section .play-event-grid:focus-visible,
+.journal-preview .post-grid:focus-visible {
   outline: 2px solid rgba(232, 174, 58, 0.92);
   outline-offset: 6px;
 }
 
+.ymi-carousel-admin-setting {
+  border: 1px solid rgba(232, 174, 58, 0.38);
+  background: rgba(232, 174, 58, 0.07);
+  padding: 18px;
+  margin: 0 0 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.ymi-carousel-admin-setting h4,
+.ymi-carousel-admin-setting p {
+  margin: 0;
+}
+
+.ymi-carousel-admin-setting h4 {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.ymi-carousel-admin-setting p,
+.ymi-carousel-admin-setting small {
+  color: rgba(238, 236, 226, 0.72);
+  line-height: 1.5;
+}
+
+.ymi-carousel-admin-row {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ymi-carousel-admin-row label {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.ymi-carousel-admin-row input {
+  width: 100%;
+}
+
+.ymi-carousel-admin-status {
+  min-height: 1.25em;
+  color: #f0ad2c !important;
+}
+
 @media (max-width: 760px) {
-  .work-section .book-grid.ymi-horizontal-carousel,
-  .work-section .play-event-grid.ymi-horizontal-carousel,
-  .journal-preview .post-grid.ymi-horizontal-carousel {
-    gap: 16px;
-    padding-bottom: 18px;
-    scroll-snap-type: x mandatory;
+  .work-section .book-grid,
+  .work-section .play-event-grid,
+  .journal-preview .post-grid {
+    gap: 14px !important;
+    padding-bottom: 18px !important;
   }
 
-  .work-section .book-grid.ymi-horizontal-carousel > .book-card,
-  .work-section .play-event-grid.ymi-horizontal-carousel > .play-event-card,
-  .journal-preview .post-grid.ymi-horizontal-carousel > .post-card {
-    flex-basis: calc(100vw - 48px);
-    max-width: calc(100vw - 48px);
+  .work-section .book-grid > .book-card {
+    flex-basis: calc(100vw - 34px) !important;
+    width: calc(100vw - 34px) !important;
+    grid-template-columns: minmax(112px, 36%) minmax(0, 1fr) !important;
+    min-height: 340px;
+  }
+
+  .work-section .book-grid > .book-card > img,
+  .work-section .book-grid > .book-card > .book-cover-fallback {
+    min-height: 340px;
+  }
+
+  .work-section .play-event-grid > .play-event-card,
+  .journal-preview .post-grid > .post-card {
+    flex-basis: calc(100vw - 34px) !important;
+    width: calc(100vw - 34px) !important;
+  }
+
+  .journal-preview .post-grid > .post-card {
+    grid-template-columns: minmax(118px, 38%) minmax(0, 1fr) !important;
+    min-height: 300px;
+  }
+
+  .journal-preview .post-grid > .post-card > img,
+  .journal-preview .post-grid > .post-card > .cover-fallback {
+    min-height: 300px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .work-section .book-grid.ymi-horizontal-carousel,
-  .work-section .play-event-grid.ymi-horizontal-carousel,
-  .journal-preview .post-grid.ymi-horizontal-carousel {
+  .work-section .book-grid,
+  .work-section .play-event-grid,
+  .journal-preview .post-grid {
     scroll-behavior: auto;
   }
 }
