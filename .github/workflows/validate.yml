@@ -57,12 +57,12 @@ jobs:
           node --check public/admin-site-settings-link.js
           node --check public/work-description-ai.js
           node --check public/auth-redirect.js
-          node --check public/member-studio-link.js
+          node --check public/admin-studio-enhancements.js
 
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify React-owned DOM and single vector map assets
+      - name: Verify React-owned DOM, studio controls and single vector map assets
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
@@ -88,7 +88,7 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-8' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-9' public/ymi-sw.js
           grep -q 'nameEnglish' server/bilingual-place-preload.js
           grep -q 'bilingual-v3' server/bilingual-place-preload.js
           ! grep -q '/india-map-labels.js' dist/index.html
@@ -96,8 +96,14 @@ jobs:
           grep -q 'getElementById("ymi-global-footer")' public/site-footer.js
           ! grep -q 'MutationObserver' public/site-footer.js
           ! grep -q 'main footer' public/site-footer.js
-          grep -q '/member-studio-link.js' dist/index.html
-          grep -q 'document.body.appendChild(host)' public/member-studio-link.js
-          grep -q 'href="/studio.html"' public/member-studio-link.js
-          ! grep -q 'querySelector' public/member-studio-link.js
+          grep -q '/admin-studio-enhancements.js' dist/index.html
+          grep -q '/admin-studio-enhancements.css' dist/index.html
+          grep -q '/api/admin/rewrite' public/admin-studio-enhancements.js
+          grep -q 'Rewrite book description with AI' public/admin-studio-enhancements.js
+          grep -q 'Rewrite play description with AI' public/admin-studio-enhancements.js
+          grep -q 'Rewrite video description with AI' public/admin-studio-enhancements.js
+          ! grep -q '/member-studio-link.js' dist/index.html
+          ! grep -q '/admin-profile-link.css' dist/index.html
+          test ! -e public/member-studio-link.js
+          test ! -e public/admin-profile-link.css
           ! grep -Eq '(frontend-recovery|work-details|author-follow|work-description-ai|india-bilingual-index|admin-site-settings-link)\.js' dist/index.html

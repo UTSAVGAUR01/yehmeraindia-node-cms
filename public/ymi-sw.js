@@ -1,4 +1,4 @@
-const VERSION = "ymi-vpn-shell-8";
+const VERSION = "ymi-vpn-shell-9";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
@@ -13,7 +13,8 @@ const CORE = [
   "/react-layout-fixes.css",
   "/site-footer.css",
   "/global-footer-safe.css",
-  "/admin-profile-link.css",
+  "/admin-studio-enhancements.css",
+  "/admin-studio-enhancements.js",
   "/network-resilience.js",
 ];
 
