@@ -1,0 +1,167 @@
+/* Admin and Author studio layout repairs. */
+.admin-page > aside {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 155, 45, 0.5) transparent;
+}
+
+.admin-page > aside .logo {
+  flex: 0 0 auto;
+  margin-bottom: 22px;
+}
+
+.admin-page > aside > button,
+.admin-page > aside > .admin-nav {
+  min-height: 48px;
+  flex: 0 0 auto;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+}
+
+.admin-page > aside > button svg,
+.admin-page > aside > .admin-nav svg {
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+}
+
+.admin-page > aside .logout {
+  margin-top: auto;
+}
+
+/* Remove the legacy fixed profile control even from an older cached DOM. */
+#ymi-admin-profile-link-host,
+body.ymi-admin-profile-link-enabled #ymi-admin-profile-link-host {
+  display: none !important;
+}
+
+.ymi-catalogue-ai {
+  margin: 10px 0 20px;
+  padding: 15px;
+  border: 1px solid rgba(232, 155, 45, 0.42);
+  background: rgba(232, 155, 45, 0.07);
+}
+
+.ymi-catalogue-ai-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
+  align-items: start;
+  gap: 14px;
+}
+
+.ymi-catalogue-ai-head > div {
+  display: grid;
+  gap: 5px;
+}
+
+.ymi-catalogue-ai-head b {
+  color: var(--ivory);
+  font-size: 13px;
+}
+
+.ymi-catalogue-ai-head span {
+  color: #9c99a8;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ymi-catalogue-ai select {
+  width: 100%;
+  min-height: 42px;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #080b1d;
+  color: var(--ivory);
+  padding: 9px 11px;
+}
+
+.ymi-catalogue-ai-research {
+  margin: 12px 0 !important;
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 9px !important;
+  color: #c8c4ba !important;
+  font-size: 11px !important;
+}
+
+.ymi-catalogue-ai-research input {
+  width: auto !important;
+  margin: 0;
+}
+
+.ymi-catalogue-ai-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(232, 155, 45, 0.65);
+  background: rgba(232, 155, 45, 0.12);
+  color: #f7d59a;
+  font: 700 12px/1.3 Manrope, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.ymi-catalogue-ai-button:hover,
+.ymi-catalogue-ai-button:focus-visible {
+  background: rgba(232, 155, 45, 0.2);
+  outline: none;
+}
+
+.ymi-catalogue-ai-button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.ymi-catalogue-ai-status {
+  min-height: 0;
+  margin: 10px 0 0;
+  color: #aaa7b4;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.ymi-catalogue-ai-status:empty {
+  display: none;
+}
+
+.ymi-catalogue-ai-status[data-kind="success"] {
+  color: #83d7ad;
+}
+
+.ymi-catalogue-ai-status[data-kind="error"] {
+  color: #ff9eaa;
+}
+
+@media (max-height: 760px) and (min-width: 901px) {
+  .admin-page > aside {
+    padding-top: 18px;
+    padding-bottom: 18px;
+    gap: 5px;
+  }
+
+  .admin-page > aside .logo {
+    margin-bottom: 10px;
+  }
+
+  .admin-page > aside > button,
+  .admin-page > aside > .admin-nav {
+    min-height: 43px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+
+@media (max-width: 720px) {
+  .ymi-catalogue-ai-head {
+    grid-template-columns: 1fr;
+  }
+}
