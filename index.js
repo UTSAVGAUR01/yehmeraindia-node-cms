@@ -13,4 +13,5 @@ import "./server/member-studio-preload.js";
 import "./server/profile-preload.js";
 import "./server/social-footer-preload.js";
 import "./server/work-description-ai-preload.js";
+import "./server/carousel-settings-preload.js";
 import "./server/index.js";
