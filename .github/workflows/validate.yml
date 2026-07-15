@@ -59,11 +59,12 @@ jobs:
           node --check public/work-description-ai.js
           node --check public/auth-redirect.js
           node --check public/admin-studio-enhancements.js
+          node --check public/homepage-carousels.js
 
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify React-owned DOM, catalogue AI preview, profile navigation and single vector map assets
+      - name: Verify React DOM, carousel, profile, catalogue AI and vector map assets
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
@@ -74,6 +75,8 @@ jobs:
           grep -q '/site-footer.js' dist/index.html
           grep -q '/network-resilience.js' dist/index.html
           grep -q '/profile-navigation.js' dist/index.html
+          grep -q '/homepage-carousels.js' dist/index.html
+          grep -q '/homepage-carousels.css' dist/index.html
           grep -q '/map-bootstrap.js' dist/index.html
           grep -q '/india-vector-map.js' dist/index.html
           grep -q '/india-vector-map.css' dist/index.html
@@ -90,8 +93,18 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-11' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-12' public/ymi-sw.js
           grep -q '"/profile-navigation.js"' public/ymi-sw.js
+          grep -q '"/homepage-carousels.js"' public/ymi-sw.js
+          grep -q '"/homepage-carousels.css"' public/ymi-sw.js
+          grep -q '.work-section .book-grid' public/homepage-carousels.js
+          grep -q '.work-section .play-event-grid' public/homepage-carousels.js
+          grep -q '.journal-preview .post-grid' public/homepage-carousels.js
+          grep -q 'requestAnimationFrame' public/homepage-carousels.js
+          grep -q 'prefers-reduced-motion' public/homepage-carousels.js
+          grep -q 'display: flex !important' public/homepage-carousels.css
+          grep -q 'overflow-x: auto' public/homepage-carousels.css
+          grep -q 'scroll-snap-type' public/homepage-carousels.css
           grep -q 'window.location.assign("/studio.html")' public/profile-navigation.js
           grep -q 'data-ymi-profile-entry' public/profile-navigation.js
           grep -q 'viewer.*author.*admin' public/profile-navigation.js

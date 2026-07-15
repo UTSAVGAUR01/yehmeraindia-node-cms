@@ -1,0 +1,102 @@
+.work-section .book-grid.ymi-horizontal-carousel,
+.work-section .play-event-grid.ymi-horizontal-carousel,
+.journal-preview .post-grid.ymi-horizontal-carousel {
+  display: flex !important;
+  grid-template-columns: none !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: clamp(18px, 2.2vw, 30px);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 2px 22px;
+  margin-inline: 0;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 174, 58, 0.75) rgba(255, 255, 255, 0.08);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+.work-section .book-grid.ymi-horizontal-carousel::-webkit-scrollbar,
+.work-section .play-event-grid.ymi-horizontal-carousel::-webkit-scrollbar,
+.journal-preview .post-grid.ymi-horizontal-carousel::-webkit-scrollbar {
+  height: 8px;
+}
+
+.work-section .book-grid.ymi-horizontal-carousel::-webkit-scrollbar-track,
+.work-section .play-event-grid.ymi-horizontal-carousel::-webkit-scrollbar-track,
+.journal-preview .post-grid.ymi-horizontal-carousel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.work-section .book-grid.ymi-horizontal-carousel::-webkit-scrollbar-thumb,
+.work-section .play-event-grid.ymi-horizontal-carousel::-webkit-scrollbar-thumb,
+.journal-preview .post-grid.ymi-horizontal-carousel::-webkit-scrollbar-thumb {
+  background: rgba(232, 174, 58, 0.72);
+  border-radius: 999px;
+}
+
+.work-section .book-grid.ymi-horizontal-carousel > .book-card {
+  flex: 0 0 clamp(360px, 44vw, 560px);
+  min-width: 0;
+  height: auto;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.work-section .play-event-grid.ymi-horizontal-carousel > .play-event-card {
+  flex: 0 0 clamp(330px, 36vw, 470px);
+  min-width: 0;
+  height: auto;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.journal-preview .post-grid.ymi-horizontal-carousel > .post-card {
+  flex: 0 0 clamp(300px, 31vw, 410px);
+  min-width: 0;
+  height: auto;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.work-section .ymi-horizontal-carousel > article,
+.journal-preview .ymi-horizontal-carousel > article {
+  margin: 0;
+}
+
+.work-section .ymi-horizontal-carousel:focus-visible,
+.journal-preview .ymi-horizontal-carousel:focus-visible {
+  outline: 2px solid rgba(232, 174, 58, 0.92);
+  outline-offset: 6px;
+}
+
+@media (max-width: 760px) {
+  .work-section .book-grid.ymi-horizontal-carousel,
+  .work-section .play-event-grid.ymi-horizontal-carousel,
+  .journal-preview .post-grid.ymi-horizontal-carousel {
+    gap: 16px;
+    padding-bottom: 18px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .work-section .book-grid.ymi-horizontal-carousel > .book-card,
+  .work-section .play-event-grid.ymi-horizontal-carousel > .play-event-card,
+  .journal-preview .post-grid.ymi-horizontal-carousel > .post-card {
+    flex-basis: calc(100vw - 48px);
+    max-width: calc(100vw - 48px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-section .book-grid.ymi-horizontal-carousel,
+  .work-section .play-event-grid.ymi-horizontal-carousel,
+  .journal-preview .post-grid.ymi-horizontal-carousel {
+    scroll-behavior: auto;
+  }
+}

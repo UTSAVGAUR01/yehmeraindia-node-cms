@@ -1,4 +1,4 @@
-const VERSION = "ymi-vpn-shell-11";
+const VERSION = "ymi-vpn-shell-12";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const TILE_CACHE = `${VERSION}-tiles`;
@@ -16,6 +16,8 @@ const CORE = [
   "/admin-studio-enhancements.css",
   "/admin-studio-enhancements.js",
   "/profile-navigation.js",
+  "/homepage-carousels.css",
+  "/homepage-carousels.js",
   "/network-resilience.js",
 ];
 
