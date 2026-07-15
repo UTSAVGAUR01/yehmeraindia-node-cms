@@ -17,6 +17,40 @@
     return Math.min(60, Math.max(2, Math.round(number)));
   }
 
+  function ensureJournalStyles() {
+    if (document.querySelector('link[data-ymi-journal-book-card]')) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/journal-book-card.css";
+    link.dataset.ymiJournalBookCard = "true";
+    document.head.appendChild(link);
+  }
+
+  function enhanceJournalCards(container) {
+    if (!container?.matches?.(".journal-preview .post-grid")) return;
+    ensureJournalStyles();
+
+    for (const card of container.querySelectorAll(":scope > .post-card")) {
+      card.classList.add("journal-book-card");
+      card.dataset.journalCardReady = "true";
+
+      const body = card.lastElementChild;
+      if (!(body instanceof HTMLElement)) continue;
+      body.classList.add("journal-book-card-body");
+
+      const title = body.querySelector("h3")?.textContent?.trim() || "journal story";
+      let more = body.querySelector(".journal-read-more");
+      if (!more) {
+        more = document.createElement("button");
+        more.type = "button";
+        more.className = "button primary journal-read-more";
+        more.textContent = "Read full journal";
+        more.setAttribute("aria-label", `Read full journal: ${title}`);
+        body.appendChild(more);
+      }
+    }
+  }
+
   function carouselName(container) {
     if (container.classList.contains("book-grid")) return "Books";
     if (container.classList.contains("play-event-grid")) return "Plays and events";
@@ -59,7 +93,9 @@
   }
 
   function enhance(container) {
-    if (!container || controllers.has(container)) return;
+    if (!container) return;
+    enhanceJournalCards(container);
+    if (controllers.has(container)) return;
 
     container.classList.add("ymi-horizontal-carousel");
     container.dataset.carouselReady = "true";
@@ -243,6 +279,7 @@
   });
 
   function start() {
+    ensureJournalStyles();
     scan();
     observer.observe(document.body, { childList: true, subtree: true });
     window.clearInterval(scanTimer);
