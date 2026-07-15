@@ -62,7 +62,7 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify React-owned DOM, studio controls and single vector map assets
+      - name: Verify React-owned DOM, catalogue AI preview and single vector map assets
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
@@ -88,7 +88,7 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-9' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-10' public/ymi-sw.js
           grep -q 'nameEnglish' server/bilingual-place-preload.js
           grep -q 'bilingual-v3' server/bilingual-place-preload.js
           ! grep -q '/india-map-labels.js' dist/index.html
@@ -98,10 +98,14 @@ jobs:
           ! grep -q 'main footer' public/site-footer.js
           grep -q '/admin-studio-enhancements.js' dist/index.html
           grep -q '/admin-studio-enhancements.css' dist/index.html
+          grep -q '/api/admin/ai/work-description' public/admin-studio-enhancements.js
           grep -q '/api/admin/rewrite' public/admin-studio-enhancements.js
-          grep -q 'Rewrite book description with AI' public/admin-studio-enhancements.js
-          grep -q 'Rewrite play description with AI' public/admin-studio-enhancements.js
-          grep -q 'Rewrite video description with AI' public/admin-studio-enhancements.js
+          grep -q 'Write book description with AI' public/admin-studio-enhancements.js
+          grep -q 'Write play description with AI' public/admin-studio-enhancements.js
+          grep -q 'Format and writing style' public/admin-studio-enhancements.js
+          grep -q 'Review before replacing' public/admin-studio-enhancements.js
+          grep -q 'Keep original' public/admin-studio-enhancements.js
+          grep -q 'Replace original' public/admin-studio-enhancements.js
           ! grep -q '/member-studio-link.js' dist/index.html
           ! grep -q '/admin-profile-link.css' dist/index.html
           test ! -e public/member-studio-link.js
