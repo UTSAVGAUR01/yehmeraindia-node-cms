@@ -65,7 +65,7 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
-      - name: Verify React DOM, carousel, profile, catalogue AI and vector map assets
+      - name: Verify React DOM, carousel, mobile studio, profile, catalogue AI and vector map assets
         run: |
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -size +0c -print -quit)"
@@ -94,7 +94,7 @@ jobs:
           grep -q 'line-color": "#17120c"' public/india-vector-map.js
           grep -q 'ymi-vector-map-pending' public/india-vector-map.css
           grep -q 'ymi-vector-map-fallback' public/india-vector-map.css
-          grep -q 'ymi-vpn-shell-16' public/ymi-sw.js
+          grep -q 'ymi-vpn-shell-17' public/ymi-sw.js
           grep -q '"/profile-navigation.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.js"' public/ymi-sw.js
           grep -q '"/homepage-carousels.css"' public/ymi-sw.js
@@ -127,6 +127,13 @@ jobs:
           grep -q '.journal-read-more' public/journal-book-card.css
           grep -q '@media (max-width: 760px)' public/journal-book-card.css
           grep -q 'grid-template-columns: 1fr !important' public/journal-book-card.css
+          grep -q 'The desktop sidebar height must never override the compact mobile toolbar' public/admin-studio-enhancements.css
+          grep -q 'min-height: 0;' public/admin-studio-enhancements.css
+          grep -q 'height: auto;' public/admin-studio-enhancements.css
+          grep -q 'flex-direction: row;' public/admin-studio-enhancements.css
+          grep -q 'overflow-y: hidden;' public/admin-studio-enhancements.css
+          grep -q 'min-width: 82px;' public/admin-studio-enhancements.css
+          grep -q 'height: 66px;' public/admin-studio-enhancements.css
           grep -q 'window.location.assign("/studio.html")' public/profile-navigation.js
           grep -q 'data-ymi-profile-entry' public/profile-navigation.js
           grep -q 'viewer.*author.*admin' public/profile-navigation.js
