@@ -268,3 +268,94 @@ body.ymi-admin-profile-link-enabled #ymi-admin-profile-link-host {
     width: 100%;
   }
 }
+
+/* The desktop sidebar height must never override the compact mobile toolbar. */
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1200px) {
+  .admin-page {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .admin-page > aside {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 5px;
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    box-shadow: 0 8px 24px rgba(5, 7, 20, 0.24);
+  }
+
+  .admin-page > aside::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-page > aside .logo {
+    display: none;
+  }
+
+  .admin-page > aside > button,
+  .admin-page > aside > .admin-nav {
+    box-sizing: border-box;
+    min-width: 82px;
+    min-height: 66px;
+    height: 66px;
+    padding: 7px 9px;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-radius: 9px;
+    font-size: 10px;
+    line-height: 1.15;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .admin-page > aside > button svg,
+  .admin-page > aside > .admin-nav svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .admin-page > aside .logout {
+    margin: 0;
+  }
+
+  .admin-content {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-page > aside {
+    padding-inline: 8px;
+  }
+
+  .admin-page > aside > button,
+  .admin-page > aside > .admin-nav {
+    min-width: 76px;
+    min-height: 62px;
+    height: 62px;
+    padding-inline: 7px;
+    font-size: 9.5px;
+  }
+}
